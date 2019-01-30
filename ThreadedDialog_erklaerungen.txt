@@ -1,0 +1,11 @@
+
+Qt Dialog-Threading:
+	- jeder dialog startet einen eigenen neuen Thread. An diesen Thread wird ein ThreadWorker gekoppelt. Dieser ThreadWorker läuft exklusiv im Thread
+	=> im Gosh-Projekt folgende 2 Klassen bringen das Zustande:
+		- ThreadedDialog
+		- DialogWorker
+		ganz wichtig:
+			es muessen noch Klasse QThread::Priority fuer signal/slot registriert werden:
+			Q_DECLARE_METATYPE(QThread::Priority);
+			qRegisterMetaType<QThread::Priority>();
+		
