@@ -141,7 +141,7 @@ namespace QueueTasks
                                   QObject* parent = nullptr);
         virtual ~TaskFolderCloser() override;
     signals:
-        void closeFolders();
+        void closeFolders(bool removeFromParent);
     public slots:
         void run() override;
     public:

@@ -19,6 +19,11 @@
 #include "staticfunctions.h"
 #include "process.h"
 
+class FileInfoBD;
+
+//----------------------------------------------------------------------------------
+
+
 enum OS
 {
     LINUX,
@@ -26,6 +31,10 @@ enum OS
     MACOS,
     UNKNOWN
 };
+
+
+//----------------------------------------------------------------------------------
+
 
 namespace STATIC_FUNCTIONS
 {
@@ -44,28 +53,29 @@ namespace STATIC_FUNCTIONS
     Process* execPythonScript(const QString& scriptPath, const QVector<QString>& args, bool waitForFinished = true);
     Process* execPythonScript(const std::string& scriptPath, const std::vector<std::string>& args, bool waitForFinished = true);
 
-//    ----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
 
     QString getUniqueFilePath(const QString& absFilePath);
     QString getUniqueFolderPath(const QString& absFolderPath);
 
-//    ----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
 
-    OS LOCAL_OS(){
-        QString os = QSysInfo::kernelType();
-        if(os.contains("win"))
-            return OS::WINDOWS;
-        else if(os == "linux")
-            return OS::LINUX;
-        else if(os == "darwin")
-            return OS::MACOS;
-        else
-            return OS::UNKNOWN;
-    }
+    OS LOCAL_OS();
 
-//    ----------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------
 
     void openTerminal(QString sourceDir);
+
+//----------------------------------------------------------------------------------
+
+    bool isSubDirectory(const std::string& potentialSubFile, const std::string& potentialParentFolder);
+    bool isSubDirectory(const QString& potentialSubFile, const QString& potentialParentFolder);
+    bool isSubDirectory(const QFileInfo& potentialSubFile, const QFileInfo& potentialParentFolder);
+
+//----------------------------------------------------------------------------------
+
+    void removeSubDirsIfParentDirIsInContainer(std::vector<FileInfoBD*>& dirs_to_validate);
+    bool removeSubDirsIfParentDirIsInContainer(std::vector<std::string>& paths_to_validate);
 }
 
 #endif // SATATICFUNCTIONS_FILES_H

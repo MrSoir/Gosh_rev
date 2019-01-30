@@ -326,7 +326,7 @@ QueueTasks::TaskFolderCloser::~TaskFolderCloser()
 
 void QueueTasks::TaskFolderCloser::run()
 {
-    emit closeFolders();
+    emit closeFolders(true);
 }
 
 

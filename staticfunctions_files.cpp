@@ -173,9 +173,12 @@ QString STATIC_FUNCTIONS::getUniqueFolderPath(const QString &absFolderPath)
     return path;
 }
 
+//--------------------------------------------------------------------------------------------------
+
+
 void STATIC_FUNCTIONS::openTerminal(QString sourceDir)
 {
-    OS local_os = STATIC_FUNCTIONS::LOCAL_OS();
+    OS local_os = LOCAL_OS();
     if(local_os == OS::LINUX)
     {
         Process* proc = new Process();
@@ -189,3 +192,119 @@ void STATIC_FUNCTIONS::openTerminal(QString sourceDir)
     }else
         throw "STATIC_FUNCTIONS::openTerminal -> OS not supported!";
 }
+
+//--------------------------------------------------------------------------------------------------
+
+
+bool STATIC_FUNCTIONS::isSubDirectory(const string &potentialSubFile, const string &potentialParentFolder)
+{
+    return isSubDirectory(QFileInfo(QString::fromStdString(potentialSubFile)), QFileInfo(QString::fromStdString(potentialParentFolder)));
+}
+
+bool STATIC_FUNCTIONS::isSubDirectory(const QString& potentialSubFile, const QString& potentialParentFolder)
+{
+    return isSubDirectory(QFileInfo(potentialSubFile), QFileInfo(potentialParentFolder));
+}
+bool STATIC_FUNCTIONS::isSubDirectory(const QFileInfo& potentialSubFile, const QFileInfo& potentialParentFolder)
+{
+    // eine datei kann kein parent-folder sein von irgendwas:
+    if(potentialParentFolder.isFile())
+        return false;
+
+    QDir parentFolder   = PATH::getDirFromPath(potentialParentFolder);
+    QDir subFilesFolder = PATH::getDirFromPath(potentialSubFile);
+
+    int parentFolderPathLength = parentFolder.absolutePath().length();
+
+    do{
+        if(subFilesFolder == parentFolder)
+            return true;
+    }while(subFilesFolder.cdUp() &&
+           subFilesFolder.absolutePath().length() >= parentFolderPathLength);
+
+
+    return false;
+}
+
+//--------------------------------------------------------------------------------------------------
+
+#include "file_handling_src/fileinfobd.h"
+
+void STATIC_FUNCTIONS::removeSubDirsIfParentDirIsInContainer(std::vector<FileInfoBD*>& dirs_to_validate)
+{
+    std::unordered_map<std::string, FileInfoBD*> path_to_dir;
+    std::vector<std::string> paths;
+    for(auto* dir: dirs_to_validate)
+    {
+        std::string absPath = dir->absPath();
+        path_to_dir[absPath] = dir;
+        paths.push_back(absPath);
+    }
+
+    bool invalidPathDetected = removeSubDirsIfParentDirIsInContainer(paths);
+
+    if(invalidPathDetected)
+    {
+        dirs_to_validate.clear();
+        for(const auto& path: paths)
+        {
+            dirs_to_validate.push_back( path_to_dir[path] );
+        }
+    }
+}
+
+bool STATIC_FUNCTIONS::removeSubDirsIfParentDirIsInContainer(std::vector<std::string>& paths_to_validate)
+{
+    bool invalidPathDetected = false;
+
+    for(unsigned long i=0; i < paths_to_validate.size(); ++i)
+    {
+        for(unsigned long j=0; j < paths_to_validate.size(); ++j)
+        {
+            if(i != j)
+            {
+                bool isSubDir = STATIC_FUNCTIONS::isSubDirectory(paths_to_validate[i], paths_to_validate[j]);
+                if(isSubDir)
+                {
+                    invalidPathDetected = true;
+
+                    paths_to_validate.erase(paths_to_validate.begin() + static_cast<int>(i));
+                    --i;
+                    if(j > i)
+                        --j;
+                }else{
+                    isSubDir = STATIC_FUNCTIONS::isSubDirectory(paths_to_validate[j], paths_to_validate[i]);
+                    if(isSubDir)
+                    {
+                        invalidPathDetected = true;
+
+                        paths_to_validate.erase(paths_to_validate.begin() + static_cast<int>(j));
+                        --j;
+                        if(i > j)
+                        {
+                            --i;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return invalidPathDetected;
+}
+
+//----------------------------------------------------------------------------------
+
+OS STATIC_FUNCTIONS::LOCAL_OS()
+{
+    QString os = QSysInfo::kernelType();
+    if(os.contains("win"))
+        return OS::WINDOWS;
+    else if(os == "linux")
+        return OS::LINUX;
+    else if(os == "darwin")
+        return OS::MACOS;
+    else
+        return OS::UNKNOWN;
+}
+

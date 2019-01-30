@@ -48,6 +48,7 @@ namespace PATH
 
     // getDirFromPath -> wenn absPath ein dir  ist, liefert es den absPath so wieder zurueck
     //                -> wenn absPath ein file ist, liefert es den folder zurueck, in dem das file liegt
+    QString getDirFromPath(const QFileInfo& fi);
     QString getDirFromPath(const QString& absPath);
     QString getDirFromPath(const std::string& absPath);
 

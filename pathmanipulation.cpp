@@ -114,15 +114,18 @@ std::string PATH::join(const std::string &headPath, const std::string &tailPath)
     return join(QString::fromStdString(headPath), QString::fromStdString(tailPath)).toStdString();
 }
 
-QString PATH::getDirFromPath(const QString &absPath)
+QString PATH::getDirFromPath(const QFileInfo &fi)
 {
-    QFileInfo fi(absPath);
     if(fi.isDir())
-        return absPath;
+        return fi.absoluteFilePath();
     else if (fi.isFile())
         return fi.dir().absolutePath();
     else // dann lief wohl was schief....
         throw "PATH::getDirFromPath -> absPath is neither a folder nor a file!";
+}
+QString PATH::getDirFromPath(const QString &absPath)
+{
+    return getDirFromPath(QFileInfo(absPath));
 }
 
 QString PATH::getDirFromPath(const std::string &absPath)

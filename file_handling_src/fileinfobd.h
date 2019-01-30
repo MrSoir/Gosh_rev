@@ -21,6 +21,51 @@
 
 #include "listfiles.h"
 #include "orderby.h"
+#include "stringops.h"
+
+class FileInfoBD;
+
+//---------------------------------------------------------------------------
+
+class FiBDDeletor : public QObject
+{
+    Q_OBJECT
+public:
+    FiBDDeletor(FileInfoBD* fiBD = nullptr,
+                bool removeFromParent = false);
+    FiBDDeletor(FiBDDeletor& toCopy);
+
+    void operator=(FiBDDeletor& toCopy);
+
+    virtual ~FiBDDeletor();
+
+
+    FileInfoBD* m_fiBD;
+    bool m_removeFromParent;
+
+public slots:
+    void execute_deletion();
+private:
+};
+
+//---------------------------------------------------------------------------
+
+class FiBD_Collector : public QObject
+{
+    Q_OBJECT
+public:
+    explicit FiBD_Collector();
+signals:
+    void fiBD_created(FileInfoBD* fiBD);
+    void fIBD_destroyed(FileInfoBD* fiBD);
+public slots:
+    void fiBD_created_slot(FileInfoBD* fiBD);
+    void fiBD_destroyed_slot(FileInfoBD* fiBD);
+};
+
+extern FiBD_Collector* FIBD_COLLECTOR;
+
+//---------------------------------------------------------------------------
 
 class FileInfoBD : public QObject
 {
@@ -37,6 +82,8 @@ public:
                         bool includeHiddenFiles = false,
                         QObject *parentm_focus_match_id = nullptr);
     explicit FileInfoBD(const FileInfoBD& fi);
+    void operator=(const FileInfoBD& fi);
+
     ~FileInfoBD();
 
     bool isElapsed() const;
@@ -82,11 +129,16 @@ public:
                         FileInfoBD* firstNonCollapsedFold,
                         int depthId);
 
-    void iterateOverFolders(std::function<void(FileInfoBD*)> f);
+    void iterateOverFolders(std::function<void(const FileInfoBD* const)> f) const;
 
     const std::vector<std::string>& getSortedFiles() const;
+    const std::vector<std::string>& getSortedFileNames() const;
     const std::vector<std::string>& getSortedFolds() const;
     const std::vector<std::string>& getSortedEntries() const;
+    std::unordered_set<FileInfoBD*>& getSubFolders();
+
+    void close(bool removeFromParent = false);
+
 signals:
     void contentHasChanged(QString path);
 
@@ -99,12 +151,10 @@ signals:
     void revalidationFinished();
     void sortingFinished();
 
-    void requestClosing(FileInfoBD*);
+    void requestClosing(std::vector<FiBDDeletor*> dirsToDelete);
 
     void closingFinished();
 public slots:
-    void close();
-
     void elapse();
     void elapse_rec();
     void elapse_hlpr();
@@ -129,6 +179,8 @@ public slots:
     void sortFolder(Order order);
     void sortFolder_rec(Order order);
     void cancelSorting();
+
+    void replaceSub_fold(std::string sub_fold_path, FileInfoBD* sub_fold);
 private:
     void sortFolder_hlpr(Order order);
     void sortFolder_hlpr_rec(Order order);
@@ -148,7 +200,17 @@ private:
 
     bool isEmpty() const;
 
-    void clearContainers();
+    void clearSubFolderContainers();
+    void clearContainers(bool clearSubFolderContainers = false);
+
+    void removeSubFolder(FileInfoBD* dirToDelete);
+
+    void registerThis();
+    void unregisterThis();
+
+    void close_hlpr();
+
+//-----------------------------------------------------------------------------------
 
     bool m_isElapsed;
     bool m_alrLoaded;
@@ -158,19 +220,21 @@ private:
     std::unordered_map<std::string, QFileInfo> m_files;
     std::unordered_set<FileInfoBD*> m_sub_folds;
     std::unordered_set<std::string> m_sub_fold_paths;
-    std::unordered_map<std::string, FileInfoBD*> m_sub_fold_names; // only the folder names, not the entire path -> needed for fast lookup
+    std::unordered_map<std::string, FileInfoBD*> m_path_to_subFold;
     std::unordered_set<std::string> m_hidden_files;
     std::unordered_set<std::string> m_hidden_folds;
     std::vector<std::string> m_sortedFilePaths_incl_hidden; // inclusive hidden files
+    std::vector<std::string> m_sortedFileNames_incl_hidden; // inclusive hidden files
     std::vector<std::string> m_sortedFoldPaths_incl_hidden; // inclusive hidden files
-    std::vector<std::string> m_sortedEntryPaths_incl_hidden; // inclusive hidden entries
+    std::vector<std::string> m_entryPaths_incl_hidden; // inclusive hidden entries
     std::vector<std::string> m_sortedFilePaths_no_hidden; // without hidden files
+    std::vector<std::string> m_sortedFileNames_no_hidden; // inclusive hidden files
     std::vector<std::string> m_sortedFoldPaths_no_hidden; // without hidden folders
-    std::vector<std::string> m_sortedEntryPaths_no_hidden; // without hidden entries
+    std::vector<std::string> m_entryPaths_no_hidden; // without hidden entries
 
-    unsigned long m_filesCount;
-    unsigned long m_subFoldsCount;
-    unsigned long m_contentCount;
+//    unsigned long m_filesCount;
+//    unsigned long m_subFoldsCount;
+//    unsigned long m_contentCount;
 
     bool m_showHiddenFiles;
 

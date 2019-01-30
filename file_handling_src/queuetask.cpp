@@ -19,7 +19,6 @@ QueueTask::QueueTask(const QueueTask &task)
 QueueTask::~QueueTask()
 {
     this->thread()->quit();
-    this->thread()->deleteLater();
 }
 
 bool QueueTask::executableInParallel() const
@@ -76,6 +75,8 @@ void QueueTask::disconnectSignals()
 void QueueTask::connectThreadSignals(QThread* thread)
 {
     connect(thread, &QThread::started, this, &QueueTask::run, Qt::QueuedConnection);
+    connect(this, &QueueTask::finished, thread, &QThread::quit, Qt::QueuedConnection);
+    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
 }
 
 
