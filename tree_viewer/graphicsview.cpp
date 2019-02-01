@@ -1084,7 +1084,7 @@ void GraphicsView::rePaintCanvas()
 //            caller->setFunction(QString("executeAction"), [=](FILE_ACTION action){this->executeFileAction(action);});
 
             auto sortFunc = [=](Order order){
-                emit sortFromDisplayedContent(fiv.q_path(), order);
+                emit sortDir(fiv.q_path(), order);
                 return false;
             };
             auto isRevSortFunc = [=](Order order){

@@ -3,18 +3,29 @@
 FileManager::FileManager(std::string root_path,
                          bool showHiddenFiles)
     : QObject(nullptr),
-      m_root_folder(nullptr),
+
       m_root_path(root_path),
+      m_dir_manager(new DirManager(root_path)),
+      m_tree(m_dir_manager->getTree()),
+
       m_searcher(new FileSearcher(this)),
       m_selector(new FileSelector(this)),
+
       m_tasks_queue(new FileQueue()),
-      m_watcher(nullptr),
+
       m_viewer(new GraphicsView()),
+
       m_depthId_elapsed(std::vector<bool>()),
       m_frstDispFile(0),
       m_lastDispFile(0),
+
       m_showHiddenFiles(showHiddenFiles),
-      m_inSearchMode(false)
+      m_inSearchMode(false),
+
+      m_lastKeyPressed(0),
+      m_keysPressed(""),
+
+      m_zoomFactor(0)
 {
     connectSignals();
 
@@ -25,21 +36,15 @@ FileManager::~FileManager()
 {
     disconnectSiganls();
 
-    deleteRoot();
-
     delete m_searcher; m_searcher = nullptr;
     delete m_selector; m_selector = nullptr;
 
     m_tasks_queue->deleteLater(); m_tasks_queue = nullptr;
 
-    deleteFileWatcher();
-
     m_viewer->deleteLater(); m_viewer = nullptr;
 
-//    m_searcher->deleteLater();
-//    m_searcher->deleteLater();
-//    m_tasks_queue->deleteLater();
-//    m_watcher->deleteLater();
+    if(m_tree)
+        delete m_tree;
 }
 
 void FileManager::test()
@@ -47,48 +52,41 @@ void FileManager::test()
     selectionChanged();
 }
 
-void FileManager::setRoot(const std::string& rootPath)
+QLayout *FileManager::genPane()
 {
-    if(m_root_folder)
-        deleteRoot();
 
-    m_root_path = rootPath;
-
-    deleteFileWatcher();
-    m_watcher = new FileWatcher(this);
-    connect(m_watcher, &FileWatcher::directoryChanged, this, &FileManager::directoryChanged);
-    connect(this, &FileManager::addPathToFileWatcher, m_watcher, &FileWatcher::addPath);
-
-
-    if(m_root_folder && m_root_folder->absPath() != rootPath)
-    {
-        m_root_folder = new FileInfoBD(rootPath);
-        revalidateEntries();
-    }
 }
 
-void FileManager::closeFileInfoBD(std::string path)
+void FileManager::setRoot(const std::string& rootPath)
 {
-    // falls parent-folder bereits geloescht wird, wird sub_folder ebenfalls FileInfoBD::requestClosing senden,
-    // d.h. FileInfoBD::requestClosing wird vom parent-folder und von all seinen sub-foldern rekursiv
-    // gesendet -> damit nicht x-mal geloescht wird, wird nur das vom parent-folder akzeptiert:
-    if(m_folders.find(path) != m_folders.end())
-    {
-        FileInfoBD* fi = m_folders[path];
-         // damit nicht im spaeteren verlauf vor beendigung des loeschens im FileManager der deltete FileInfoBD weiter referenziert wird. und da beim loeschen/deleten der FileInfoBD rekursiv geloescht wird, mussen auch alle sub-folder rekursiv aus den containern geloescht werden:
-        fi->iterateOverFolders([=](FileInfoBD* subFold){
-            removeFiBDFromContainers(subFold->absPath());
-        });
+    m_root_path = rootPath;
 
-        if(m_root_folder == fi)
-        {
-            m_root_folder = nullptr;
-        }
+    emit rootDirChanged_dm(rootPath);
+}
 
-        QueueTasks::TaskFolderCloser* closer = new QueueTasks::TaskFolderCloser(fi);
-        connect(closer, &QueueTasks::TaskFolderCloser::finished, this, &FileManager::revalidateEntries);
-        emit addQueueTask(closer);
-    }
+void FileManager::close()
+{
+    if(m_dir_manager)
+        m_dir_manager->close();
+    m_dir_manager = nullptr;
+
+    if(m_searcher)
+        m_searcher->close();
+    m_searcher = nullptr;
+
+    if(m_selector)
+        m_selector->close();
+    m_selector = nullptr;
+
+    if(m_viewer)
+        m_viewer->deleteLater();
+    m_viewer = nullptr;
+
+    clearEntryContainers();
+
+    if(m_tree)
+        delete m_tree;
+    m_tree = nullptr;
 }
 
 void FileManager::selectionChanged()
@@ -101,123 +99,21 @@ void FileManager::searchResultsChanged()
     revalidateViewer_helper();
 }
 
-void FileManager::directoryChanged(std::string path)
-{
-    if(m_folders.find(path) != m_folders.end())
-        return;
-
-    auto* fiBD = m_folders[path];
-    if(fiBD && m_tasks_queue)
-    {
-        QueueTasks::FileInfoBDRevalidator* revalidator = new QueueTasks::FileInfoBDRevalidator(fiBD);
-        connect(revalidator, &QueueTasks::FileInfoBDRevalidator::finished, this, &FileManager::revalidateEntries);
-        emit addQueueTask(revalidator);
-    }
-}
-
 void FileManager::elapseFolder(std::string path)
 {
-    if(m_folders.find(path) != m_folders.end())
-        return;
-
-    auto* fiBD = m_folders[path];
-    if(fiBD && m_tasks_queue)
-    {
-        QueueTasks::TaskFolderElapser* elapser = new QueueTasks::TaskFolderElapser(fiBD, false, false);
-        connect(elapser, &QueueTasks::TaskFolderElapser::finished, this, &FileManager::revalidateEntries);
-        emit addQueueTask(elapser);
-    }
+    emit elapse_dm(path);
 }
 void FileManager::elapseFolder_rec(std::string path)
 {
-    if(m_folders.find(path) != m_folders.end())
-        return;
-
-    auto* fiBD = m_folders[path];
-    if(fiBD && m_tasks_queue)
-    {
-        QueueTasks::TaskFolderElapser* elapser = new QueueTasks::TaskFolderElapser(fiBD, false, true);
-        connect(elapser, &QueueTasks::TaskFolderElapser::finished, this, &FileManager::revalidateEntries);
-        emit addQueueTask(elapser);
-    }
+    emit elapseRec_dm(path);
 }
 void FileManager::collapseFolder(std::string path)
 {
-    if(m_folders.find(path) != m_folders.end())
-        return;
-
-    auto* fiBD = m_folders[path];
-    if(fiBD && m_tasks_queue)
-    {
-        QueueTasks::TaskFolderElapser* collapser = new QueueTasks::TaskFolderElapser(fiBD, true, false);
-        connect(collapser, &QueueTasks::TaskFolderElapser::finished, this, &FileManager::revalidateEntries);
-        emit addQueueTask(collapser);
-    }
+    emit collapse_dm(path);
 }
 void FileManager::collapseFolder_rec(std::string path)
 {
-    if(m_folders.find(path) != m_folders.end())
-        return;
-
-    auto* fiBD = m_folders[path];
-    if(fiBD && m_tasks_queue)
-    {
-        QueueTasks::TaskFolderElapser* collapser = new QueueTasks::TaskFolderElapser(fiBD, true, true);
-        connect(collapser, &QueueTasks::TaskFolderElapser::finished, this, &FileManager::revalidateEntries);
-        emit addQueueTask(collapser);
-    }
-}
-void FileManager::showHiddenFiles(std::string path)
-{
-    if(m_folders.find(path) != m_folders.end())
-        return;
-
-    auto* fiBD = m_folders[path];
-    if(fiBD && m_tasks_queue)
-    {
-        QueueTasks::TaskShowHiddenFiles* shower = new QueueTasks::TaskShowHiddenFiles(fiBD, false, false);
-        connect(shower, &QueueTasks::TaskShowHiddenFiles::finished, this, &FileManager::revalidateEntries);
-        emit addQueueTask(shower);
-    }
-}
-void FileManager::showHiddenFiles_rec(std::string path)
-{
-    if(m_folders.find(path) != m_folders.end())
-        return;
-
-    auto* fiBD = m_folders[path];
-    if(fiBD && m_tasks_queue)
-    {
-        QueueTasks::TaskShowHiddenFiles* shower = new QueueTasks::TaskShowHiddenFiles(fiBD, false, true);
-        connect(shower, &QueueTasks::TaskShowHiddenFiles::finished, this, &FileManager::revalidateEntries);
-        emit addQueueTask(shower);
-    }
-}
-void FileManager::hideHiddenFiles(std::string path)
-{
-    if(m_folders.find(path) != m_folders.end())
-        return;
-
-    auto* fiBD = m_folders[path];
-    if(fiBD && m_tasks_queue)
-    {
-        QueueTasks::TaskShowHiddenFiles* hider = new QueueTasks::TaskShowHiddenFiles(fiBD, true, false);
-        connect(hider, &QueueTasks::TaskShowHiddenFiles::finished, this, &FileManager::revalidateEntries);
-        emit addQueueTask(hider);
-    }
-}
-void FileManager::hideHiddenFiles_rec(std::string path)
-{
-    if(m_folders.find(path) != m_folders.end())
-        return;
-
-    auto* fiBD = m_folders[path];
-    if(fiBD && m_tasks_queue)
-    {
-        QueueTasks::TaskShowHiddenFiles* hider = new QueueTasks::TaskShowHiddenFiles(fiBD, true, true);
-        connect(hider, &QueueTasks::TaskShowHiddenFiles::finished, this, &FileManager::revalidateEntries);
-        emit addQueueTask(hider);
-    }
+    emit collapseRec_dm(path);
 }
 
 //-------------------------------------------------------------
@@ -230,10 +126,13 @@ void FileManager::elapseAllFoldersOfDepthId(int id)
         m_depthId_elapsed[static_cast<unsigned long>(id)] = !m_depthId_elapsed[static_cast<unsigned long>(id)];
         bool collapse = !m_depthId_elapsed[static_cast<unsigned long>(id)];
 
-        std::unordered_set<FileInfoBD*>& fis = m_depth_folders_colpsd[id];
-        QueueTasks::TaskFolderElapser* elapser = new QueueTasks::TaskFolderElapser(fis, collapse, false);
-        connect(elapser, &QueueTasks::TaskFolderElapser::finished, this, &FileManager::revalidateEntries);
-        emit addQueueTask(elapser);
+        auto& fis = m_depth_folders_colpsd[id];
+        if(collapse)
+        {
+            emit collapse_dm(std::vector<std::string>(fis.begin(), fis.end()));
+        }else{
+            emit elapse_dm(std::vector<std::string>(fis.begin(), fis.end()));
+        }
     }
 }
 void FileManager::elapseSelectedFoldersRecursively()
@@ -241,15 +140,7 @@ void FileManager::elapseSelectedFoldersRecursively()
     if(m_selector && m_tasks_queue)
     {
         const auto& folder_paths = m_selector->getSelectedFolders();
-        std::vector<FileInfoBD*> folders;
-        for(const auto& fp: folder_paths)
-        {
-            if(m_folders.find(fp) != m_folders.end())
-                folders.push_back(m_folders[fp]);
-        }
-        QueueTasks::TaskFolderElapser* elapser = new QueueTasks::TaskFolderElapser(folders, false, true);
-        connect(elapser, &QueueTasks::TaskFolderElapser::finished, this, &FileManager::revalidateEntries);
-        emit addQueueTask(elapser);
+        emit elapseRec_dm(std::vector<std::string>(folder_paths.begin(), folder_paths.end()));
     }
 }
 void FileManager::elapseSelectedFolders()
@@ -257,15 +148,7 @@ void FileManager::elapseSelectedFolders()
     if(m_selector && m_tasks_queue)
     {
         const auto& folder_paths = m_selector->getSelectedFolders();
-        std::vector<FileInfoBD*> folders;
-        for(const auto& fp: folder_paths)
-        {
-            if(m_folders.find(fp) != m_folders.end())
-                folders.push_back(m_folders[fp]);
-        }
-        QueueTasks::TaskFolderElapser* elapser = new QueueTasks::TaskFolderElapser(folders, false, false);
-        connect(elapser, &QueueTasks::TaskFolderElapser::finished, this, &FileManager::revalidateEntries);
-        emit addQueueTask(elapser);
+        emit elapse_dm(std::vector<std::string>(folder_paths.begin(), folder_paths.end()));
     }
 }
 void FileManager::collapseSelectedFoldersRecursively()
@@ -273,15 +156,8 @@ void FileManager::collapseSelectedFoldersRecursively()
     if(m_selector && m_tasks_queue)
     {
         const auto& folder_paths = m_selector->getSelectedFolders();
-        std::vector<FileInfoBD*> folders;
-        for(const auto& fp: folder_paths)
-        {
-            if(m_folders.find(fp) != m_folders.end())
-                folders.push_back(m_folders[fp]);
-        }
-        QueueTasks::TaskFolderElapser* elapser = new QueueTasks::TaskFolderElapser(folders, true, true);
-        connect(elapser, &QueueTasks::TaskFolderElapser::finished, this, &FileManager::revalidateEntries);
-        emit addQueueTask(elapser);
+        emit collapseRec_dm(std::vector<std::string>(folder_paths.begin(), folder_paths.end()));
+
     }
 }
 void FileManager::collapseSelectedFolders()
@@ -289,15 +165,7 @@ void FileManager::collapseSelectedFolders()
     if(m_selector && m_tasks_queue)
     {
         const auto& folder_paths = m_selector->getSelectedFolders();
-        std::vector<FileInfoBD*> folders;
-        for(const auto& fp: folder_paths)
-        {
-            if(m_folders.find(fp) != m_folders.end())
-                folders.push_back(m_folders[fp]);
-        }
-        QueueTasks::TaskFolderElapser* elapser = new QueueTasks::TaskFolderElapser(folders, true, false);
-        connect(elapser, &QueueTasks::TaskFolderElapser::finished, this, &FileManager::revalidateEntries);
-        emit addQueueTask(elapser);
+        emit collapse_dm(std::vector<std::string>(folder_paths.begin(), folder_paths.end()));
     }
 }
 void FileManager::elapseOrCollapseFolderDependingOnCurrentState(QString q_path)
@@ -305,11 +173,14 @@ void FileManager::elapseOrCollapseFolderDependingOnCurrentState(QString q_path)
     std::string path = q_path.toStdString();
     if(m_folders.find(path) != m_folders.end())
     {
-        FileInfoBD* folder = m_folders[path];
-        bool collapse = folder->isElapsed();
-        QueueTasks::TaskFolderElapser* elapser = new QueueTasks::TaskFolderElapser(folder, collapse, false);
-        connect(elapser, &QueueTasks::TaskFolderElapser::finished, this, &FileManager::revalidateEntries);
-        emit addQueueTask(elapser);
+        auto* folder = m_folders[path];
+        bool collapse = folder->isElapsed;
+        if(collapse)
+        {
+            emit collapse_dm(path);
+        }else{
+            emit elapse_dm(path);
+        }
     }
 }
 
@@ -318,8 +189,12 @@ void FileManager::elapseOrCollapseFolderDependingOnCurrentState(QString q_path)
 void FileManager::setIncludeHiddenFiles(bool inclHdnFls)
 {
     m_showHiddenFiles = inclHdnFls;
-    revalidateEntries();
-    revalidateViewer_helper();
+    if(m_showHiddenFiles)
+    {
+        emit includeHiddenFiles_dm();
+    }else {
+        emit excludeHiddenFiles_dm();
+    }
 }
 
 void FileManager::openSelectedFoldersInTab()
@@ -348,7 +223,7 @@ void FileManager::selectEntireContent()
 {
     if(m_selector)
     {
-        m_selector->selectEntiresContent();
+        m_selector->selectEntireContent();
         revalidateViewer_helper();
     }
 }
@@ -384,25 +259,25 @@ void FileManager::selectEntry(QString entry, bool contrlPrsd, bool shiftPrsd)
         revalidateViewer_helper();
     }
 }
-void FileManager::sortDisplFolder(QString dir, Order order)
+
+void FileManager::sortDir(QString dir, Order order)
 {
-    std::string path = dir.toStdString();
-    if(m_folders.find(path) != m_folders.end())
-    {
-        FileInfoBD* folder = m_folders[path];
-        QueueTasks::TaskFolderSorter* elapser = new QueueTasks::TaskFolderSorter(folder, order, false);
-        connect(elapser, &QueueTasks::TaskFolderSorter::finished, this, &FileManager::revalidateEntries);
-        emit addQueueTask(elapser);
-    }
+    emit sortDir_dm(order, dir.toStdString());
 }
+
+void FileManager::sortDirs(std::vector<QString> dirs, Order order)
+{
+    std::vector<std::string> std_dirs;
+    for(const auto& dir: dirs)
+    {
+        std_dirs.push_back(dir.toStdString());
+    }
+    emit sortDirs_dm(order, std_dirs);
+}
+
 void FileManager::sortAllFolders(Order order)
 {
-    // es werden nur die displayed_folders sortiert. erst wenn die collapsed folders elapsed werden, werden die folders
-    // sortiert. sonst wuerde unnoetig viel sortiert, was gar nicht zur darstellung gebracht wird
-    std::vector<FileInfoBD*> folders(m_folders_colpsd.begin(), m_folders_colpsd.end());
-    QueueTasks::TaskFolderSorter* elapser = new QueueTasks:: TaskFolderSorter(folders, order, false);
-    connect(elapser, &QueueTasks::TaskFolderSorter::finished, this, &FileManager::revalidateEntries);
-    emit addQueueTask(elapser);
+    emit sortAllDirs_dm(order);
 }
 void FileManager::copySelectedFilePathToClipboard()
 {
@@ -690,32 +565,25 @@ void FileManager::zoomFactorChanged(int newZoomFactor)
     m_zoomFactor = newZoomFactor;
 }
 
-void FileManager::showHiddenFiles(bool showHiddenFiles)
+void FileManager::dirChanged_dm(DirManagerInfo* changedDir)
 {
-    m_showHiddenFiles = showHiddenFiles;
-    emit includeHiddenFiles(m_showHiddenFiles);
+    m_tree->replaceContents(changedDir);
+}
+
+void FileManager::treeChanged_dm(DirManagerInfo* entireTree)
+{
+    replaceTree(entireTree);
+}
+
+void FileManager::deepSearchFinished_dm(std::vector<string> matchingPaths, string keyword)
+{
+    if(m_searcher)
+    {
+        m_searcher->setSearched(keyword, matchingPaths);
+    }
 }
 
 //-------------------------------------------------------------
-
-void FileManager::deleteRoot()
-{
-    if(m_root_folder)
-    {
-        m_root_folder->close();
-        delete m_root_folder;
-        clearEntryContainers();
-    }
-}
-
-void FileManager::deleteFileWatcher()
-{
-    if(m_watcher)
-    {
-        disconnect(m_watcher, &FileWatcher::directoryChanged, this, &FileManager::directoryChanged);
-        delete m_watcher;
-    }
-}
 
 void FileManager::connectSignals()
 {
@@ -750,6 +618,42 @@ void FileManager::connectSignals()
         QObject::connect(this, &FileManager::exitWaitingLoop,  m_viewer, &GraphicsView::killWaitingAnimation);
     }else
         qDebug() << "trying to connect m_viewer -> nullptr! [root_path: "  << QString::fromStdString(m_root_path) << "]";
+
+    if(m_dir_manager)
+    {
+        connect(m_dir_manager, &DirManager::dirChanged, this, &FileManager::dirChanged_dm, Qt::QueuedConnection);
+        connect(m_dir_manager, &DirManager::treeChanged, this, &FileManager::treeChanged_dm, Qt::QueuedConnection);
+        connect(m_dir_manager, &DirManager::deepSearchFinished, this, &FileManager::deepSearchFinished_dm, Qt::QueuedConnection);
+
+        connect(this, SIGNAL(elapse_dm(std::string)), m_dir_manager, SLOT(elapse(std::string)), Qt::QueuedConnection);
+        connect(this, SIGNAL(elapse_dm(std::vector<std::string>)), m_dir_manager, SLOT(elapse(std::vector<std::string>)), Qt::QueuedConnection);
+
+        connect(this, SIGNAL(elapseRec_dm(std::string)), m_dir_manager, SLOT(elapseRec(std::string)), Qt::QueuedConnection);
+        connect(this, SIGNAL(elapseRec_dm(std::vector<std::string>)), m_dir_manager, SLOT(elapseRec(std::vector<std::string>)), Qt::QueuedConnection);
+
+        connect(this, SIGNAL(collapse_dm(std::string)), m_dir_manager, SLOT(collapse(std::string)), Qt::QueuedConnection);
+        connect(this, SIGNAL(collapse_dm(std::vector<std::string>)), m_dir_manager, SLOT(collapse(std::vector<std::string>)), Qt::QueuedConnection);
+
+        connect(this, SIGNAL(collapseRec_dm(std::string)), m_dir_manager, SLOT(collapseRec(std::string)), Qt::QueuedConnection);
+        connect(this, SIGNAL(collapseRec_dm(std::vector<std::string>)), m_dir_manager, SLOT(collapseRec(std::vector<std::string>)), Qt::QueuedConnection);
+
+        connect(this, SIGNAL(deleteDir_dm(std::string)), m_dir_manager, SLOT(deleteDir(std::string)), Qt::QueuedConnection);
+        connect(this, SIGNAL(deleteDirs_dm(std::vector<std::string>)), m_dir_manager, SLOT(deleteDirs(std::vector<std::string>)), Qt::QueuedConnection);
+
+        connect(this, &FileManager::includeHiddenFiles_dm, m_dir_manager, &DirManager::includeHiddenFiles, Qt::QueuedConnection);
+        connect(this, &FileManager::excludeHiddenFiles_dm, m_dir_manager, &DirManager::excludeHiddenFiles, Qt::QueuedConnection);
+
+        connect(this, &FileManager::sortDir_dm, m_dir_manager, &DirManager::sortDir, Qt::QueuedConnection);
+        connect(this, &FileManager::sortDirs_dm, m_dir_manager, &DirManager::sortDirs, Qt::QueuedConnection);
+        connect(this, &FileManager::sortAllDirs_dm, m_dir_manager, &DirManager::sortAllDirs, Qt::QueuedConnection);
+
+        connect(this, &FileManager::cdUP_dm, m_dir_manager, &DirManager::cdUP, Qt::QueuedConnection);
+
+        connect(this, &FileManager::deepSearch_dm, m_dir_manager, &DirManager::deepSearch, Qt::QueuedConnection);
+
+        connect(this, &FileManager::rootDirChanged_dm, m_dir_manager, &DirManager::rootDirChanged, Qt::QueuedConnection);
+    }else
+        qDebug() << "trying to connect m_dir_manager -> nullptr! [root_path: "  << QString::fromStdString(m_root_path) << "]";
 }
 
 void FileManager::disconnectSiganls()
@@ -776,101 +680,107 @@ void FileManager::disconnectSiganls()
         QObject::disconnect(this, &FileManager::startWaitingLoop, m_viewer, &GraphicsView::startWaitingAnimation);
         QObject::disconnect(this, &FileManager::exitWaitingLoop,  m_viewer, &GraphicsView::killWaitingAnimation);
     }
+
+
+    if(m_dir_manager)
+    {
+        hier die singal/slots DISconnecten!;
+    }
 }
 
-void FileManager::revalidateEntries()
-{
-    int* order = new int(0);
-    int* order_clpsd = new int(0);
-    int* maxDepthId = new int(0);
+//void FileManager::revalidateEntries()
+//{
+//    int* order = new int(0);
+//    int* order_clpsd = new int(0);
+//    int* maxDepthId = new int(0);
 
-    clearEntryContainers();
+//    clearEntryContainers();
 
 
-    if(!m_root_folder || !QFileInfo(QString::fromStdString(m_root_path)).exists())
-    {
-        evalFirstExistingRootFolder();
-    }
-    if(!m_root_folder)
-        return;
+//    if(!m_root_folder || !QFileInfo(QString::fromStdString(m_root_path)).exists())
+//    {
+//        evalFirstExistingRootFolder();
+//    }
+//    if(!m_root_folder)
+//        return;
 
-    m_root_folder->iterate(
-             [=](FileInfoBD* fiBD,
-                 std::string path,
-                 std::string fileName,
-                 bool isFolder,
-                 bool isCollapsed,
-                 bool isHidden,
-                 FileInfoBD* firstNonCollapsedFold,
-                 int depthId)
-             {
-                if(*maxDepthId < depthId)
-                    *maxDepthId = depthId;
+//    m_root_folder->iterate(
+//             [=](FileInfoBD* fiBD,
+//                 std::string path,
+//                 std::string fileName,
+//                 bool isFolder,
+//                 bool isCollapsed,
+//                 bool isHidden,
+//                 FileInfoBD* firstNonCollapsedFold,
+//                 int depthId)
+//             {
+//                if(*maxDepthId < depthId)
+//                    *maxDepthId = depthId;
 
-                connect(fiBD, &FileInfoBD::requestClosing, this, &FileManager::closeFileInfoBD);
+//                connect(fiBD, &FileInfoBD::requestClosing, this, &FileManager::closeFileInfoBD);
 
-                if( (isHidden && m_showHiddenFiles) ||
-                        (!isHidden) )
-                {
-                     if(isFolder)
-                     {
-                         m_folders[path] = fiBD;
-                         emit addPathToFileWatcher(path);
-                     }
+//                if( (isHidden && m_showHiddenFiles) ||
+//                        (!isHidden) )
+//                {
+//                     if(isFolder)
+//                     {
+//                         m_folders[path] = fiBD;
+//                         emit addPathToFileWatcher(path);
+//                     }
 
-                     m_paths.emplace(path);
-                     m_folder_paths.emplace(path);
-                     m_entry_to_firstElapsedFolder[path] = firstNonCollapsedFold->absPath();
-                     m_entries.emplace(std::make_pair(path, FiBD(fiBD, isFolder)));
-                     m_entries_order[path] = *order;
-                     m_order_entries[*order] = path;
-                     m_fileNames[path] = fileName;
-                     ++(*order);
+//                     m_paths.emplace(path);
+//                     m_folder_paths.emplace(path);
+//                     m_entry_to_firstElapsedFolder[path] = firstNonCollapsedFold->absPath();
+//                     m_entries.emplace(std::make_pair(path, FiBD(fiBD, isFolder)));
+//                     m_entries_order[path] = *order;
+//                     m_order_entries[*order] = path;
+//                     m_fileNames[path] = fileName;
+//                     ++(*order);
 
-                     if(!isCollapsed)
-                     {
-                         if(isFolder)
-                         {
-                             m_folders_colpsd[path] = fiBD;
-                             if(m_depth_folders_colpsd.find(depthId) == m_depth_folders_colpsd.end())
-                             {
-                                    m_depth_folders_colpsd[depthId] = std::unordered_set<FileInfoBD*>();
-                             }
-                             m_depth_folders_colpsd[depthId].insert(fiBD);
-                         }
-                         m_paths_colpsd.emplace(path);
-                         m_folder_paths_colpsd.emplace(path);
-                         m_entries_colpsd.emplace(std::make_pair(path, FiBD(fiBD, isFolder)));
-                         m_entries_order_colpsd[path] = *order;
-                         m_order_entries_colpsd[*order_clpsd] = path;
-                         m_fileNames_colpsd[path] = fileName;
-                         ++(*order_clpsd);
-                     }
-                }
-             }
-    );
+//                     if(!isCollapsed)
+//                     {
+//                         if(isFolder)
+//                         {
+//                             m_folders_colpsd[path] = fiBD;
+//                             if(m_depth_folders_colpsd.find(depthId) == m_depth_folders_colpsd.end())
+//                             {
+//                                    m_depth_folders_colpsd[depthId] = std::unordered_set<FileInfoBD*>();
+//                             }
+//                             m_depth_folders_colpsd[depthId].insert(fiBD);
+//                         }
+//                         m_paths_colpsd.emplace(path);
+//                         m_folder_paths_colpsd.emplace(path);
+//                         m_entries_colpsd.emplace(std::make_pair(path, FiBD(fiBD, isFolder)));
+//                         m_entries_order_colpsd[path] = *order;
+//                         m_order_entries_colpsd[*order_clpsd] = path;
+//                         m_fileNames_colpsd[path] = fileName;
+//                         ++(*order_clpsd);
+//                     }
+//                }
+//             }
+//    );
 
-    while(m_depthId_elapsed.size() < static_cast<unsigned long>((*maxDepthId) + 1))
-        m_depthId_elapsed.push_back(false);
+//    while(m_depthId_elapsed.size() < static_cast<unsigned long>((*maxDepthId) + 1))
+//        m_depthId_elapsed.push_back(false);
 
-    if(m_selector)
-    {
-        m_selector->entriesChanged(&m_paths_colpsd, &m_order_entries_colpsd, &m_entries_order_colpsd, &m_fileNames_colpsd, &m_folder_paths_colpsd);
-    }
-    if(m_searcher)
-    {
-        m_searcher->entriesChanged(&m_fileNames_colpsd);
-    }
+//    if(m_selector)
+//    {
+//        m_selector->entriesChanged(&m_paths_colpsd, &m_order_entries_colpsd, &m_entries_order_colpsd, &m_fileNames_colpsd, &m_folder_paths_colpsd);
+//    }
+//    if(m_searcher)
+//    {
+//        m_searcher->entriesChanged(&m_fileNames_colpsd, &m_entries_order_colpsd);
+//    }
 
-    delete order;
-    delete order_clpsd;
-    delete maxDepthId;
-}
+//    delete order;
+//    delete order_clpsd;
+//    delete maxDepthId;
+//}
 
 void FileManager::revalidateViewer_helper()
 {
     std::vector<FiBDViewer> entries;
-    for(int i=m_frstDispFile; i <= m_lastDispFile; ++i)
+    for(long long i=m_frstDispFile; i <= m_lastDispFile; ++i)
     {
         FiBDViewer fiView;
         entries.push_back(fiView);
@@ -891,58 +801,11 @@ void FileManager::clearEntryContainers()
     m_order_entries.clear();
     m_entries_order_colpsd.clear();
     m_order_entries_colpsd.clear();
-    m_entries.clear();
-    m_entries_colpsd.clear();
+//    m_entries.clear();
+//    m_entries_colpsd.clear();
     m_fileNames.clear();
     m_fileNames_colpsd.clear();
     m_depth_folders_colpsd.clear();
-}
-
-void FileManager::removeFiBDFromContainers(string path)
-{
-    if(m_folders.find(path) != m_folders.end())
-        return;
-
-    FileInfoBD* fi = m_folders[path];
-
-    auto it1 = m_folders.find(path);
-    if(it1 != m_folders.end())
-        m_folders.erase(it1);
-
-    auto it2 = m_folders_colpsd.find(path);
-    if(it2 != m_folders_colpsd.end())
-        m_folders_colpsd.erase(it2);
-
-    for(auto it: m_depth_folders_colpsd)
-    {
-        auto& set = it.second;
-        auto it3 = set.find(fi);
-        if(it3 != set.end())
-            set.erase(it3);
-    }
-
-    auto it4 = m_entries.find(path);
-    if(it4 != m_entries.end())
-        m_entries.erase(it4);
-
-    auto it5 = m_entries_colpsd.find(path);
-    if(it5 != m_entries_colpsd.end())
-        m_entries_colpsd.erase(it5);
-}
-
-void FileManager::evalFirstExistingRootFolder()
-{
-    QDir dir(QString::fromStdString(m_root_path));
-    while(!dir.exists())
-    {
-        dir.cdUp();
-    }
-    if(dir.exists()){
-        m_root_path = dir.absolutePath().toStdString();
-        m_root_folder = new FileInfoBD(m_root_path, nullptr, m_showHiddenFiles);
-    }else{
-        qCritical() << "[FileManger::evalFirstExistingRootFolder(): '" << dir.absolutePath() << "' does not have an existing parent folder -> iterating dir-tree up failed!";
-    }
 }
 
 void FileManager::copyCutToClipboard_hlpr(bool deleteSourceAfterCopying)
@@ -1047,8 +910,122 @@ void FileManager::focusPath(const string &absPath)
 {
     if(m_entries_order_colpsd.find(absPath) != m_entries_order_colpsd.end())
     {
-        int order = m_entries_order_colpsd[absPath];
+        unsigned long long order = m_entries_order_colpsd[absPath];
         emit focusGraphicsView(order);
+    }
+}
+
+void FileManager::replaceTree(DirManagerInfo* tree)
+{
+    if(m_tree)
+        delete m_tree;
+
+    m_tree = tree;
+
+    clearEntryContainers();
+
+    unsigned long long* cntr = new unsigned long long(0);
+    unsigned long long* cntr_colpsd= new unsigned long long(0);
+    int* maxDepthId = new int(0);
+
+    replaceTree_hlpr(tree, tree, false, cntr, cntr_colpsd, 0, maxDepthId);
+
+    while(m_depthId_elapsed.size() < static_cast<unsigned long>((*maxDepthId) + 1))
+        m_depthId_elapsed.push_back(false);
+
+    if(m_selector)
+    {
+        m_selector->entriesChanged(&m_paths_colpsd, &m_order_entries_colpsd, &m_entries_order_colpsd, &m_fileNames_colpsd, &m_folder_paths_colpsd);
+    }
+    if(m_searcher)
+    {
+        m_searcher->entriesChanged(&m_fileNames_colpsd, &m_entries_order_colpsd);
+    }
+
+    delete cntr;
+    delete cntr_colpsd;
+    delete maxDepthId;
+}
+
+void FileManager::replaceTree_hlpr(DirManagerInfo* entry,
+                                   DirManagerInfo* firstNonCollapsedFold,
+                                   bool isCollapsed,
+                                   unsigned long long *cntr,
+                                   unsigned long long *cntr_clpsd,
+                                   int depthId,
+                                   int* maxDepthId)
+{
+    if(*maxDepthId < depthId)
+        *maxDepthId = depthId;
+
+    if( (entry->isHidden && m_showHiddenFiles) || (!entry->isHidden) )
+    {
+        std::string path = entry->absPath;
+
+//        FileData* fd = new FileData(entry);
+
+        m_folders[path] = entry;
+
+        m_paths.emplace(path);
+        m_folder_paths.emplace(path);
+        m_entry_to_firstElapsedFolder[path] = firstNonCollapsedFold->absPath;
+
+//        m_entries.emplace(std::make_pair(path, fd));
+        m_entries_order[path] = *cntr;
+        m_order_entries[*cntr] = path;
+
+        m_fileNames[path] = entry->fileName;
+
+        if(!isCollapsed)
+        {
+            m_folders_colpsd[path] = entry;
+            if(m_depth_folders_colpsd.find(depthId) == m_depth_folders_colpsd.end())
+            {
+                m_depth_folders_colpsd[depthId] = std::unordered_set<std::string>();
+            }
+            m_depth_folders_colpsd[depthId].insert(path);
+
+            m_paths_colpsd.emplace(path);
+            m_folder_paths_colpsd.emplace(path);
+//            m_entries_colpsd.emplace(std::make_pair(path, fd));
+            m_entries_order_colpsd[path] = *cntr;
+            m_order_entries_colpsd[*cntr_clpsd] = path;
+            m_fileNames_colpsd[path] = entry->fileName;
+
+            ++(*cntr_clpsd);
+        }
+
+        ++(*cntr);
+
+
+        bool subs_collapsed = isCollapsed || !entry->isElapsed;
+
+        for(auto* sub_dir: entry->subDirs_sorted)
+        {
+            DirManagerInfo* fncf = isCollapsed ? firstNonCollapsedFold : sub_dir;
+
+            replaceTree_hlpr(sub_dir, fncf, subs_collapsed, cntr, cntr_clpsd, depthId, maxDepthId);
+        }
+
+        for(const auto& file_path: entry->files_sorted)
+        {
+            std::string filePath = file_path;
+
+//            m_entries[filePath] = file;
+            m_entries_order[filePath] = *cntr;
+            m_order_entries[*cntr] = filePath;
+
+            if(subs_collapsed)
+            {
+//                m_entries_colpsd[filePath] = file;
+                m_entries_order_colpsd[filePath] = *cntr_clpsd;
+                m_order_entries_colpsd[*cntr_clpsd] = filePath;
+
+                ++(*cntr_clpsd);
+            }
+
+            ++(*cntr);
+        }
     }
 }
 

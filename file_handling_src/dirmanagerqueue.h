@@ -27,6 +27,8 @@ public slots:
 
     void dirStructureRevalidated();
 
+    void cancelWorkers();
+
     void close();
 private:
     void startWorkersInQueue();

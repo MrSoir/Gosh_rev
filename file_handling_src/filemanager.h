@@ -23,13 +23,15 @@
 #include <memory>
 #include <chrono>
 
-#include "fileinfobd.h"
 #include "filesearcher.h"
 #include "fileselector.h"
-#include "fibdviewer.h"
 #include "filequeue.h"
 #include "filewatcher.h"
 #include "queuetasks.h"
+#include "filedata.h"
+#include "openfiles.h"
+#include"dirmanager.h"
+#include "dirmanagerinfo.h"
 
 #include "tree_viewer/graphicsview.h"
 
@@ -38,30 +40,7 @@
 #include "file_manipulation/renamefile.h"
 #include "file_manipulation/createfolder.h"
 #include "file_manipulation/createfile.h"
-#include "openfiles.h"
 
-//class FileViewer : public QObject
-//{
-//    Q_OBJECT
-//signals:
-//    void cancel();
-//    void pause();
-//public slots:
-//    virtual void repaint(std::vector<FiBDViewer> fileToRepaint, int firstIdToRender = -1, int lastIdToRender = -1) = 0;
-//    virtual void startWaitingLoop() = 0;
-//    virtual void exitWaitingLoop() = 0;
-//};
-
-class FiBD {
-public:
-    explicit FiBD(FileInfoBD* fiBD, bool isFolder)
-        : fiBD(fiBD),
-          isFolder(isFolder)
-    {}
-
-    FileInfoBD* fiBD;
-    bool isFolder;
-};
 
 class FileManager : public QObject
 {
@@ -104,28 +83,51 @@ signals:
     void closeCurrentTab(); // -> GraphicsView::requestCloseCurrentTab
     void openFoldersInTab(std::vector<std::string> folders);
 
-    void focusGraphicsView(int entry_id);
+    void focusGraphicsView(unsigned long long entry_id);
+
+
+    // signals for DirManager:
+    void rootDirChanged_dm(std::string);
+
+    void deepSearch_dm(std::string keyword,
+                       bool includeHiddenFiles);
+
+    void elapse_dm(std::string path);
+    void elapse_dm(std::vector<std::string> paths);
+    void elapseRec_dm(std::string path);
+    void elapseRec_dm(std::vector<std::string> paths);
+
+    void collapse_dm(std::string path);
+    void collapse_dm(std::vector<std::string> paths);
+    void collapseRec_dm(std::string path);
+    void collapseRec_dm(std::vector<std::string> paths);
+
+    void deleteDir_dm(std::string dir);
+    void deleteDirs_dm(std::vector<std::string> dirs);
+
+    void cdUP_dm();
+
+    void includeHiddenFiles_dm();
+    void excludeHiddenFiles_dm();
+
+    void sortDir_dm(Order order, std::string path);
+    void sortDirs_dm(Order order, std::vector<std::string> paths);
+
+    void sortAllDirs_dm(Order order);
+
 public slots:
     void setRoot(const std::string& rootPath);
     void close();
-
-    void closeFileInfoBD(std::string path);
 
     void selectionChanged();
     void searchResultsChanged();
 
     void directoryChanged(std::string path);
 
-    void revalidateEntries();
-
     void elapseFolder(std::string path);
     void elapseFolder_rec(std::string path);
     void collapseFolder(std::string path);
     void collapseFolder_rec(std::string path);
-    void showHiddenFiles(std::string path);
-    void showHiddenFiles_rec(std::string path);
-    void hideHiddenFiles(std::string path);
-    void hideHiddenFiles_rec(std::string path);
 
     void elapseAllFoldersOfDepthId(int id); // elapseAllFoldersOfDepthId
     void collapseAllFoldersOfDepthId(int id); // collapseAllFoldersOfDepthId
@@ -147,8 +149,9 @@ public slots:
     void selectButtonDown(bool cntrlPrsd, bool shiftPrsd); // selectButtonDown
     void selectEntry(QString entry, bool contrlPrsd, bool shiftPrsd); // selectContent
 
-    void sortDisplFolder(QString dir, Order order); // sortFromDisplayedContent
-    void sortAllFolders(Order order);
+    void sortDir(QString dir, Order order); // sortDir
+    void sortDirs(std::vector<QString> dirs, Order order);
+    void sortAllFolders(Order order); // sortAllFolders
 
     void copySelectedFilePathToClipboard();
     void copySelectedContent(); // copySelectedContent
@@ -185,21 +188,20 @@ public slots:
 
     void zoomFactorChanged(int newZoomFactor);
 
-    void showHiddenFiles(bool showHiddenFiles);
-private:
-    void deleteRoot();
-    void deleteFileWatcher();
 
+    // DirManager-slots:
+    void dirChanged_dm(DirManagerInfo* changedDir);
+    void treeChanged_dm(DirManagerInfo* entireTree);
+
+    void deepSearchFinished_dm(std::vector<std::string> matchingPaths, std::string keyword);
+
+private:
     void connectSignals();
     void disconnectSiganls();
 
     void revalidateViewer_helper();
 
     void clearEntryContainers();
-
-    void removeFiBDFromContainers(std::string path);
-
-    void evalFirstExistingRootFolder();
 
     void copyCutToClipboard_hlpr(bool deleteSourceAfterCopying);
 
@@ -213,13 +215,24 @@ private:
 
     void focusPath(const std::string& absPath);
 
+    void replaceTree(DirManagerInfo* tree);
+    void replaceTree_hlpr(DirManagerInfo* entry,
+                          DirManagerInfo* firstNonCollapsedFold,
+                          bool isCollapsed,
+                          unsigned long long* cntr,
+                          unsigned long long* cntr_clpsd,
+                          int depthId,
+                          int* maxDepthId);
+
 //    --------------------------------
 
-    FileInfoBD* m_root_folder;
     std::string m_root_path;
 
-    std::unordered_map<std::string, FileInfoBD*> m_folders; // path to FileInfoBD
-    std::unordered_map<std::string, FileInfoBD*> m_folders_colpsd;
+    DirManager* m_dir_manager;
+    DirManagerInfo* m_tree;
+
+    std::unordered_map<std::string, DirManagerInfo*> m_folders; // path to FileInfoBD
+    std::unordered_map<std::string, DirManagerInfo*> m_folders_colpsd;
 
     std::unordered_map<std::string, std::string> m_entry_to_firstElapsedFolder; // FileSearcher: hidden folders: path -> path of first non-hidden/elapsed folder
     std::unordered_set<std::string> m_paths;
@@ -227,24 +240,22 @@ private:
     std::unordered_set<std::string> m_folder_paths;
     std::unordered_set<std::string> m_folder_paths_colpsd;
 
-    std::unordered_map<std::string, int> m_entries_order; // FileSearcher: path to order/id in list
-    std::unordered_map<int, std::string> m_order_entries; // FileSelector: order/id in list to path
-    std::unordered_map<std::string, int> m_entries_order_colpsd; // FileSearcher: path to order/id in list
-    std::unordered_map<int, std::string> m_order_entries_colpsd; // FileSelector: order/id in list to path
+    std::unordered_map<std::string, unsigned long long> m_entries_order; // FileSearcher: path to order/id in list
+    std::unordered_map<unsigned long long, std::string> m_order_entries; // FileSelector: order/id in list to path
+    std::unordered_map<std::string, unsigned long long> m_entries_order_colpsd; // FileSearcher: path to order/id in list
+    std::unordered_map<unsigned long long, std::string> m_order_entries_colpsd; // FileSelector: order/id in list to path
 
-    std::unordered_map<std::string, FiBD> m_entries; // FileNamanger: path to FiBD struct {FileInfoBD | isFolder}
-    std::unordered_map<std::string, FiBD> m_entries_colpsd; // FileNamanger: path to FiBD struct {FileInfoBD | isFolder}
+//    std::unordered_map<std::string, FileData*> m_entries; // FileNamanger: path to FiBD struct {FileInfoBD | isFolder}
+//    std::unordered_map<std::string, FileData*> m_entries_colpsd; // FileNamanger: path to FiBD struct {FileInfoBD | isFolder}
 
     std::unordered_map<std::string, std::string> m_fileNames; // FileSearcher: path to fileName
     std::unordered_map<std::string, std::string> m_fileNames_colpsd; // FileSearcher: path to fileName
 
-    std::unordered_map<int, std::unordered_set<FileInfoBD*>> m_depth_folders_colpsd; // FileManager: depthID of folder -> folder (wird fuer collapseFoldersOfDepthId benoetigt)
+    std::unordered_map<int, std::unordered_set<std::string>> m_depth_folders_colpsd; // FileManager: depthID of folder -> folder (wird fuer collapseFoldersOfDepthId benoetigt)
 
     FileSearcher* m_searcher;
     FileSelector* m_selector;
     FileQueue* m_tasks_queue;
-
-    FileWatcher* m_watcher;
 
     GraphicsView* m_viewer;
 

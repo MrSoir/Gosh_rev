@@ -76,6 +76,19 @@ namespace STATIC_FUNCTIONS
 
     void removeSubDirsIfParentDirIsInContainer(std::vector<FileInfoBD*>& dirs_to_validate);
     bool removeSubDirsIfParentDirIsInContainer(std::vector<std::string>& paths_to_validate);
+
+//----------------------------------------------------------------------------------
+
+    // pointerResetter setzt den zeiger von src_pntr nach tar_pntr und loescht danach das element von src_pntr -> der aufrufer muss schlussendlich nur src_pntr manuell loeschen, nicht tar_pntr!
+    template <class T>
+    void pointerResetter(T* src_pntr, T* tar_pntr, std::function<void(T*)> delete_func = [](T* t){delete t;})
+    {
+        T* oa = new T(*src_pntr);
+
+        *src_pntr = *tar_pntr;
+
+        delete_func(oa);
+    }
 }
 
 #endif // SATATICFUNCTIONS_FILES_H

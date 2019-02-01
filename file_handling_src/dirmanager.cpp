@@ -1,65 +1,7 @@
 #include "dirmanager.h"
 
-FiBD_Data::FiBD_Data()
-    : abs_path(""),
-      folders(std::vector<std::string>()),
-      files(std::vector<std::string>()),
-      isElapsed(true),
-      isLoaded(true)
-{
-}
-
-FiBD_Data::FiBD_Data(const FiBD_Data &copy)
-    : abs_path(copy.abs_path),
-      folders(copy.folders),
-      files(copy.files),
-      isElapsed(copy.isElapsed),
-      isLoaded(copy.isLoaded)
-
-{
-}
-
-FiBD_Data::~FiBD_Data()
-{
-}
-
 //----------------------------------------------------------------------
 
-FiBD::FiBD()
-    : abs_path(""),
-      folders(std::vector<FiBD>()),
-      files(std::vector<std::string>()),
-      folder_paths(std::vector<std::string>()),
-      isElapsed(true),
-      isLoaded(true)
-{
-}
-
-FiBD::FiBD(const FiBD &fiBD)
-    : abs_path(fiBD.abs_path),
-      folders(fiBD.folders),
-      files(fiBD.files),
-      folder_paths(fiBD.folder_paths),
-      isElapsed(fiBD.isElapsed),
-      isLoaded(fiBD.isLoaded)
-{
-}
-
-FiBD::~FiBD()
-{
-}
-
-void FiBD::replaceContents(FiBD& dir)
-{
-    this->abs_path = dir.abs_path;
-    this->files = dir.files;
-    this->folders = dir.folders;
-    this->folder_paths = dir.folder_paths;
-    this->isLoaded = dir.isLoaded;
-    this->isElapsed = dir.isElapsed;
-}
-
-//----------------------------------------------------------------------
 
 DirManager::DirManager(const std::string& root_path,
                        QObject *parent)
@@ -72,8 +14,6 @@ DirManager::DirManager(const std::string& root_path,
       m_watcher(new DirFileSystemWatcher()),
       m_closed(false)
 {
-    registerCustomClasses();
-
     createThread();
 
     connectSignals();
@@ -91,8 +31,6 @@ DirManager::DirManager(FileInfoBD* root_dir, QObject *parent)
       m_watcher(new DirFileSystemWatcher()),
       m_closed(false)
 {
-    registerCustomClasses();
-
     createThread();
 
     connectSignals();
@@ -109,7 +47,7 @@ DirManager::~DirManager()
     }
 }
 
-FiBD DirManager::getTree() const
+DirManagerInfo* DirManager::getTree() const
 {
     return genTreeFromRoot();
 }
@@ -147,7 +85,6 @@ void DirManager::elapseRec(std::string path)
         return;
 
     elapse_hlpr({path}, true, false);
-
 }
 
 void DirManager::elapseRec(std::vector<std::string> paths)
@@ -164,7 +101,6 @@ void DirManager::collapse(std::string path)
         return;
 
     elapse_hlpr({path}, false, true);
-
 }
 
 void DirManager::collapse(std::vector<std::string> paths)
@@ -223,17 +159,70 @@ void DirManager::deleteDirs(std::vector<FiBDDeletor*> dirs)
     delete_hlpr(dirs);
 }
 
+void DirManager::includeHiddenFiles()
+{
+    if(m_closed)
+        return;
+
+    DirIncludeHiddenFilesWorker* worker = new DirIncludeHiddenFilesWorker(m_root, true);
+    emit addWorker(worker);
+}
+
+void DirManager::excludeHiddenFiles()
+{
+    if(m_closed)
+        return;
+
+    DirIncludeHiddenFilesWorker* worker = new DirIncludeHiddenFilesWorker(m_root, false);
+    emit addWorker(worker);
+}
+
+void DirManager::sortDir(Order order, string path)
+{
+    if(m_closed)
+        return;
+
+    if(m_path_to_dir.find(path) != m_path_to_dir.end())
+    {
+        FileInfoBD* fi = m_path_to_dir[path];
+        DirSortWorker* worker = new DirSortWorker(order, fi);
+        emit addWorker(worker);
+    }
+}
+
+void DirManager::sortDirs(Order order, std::vector<string> paths)
+{
+    if(m_closed)
+        return;
+
+    std::vector<FileInfoBD*> fis;
+    for(const auto& path: paths)
+    {
+        if(m_path_to_dir.find(path) != m_path_to_dir.end())
+        {
+            fis.push_back( m_path_to_dir[path] );
+        }
+    }
+
+    DirSortWorker* worker = new DirSortWorker(order, fis);
+    emit addWorker(worker);
+}
+
+void DirManager::sortAllDirs(Order order)
+{
+    if(m_closed)
+        return;
+
+    DirSortWorker* worker = new DirSortWorker(order, m_root, true);
+    emit addWorker(worker);
+}
+
 void DirManager::cdUP()
 {
-    std::string base_dir = PATH::getBasePath(m_root_path).toStdString();
-    std::string old_root_path = m_root_path;
-    if(base_dir.empty() && base_dir != m_root_path)
-    {
-        FileInfoBD* new_root_dir = new FileInfoBD(base_dir);
-        new_root_dir->elapse();
-        new_root_dir->replaceSub_fold(old_root_path, m_root);
-        m_root_path = base_dir;
-    }
+    emit cancelQueueWorkers();
+
+    DirCD_UpWorker* worker = new DirCD_UpWorker(m_root);
+    emit addWorker(worker);
 }
 
 void DirManager::revalidateDirStructure()
@@ -274,19 +263,27 @@ void printDir(FileInfoBD* dir, int padding = 0)
 
 void DirManager::dirChanged_slot(std::string dir_path)
 {
-    qDebug() << "DirManager::dirChanged_slot: " << QString::fromStdString(dir_path);
+    if(m_closed)
+        return;
+
     if(m_path_to_dir.find(dir_path) != m_path_to_dir.end())
     {
         FileInfoBD* dir = m_path_to_dir[dir_path];
 
-        dir->revalidate();
-
-//        printDir(dir);
-
-        FiBD revalidated_dir = genFiBDFromDir(dir);
-
-        emit dirChanged(revalidated_dir);
+        DirRevalWorker* worker = new DirRevalWorker(dir);
+        emit addWorker(worker);
     }
+}
+
+void DirManager::rootDirChanged(string root_path)
+{
+    if(m_closed)
+        return;
+
+    emit cancelQueueWorkers();
+
+    DirReplaceRootWorker* drrw = new DirReplaceRootWorker(root_path, m_root);
+    emit addWorker(drrw);
 }
 
 void DirManager::close()
@@ -318,13 +315,12 @@ void DirManager::elapse_hlpr(const std::vector<string>& paths, bool recursive, b
 
 void DirManager::delete_hlpr(std::vector<string> pathsToDelete)
 {
-    qDebug() << "IN WRONG FUNCTION 1";
     std::vector<FiBDDeletor*> dirs_to_delete;
     for(const auto& dir_path: pathsToDelete)
     {
         if(m_path_to_dir.find(dir_path) != m_path_to_dir.end())
         {
-            dirs_to_delete.push_back( new FiBDDeletor(m_path_to_dir[dir_path], true) );
+            dirs_to_delete.push_back( new FiBDDeletor(m_path_to_dir[dir_path]) );
         }
     }
     if(dirs_to_delete.size() > 0)
@@ -339,32 +335,17 @@ void DirManager::delete_hlpr(std::vector<FiBDDeletor*> dirsToDelete)
         qDebug() << "delete_hlpr: dirsToDelete: " << dirsToDelete.size();
         for(auto* deletor: dirsToDelete)
         {
-            qDebug() << "deletor: " << QString::fromStdString(deletor->m_fiBD->absPath()) << "  removeFromPar: " << (deletor->m_removeFromParent ? "true" : "false");
+            qDebug() << "deletor: " << QString::fromStdString(deletor->m_fiBD->absPath());
         }
         DirDeleteWorker* worker = new DirDeleteWorker(dirsToDelete);
         emit addWorker(worker);
     }
 }
 
-FiBD DirManager::genTreeFromRoot() const
+DirManagerInfo* DirManager::genTreeFromRoot() const
 {
-    return genFiBDFromDir(m_root);
+    return new DirManagerInfo(m_root);
 }
-FiBD DirManager::genFiBDFromDir(FileInfoBD* fi) const
-{
-    FiBD fiBD;
-    fiBD.abs_path = fi->absPath();
-    fiBD.isLoaded = fi->isLoaded();
-    fiBD.isElapsed = fi->isElapsed();
-    fiBD.folder_paths = fi->getSortedFolds();
-    fiBD.files = fi->getSortedFiles();
-    for(auto* sub_fold: fi->getSubFolders())
-    {
-        fiBD.folders.push_back(genFiBDFromDir(sub_fold));
-    }
-    return  fiBD;
-}
-
 
 
 void DirManager::createThread()
@@ -397,6 +378,7 @@ void DirManager::connectQueue()
     connect(m_queue, &DirManagerQueue::noMoreWorkersRunning, this, &DirManager::cleanUp);
 
     connect(this, &DirManager::addWorker, m_queue, &DirManagerQueue::addWorker);
+    connect(this, &DirManager::cancelQueueWorkers, m_queue, &DirManagerQueue::cancelWorkers);
     connect(m_queue, &DirManagerQueue::revalidateDirStructure, this, &DirManager::revalidateDirStructure);
     connect(this, &DirManager::dirStructureRevalidated, m_queue, &DirManagerQueue::dirStructureRevalidated);
 }
@@ -439,7 +421,7 @@ void DirManager::revalidateDirStructure_hlpr(FileInfoBD* fiBD)
 //    fiBD->moveToThread(m_thread);
 
     std::string absPath = fiBD->absPath();
-    std::string fileName = fiBD->getFileInfo().fileName().toStdString();
+    std::string fileName = fiBD->fileName();
     m_path_to_dir[absPath] = fiBD;
     m_path_fileName[absPath] = fileName;
     for(auto* sub_dir: fiBD->getSubFolders())
@@ -456,13 +438,12 @@ void DirManager::clearContainers()
     m_path_fileName.clear();
 }
 
-void DirManager::registerCustomClasses()
-{
-    qRegisterMetaType<FiBD_Data>();
-    qRegisterMetaType<FiBD>();
-    qRegisterMetaType<std::vector<FiBD_Data>>();
-    qRegisterMetaType<std::vector<FiBD>>();
-}
+//void DirManager::registerCustomClasses()
+//{
+//    qRegisterMetaType<FiBD>();
+//    qRegisterMetaType<std::vector<FiBD>>();
+//    qRegisterMetaType<std::vector<FiBD*>>();
+//}
 
 void DirManager::addDirsToWatcher_helpr()
 {
@@ -479,7 +460,7 @@ void DirManager::cleanUp()
 {
     clearContainers();
 
-    delete m_root;
+    m_root->closeAbsParent();
     m_root = nullptr;
 
     m_queue = nullptr;

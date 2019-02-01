@@ -19,41 +19,12 @@
 #include "dirdeleteworker.h"
 #include "dirdeepsearchworker.h"
 #include "dirfilesystemwatcher.h"
-
-
-class FiBD_Data{
-public:
-    FiBD_Data();
-    FiBD_Data(const FiBD_Data& copy);
-    virtual ~FiBD_Data();
-
-    std::string abs_path;
-    std::vector<std::string> folders;
-    std::vector<std::string> files;
-    bool isElapsed;
-    bool isLoaded;
-};
-
-class FiBD{
-public:
-    FiBD();
-    FiBD(const FiBD& fiBD);
-    virtual ~FiBD();
-
-    void replaceContents(FiBD& dir);
-
-    std::string abs_path;
-    std::vector<FiBD> folders;
-    std::vector<std::string> files;
-    std::vector<std::string> folder_paths;
-    bool isElapsed;
-    bool isLoaded;
-};
-
-Q_DECLARE_METATYPE(FiBD_Data);
-Q_DECLARE_METATYPE(FiBD);
-Q_DECLARE_METATYPE(std::vector<FiBD_Data>);
-Q_DECLARE_METATYPE(std::vector<FiBD>);
+#include "dirreplacerootworker.h"
+#include "dirmanagerinfo.h"
+#include "dircd_upworker.h"
+#include "dirrevalworker.h"
+#include "dirincludehiddenfilesworker.h"
+#include "dirsortworker.h"
 
 class DirManager : public QObject
 {
@@ -65,15 +36,16 @@ public:
                         QObject *parent = nullptr);
     virtual ~DirManager() override;
 
-    FiBD getTree() const;
+    DirManagerInfo* getTree() const;
 
 signals:
-    void dirChanged(FiBD changedDir);
-    void treeChanged(FiBD entireTree);
+    void dirChanged(DirManagerInfo* changedDir);
+    void treeChanged(DirManagerInfo* entireTree);
 
     void closeThread();
 
     void addWorker(DirManagerWorker*);
+    void cancelQueueWorkers();
 
     void dirStructureRevalidated(); // for DirManagerQueue
 
@@ -82,7 +54,7 @@ signals:
     void addDirToWatcher(std::string dir_path);
     void addDirsToWatcher(std::vector<std::string> dir_paths);
     void clearWatcherPaths();
-public slots:
+public slots:    
     void deepSearch(std::string keyword,
                     bool includeHiddenFiles);
 
@@ -101,11 +73,20 @@ public slots:
     void deleteDir(FiBDDeletor* dir);
     void deleteDirs(std::vector<FiBDDeletor*> dirs);
 
+    void includeHiddenFiles();
+    void excludeHiddenFiles();
+
+    void sortDir(Order order, std::string path);
+    void sortDirs(Order order, std::vector<std::string> paths);
+    void sortAllDirs(Order order);
+
     void cdUP();
 
     void revalidateDirStructure(); // from DirManagerQueue
 
     void dirChanged_slot(std::string dir_path);
+
+    void rootDirChanged(std::string root_path);
 
     void close();
 private:
@@ -113,8 +94,7 @@ private:
     void delete_hlpr(std::vector<std::string> pathsToDelete);
     void delete_hlpr(std::vector<FiBDDeletor*> dirsToDelete);
 
-    FiBD genTreeFromRoot() const;
-    FiBD genFiBDFromDir(FileInfoBD *fi) const;
+    DirManagerInfo* genTreeFromRoot() const;
 
     void createThread();
 
@@ -131,7 +111,7 @@ private:
     void revalidateDirStructure_hlpr(FileInfoBD* fiBD);
     void clearContainers();
 
-    void registerCustomClasses();
+//    void registerCustomClasses();
 
     void addDirsToWatcher_helpr();
 

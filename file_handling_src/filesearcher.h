@@ -2,23 +2,18 @@
 #define FILESEARCHER_H
 
 #include <QObject>
+#include <QtDebug>
+
 #include <string>
 #include <algorithm>
 #include <unordered_set>
 #include <unordered_map>
 #include <vector>
+#include <algorithm>    // std::sort
+
 #include "stringops.h"
 
 #include "searchable.h"
-
-//class Searchable: public QObject{
-//    Q_OBJECT
-//public:
-//    virtual ~Searchable(){}
-//    virtual void setSearched(bool searched) = 0;
-//    virtual void setSearchFocused(bool focused) = 0;
-//    virtual std::string path() const = 0;
-//};
 
 class FileSearcher : public QObject
 {
@@ -34,29 +29,37 @@ public:
 signals:
     void searchResultsChanged();
 public slots:
-    void entriesChanged(std::unordered_map<std::string, std::string>* fileName_paths);
+    void entriesChanged(std::unordered_map<std::string, std::string>* fileName_paths,
+                        std::unordered_map<std::string, unsigned long long>* path_ord);
     void search(std::string key_word);
     void clearSearch();
+
+    void setSearched(std::string key_word, std::vector<std::string> matched_paths);
 
     void enable();
     void disable();
 
     void focusNextMatch();
     void focusPreviousMatch();
+
+    void close();
 private:
     void findMatches();
 
+    void resetCurMatchVars();
+
     std::string m_key_word; // string that is searched for
     std::unordered_set<std::string> m_matched_paths; // all paths, which's fileNames contain the m_key_word
-    std::unordered_map<int, std::string> m_ord_matchedPaths;
+    std::unordered_map<unsigned long long, std::string> m_ord_matchedPaths;
 
 //    std::unordered_set<std::string> m_paths; // all paths
     std::unordered_map<std::string, std::string>* m_fileName_path; // map: fileName -> path
+    std::unordered_map<std::string, unsigned long long>* m_path_ord;
 
     bool m_enabled;
-    int m_focused_match_id;
+    long long m_focused_match_id;
     std::string m_focused_path;
-    int m_matchCount;
+    unsigned long long m_matchCount;
 };
 
 #endif // FILESEARCHER_H

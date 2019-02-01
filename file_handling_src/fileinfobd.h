@@ -22,6 +22,7 @@
 #include "listfiles.h"
 #include "orderby.h"
 #include "stringops.h"
+#include "filedata.h"
 
 class FileInfoBD;
 
@@ -31,17 +32,16 @@ class FiBDDeletor : public QObject
 {
     Q_OBJECT
 public:
-    FiBDDeletor(FileInfoBD* fiBD = nullptr,
-                bool removeFromParent = false);
+    FiBDDeletor(FileInfoBD* fiBD = nullptr);
     FiBDDeletor(FiBDDeletor& toCopy);
+    FiBDDeletor(FiBDDeletor* toCopy);
 
-    void operator=(FiBDDeletor& toCopy);
+    FiBDDeletor& operator=(const FiBDDeletor& toCopy);
+    FiBDDeletor* operator=(FiBDDeletor* toCopy);
 
     virtual ~FiBDDeletor();
 
-
     FileInfoBD* m_fiBD;
-    bool m_removeFromParent;
 
 public slots:
     void execute_deletion();
@@ -82,12 +82,20 @@ public:
                         bool includeHiddenFiles = false,
                         QObject *parentm_focus_match_id = nullptr);
     explicit FileInfoBD(const FileInfoBD& fi);
-    void operator=(const FileInfoBD& fi);
+    explicit FileInfoBD(FileInfoBD* fi);
+
+    FileInfoBD& operator=(const FileInfoBD& fi);
+    FileInfoBD* operator=(FileInfoBD* fi);
+
 
     ~FileInfoBD();
 
+    FileInfoBD* getParentDir();
+
     bool isElapsed() const;
     bool isLoaded() const;
+
+    bool isHidden() const;
 
     unsigned long getFileCount() const;
     unsigned long getFolderCount() const;
@@ -105,6 +113,7 @@ public:
 
     std::string fileName() const;
     std::string absPath() const;
+    std::string absParentPath() const;
 
     void print() const;
 
@@ -133,11 +142,15 @@ public:
 
     const std::vector<std::string>& getSortedFiles() const;
     const std::vector<std::string>& getSortedFileNames() const;
-    const std::vector<std::string>& getSortedFolds() const;
+    const std::vector<std::string>& getSortedFolders() const;
     const std::vector<std::string>& getSortedEntries() const;
     std::unordered_set<FileInfoBD*>& getSubFolders();
+    const std::vector<FileInfoBD*>& getSortedSubFolders();
 
-    void close(bool removeFromParent = false);
+    Order getOrder() const;
+
+    void close();
+    void closeAbsParent();
 
 signals:
     void contentHasChanged(QString path);
@@ -169,6 +182,8 @@ public slots:
     void hideHiddenFiles();
     void showHiddenFiles_rec();
     void hideHiddenFiles_rec();
+    void showHiddenFiles_rec_hlpr();
+    void hideHiddenFiles_rec_hlpr();
     void showHiddenFiles_hlpr();
     void hideHiddenFiles_hlpr();
     void cancelHidingHiddenFiles();
@@ -231,6 +246,8 @@ private:
     std::vector<std::string> m_sortedFileNames_no_hidden; // inclusive hidden files
     std::vector<std::string> m_sortedFoldPaths_no_hidden; // without hidden folders
     std::vector<std::string> m_entryPaths_no_hidden; // without hidden entries
+    std::vector<FileInfoBD*> m_sorted_subFolders_incl_hidden;
+    std::vector<FileInfoBD*> m_sorted_subFolders_no_hidden;
 
 //    unsigned long m_filesCount;
 //    unsigned long m_subFoldsCount;

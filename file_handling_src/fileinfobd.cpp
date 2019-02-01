@@ -49,6 +49,8 @@ FileInfoBD::FileInfoBD(const std::string& path,
       m_sortedFileNames_no_hidden(std::vector<std::string>()),
       m_sortedFoldPaths_no_hidden(std::vector<std::string>()),
       m_entryPaths_no_hidden(std::vector<std::string>()),
+      m_sorted_subFolders_incl_hidden(std::vector<FileInfoBD*>()),
+      m_sorted_subFolders_no_hidden(std::vector<FileInfoBD*>()),
 
       m_showHiddenFiles(showHiddenFiles),
       m_disableSignals(false),
@@ -91,6 +93,8 @@ FileInfoBD::FileInfoBD(const QFileInfo& fileInfo,
       m_sortedFileNames_no_hidden(std::vector<std::string>()),
       m_sortedFoldPaths_no_hidden(std::vector<std::string>()),
       m_entryPaths_no_hidden(std::vector<std::string>()),
+      m_sorted_subFolders_incl_hidden(std::vector<FileInfoBD*>()),
+      m_sorted_subFolders_no_hidden(std::vector<FileInfoBD*>()),
 
       m_showHiddenFiles(showHiddenFiles),
       m_disableSignals(false),
@@ -130,17 +134,19 @@ FileInfoBD::FileInfoBD(const FileInfoBD &fi)
       m_sortedFileNames_no_hidden(fi.m_sortedFileNames_no_hidden),
       m_sortedFoldPaths_no_hidden(fi.m_sortedFoldPaths_no_hidden),
       m_entryPaths_no_hidden(fi.m_entryPaths_no_hidden),
+      m_sorted_subFolders_incl_hidden(fi.m_sorted_subFolders_incl_hidden),
+      m_sorted_subFolders_no_hidden(fi.m_sorted_subFolders_no_hidden),
 
       m_showHiddenFiles(fi.m_showHiddenFiles),
       m_disableSignals(fi.m_disableSignals),
 
       m_parent(fi.m_parent),
 
-      m_cancelled_elapsing(false),
-      m_cancelled_collapsing(false),
-      m_cancelled_hidingHiddenFiles(false),
-      m_cancelled_revalidation(false),
-      m_cancelled_sorting(false),
+      m_cancelled_elapsing(fi.m_cancelled_elapsing),
+      m_cancelled_collapsing(fi.m_cancelled_collapsing),
+      m_cancelled_hidingHiddenFiles(fi.m_cancelled_hidingHiddenFiles),
+      m_cancelled_revalidation(fi.m_cancelled_revalidation),
+      m_cancelled_sorting(fi.m_cancelled_sorting),
 
       m_order(fi.m_order),
       m_current_ordering(fi.m_current_ordering)
@@ -148,7 +154,48 @@ FileInfoBD::FileInfoBD(const FileInfoBD &fi)
     registerThis();
 }
 
-void FileInfoBD::operator=(const FileInfoBD& fi)
+FileInfoBD::FileInfoBD(FileInfoBD* fi)
+    : QObject(fi->parent()),
+
+      m_isElapsed(fi->m_isElapsed),
+      m_alrLoaded(fi->m_alrLoaded),
+
+      m_fileInfo(fi->m_fileInfo),
+
+      m_files(fi->m_files),
+      m_sub_folds(fi->m_sub_folds),
+      m_path_to_subFold(fi->m_path_to_subFold),
+      m_hidden_files(fi->m_hidden_files),
+      m_hidden_folds(fi->m_hidden_folds),
+      m_sortedFilePaths_incl_hidden(fi->m_sortedFilePaths_incl_hidden),
+      m_sortedFileNames_incl_hidden(fi->m_sortedFileNames_incl_hidden),
+      m_sortedFoldPaths_incl_hidden(fi->m_sortedFoldPaths_incl_hidden),
+      m_entryPaths_incl_hidden(fi->m_entryPaths_incl_hidden),
+      m_sortedFilePaths_no_hidden(fi->m_sortedFilePaths_no_hidden),
+      m_sortedFileNames_no_hidden(fi->m_sortedFileNames_no_hidden),
+      m_sortedFoldPaths_no_hidden(fi->m_sortedFoldPaths_no_hidden),
+      m_entryPaths_no_hidden(fi->m_entryPaths_no_hidden),
+      m_sorted_subFolders_incl_hidden(fi->m_sorted_subFolders_incl_hidden),
+      m_sorted_subFolders_no_hidden(fi->m_sorted_subFolders_no_hidden),
+
+      m_showHiddenFiles(fi->m_showHiddenFiles),
+      m_disableSignals(fi->m_disableSignals),
+
+      m_parent(fi->m_parent),
+
+      m_cancelled_elapsing(fi->m_cancelled_elapsing),
+      m_cancelled_collapsing(fi->m_cancelled_collapsing),
+      m_cancelled_hidingHiddenFiles(fi->m_cancelled_hidingHiddenFiles),
+      m_cancelled_revalidation(fi->m_cancelled_revalidation),
+      m_cancelled_sorting(fi->m_cancelled_sorting),
+
+      m_order(fi->m_order),
+      m_current_ordering(fi->m_current_ordering)
+{
+    registerThis();
+}
+
+FileInfoBD& FileInfoBD::operator=(const FileInfoBD& fi)
 {
     this->m_isElapsed = fi.m_isElapsed;
     this->m_alrLoaded = fi.m_alrLoaded;
@@ -169,6 +216,8 @@ void FileInfoBD::operator=(const FileInfoBD& fi)
     this->m_sortedFileNames_no_hidden = fi.m_sortedFileNames_no_hidden;
     this->m_sortedFoldPaths_no_hidden = fi.m_sortedFoldPaths_no_hidden;
     this->m_entryPaths_no_hidden = fi.m_entryPaths_no_hidden;
+    this->m_sorted_subFolders_incl_hidden = fi.m_sorted_subFolders_incl_hidden;
+    this->m_sorted_subFolders_no_hidden = fi.m_sorted_subFolders_no_hidden;
 
     this->m_showHiddenFiles = fi.m_showHiddenFiles;
     this->m_disableSignals = fi.m_disableSignals;
@@ -185,12 +234,62 @@ void FileInfoBD::operator=(const FileInfoBD& fi)
     this->m_current_ordering = fi.m_current_ordering;
 
     registerThis();
+
+    return *this;
+}
+
+FileInfoBD* FileInfoBD::operator=(FileInfoBD* fi)
+{
+    this->m_isElapsed = fi->m_isElapsed;
+    this->m_alrLoaded = fi->m_alrLoaded;
+
+    this->m_fileInfo = fi->m_fileInfo;
+
+    this->m_files = fi->m_files;
+    this->m_sub_folds = fi->m_sub_folds;
+    this->m_sub_fold_paths = fi->m_sub_fold_paths;
+    this->m_path_to_subFold = fi->m_path_to_subFold;
+    this->m_hidden_files = fi->m_hidden_files;
+    this->m_hidden_folds = fi->m_hidden_folds;
+    this->m_sortedFilePaths_incl_hidden = fi->m_sortedFilePaths_incl_hidden;
+    this->m_sortedFileNames_incl_hidden = fi->m_sortedFileNames_incl_hidden;
+    this->m_sortedFoldPaths_incl_hidden = fi->m_sortedFoldPaths_incl_hidden;
+    this->m_entryPaths_incl_hidden = fi->m_entryPaths_incl_hidden;
+    this->m_sortedFilePaths_no_hidden = fi->m_sortedFilePaths_no_hidden;
+    this->m_sortedFileNames_no_hidden = fi->m_sortedFileNames_no_hidden;
+    this->m_sortedFoldPaths_no_hidden = fi->m_sortedFoldPaths_no_hidden;
+    this->m_entryPaths_no_hidden = fi->m_entryPaths_no_hidden;
+    this->m_sorted_subFolders_incl_hidden = fi->m_sorted_subFolders_incl_hidden;
+    this->m_sorted_subFolders_no_hidden = fi->m_sorted_subFolders_no_hidden;
+
+    this->m_showHiddenFiles = fi->m_showHiddenFiles;
+    this->m_disableSignals = fi->m_disableSignals;
+
+    this->m_parent = fi->m_parent;
+
+    this->m_cancelled_elapsing = fi->m_cancelled_elapsing;
+    this->m_cancelled_collapsing = fi->m_cancelled_collapsing;
+    this->m_cancelled_hidingHiddenFiles = fi->m_cancelled_hidingHiddenFiles;
+    this->m_cancelled_revalidation = fi->m_cancelled_revalidation;
+    this->m_cancelled_sorting = fi->m_cancelled_sorting;
+
+    this->m_order = fi->m_order;
+    this->m_current_ordering = fi->m_current_ordering;
+
+    registerThis();
+
+    return this;
 }
 
 FileInfoBD::~FileInfoBD()
 {
     qDebug() << "~FileInfoBD: " << m_fileInfo.absoluteFilePath();
     unregisterThis();
+}
+
+FileInfoBD *FileInfoBD::getParentDir()
+{
+    return m_parent;
 }
 
 //-----------------------------------------------------
@@ -202,6 +301,11 @@ bool FileInfoBD::isElapsed() const
 bool FileInfoBD::isLoaded() const
 {
     return m_alrLoaded;
+}
+
+bool FileInfoBD::isHidden() const
+{
+    return m_fileInfo.isHidden();
 }
 
 unsigned long FileInfoBD::getFileCount() const
@@ -240,21 +344,20 @@ const QFileInfo &FileInfoBD::getFileInfo() const
     return m_fileInfo;
 }
 
-void FileInfoBD::close(bool remFromPrnt)
+void FileInfoBD::close()
 {
-    qDebug() << "FileInfoBD::close - removeFromParent: " << (remFromPrnt ? "true" : "false");
-
     close_hlpr();
-    qDebug() << "FileInfoBD::close - close_hlpr finished";
-
-    if(m_parent && remFromPrnt)
-    {
-        m_parent->removeSubFolder(this);
-        m_parent = nullptr;
-    }
-
     delete this;
-    qDebug() << "FileInfoBD::close finished";
+}
+
+void FileInfoBD::closeAbsParent()
+{
+    if(m_parent)
+    {
+        m_parent->closeAbsParent();
+    }else{
+        close();
+    }
 }
 
 void FileInfoBD::close_hlpr()
@@ -289,6 +392,15 @@ std::string FileInfoBD::fileName() const
 std::string FileInfoBD::absPath() const
 {
     return m_fileInfo.absoluteFilePath().toStdString();
+}
+
+std::string FileInfoBD::absParentPath() const
+{
+    if(m_parent)
+    {
+        return m_parent->absParentPath();
+    }
+    return absPath();
 }
 
 void FileInfoBD::print() const
@@ -380,7 +492,7 @@ const std::vector<std::string>& FileInfoBD::getSortedFileNames() const
     return m_showHiddenFiles ? m_sortedFileNames_incl_hidden : m_sortedFileNames_no_hidden;
 }
 
-const std::vector<std::string>& FileInfoBD::getSortedFolds() const
+const std::vector<std::string>& FileInfoBD::getSortedFolders() const
 {
     return m_showHiddenFiles ? m_sortedFoldPaths_incl_hidden : m_sortedFoldPaths_no_hidden;
 }
@@ -393,6 +505,16 @@ const std::vector<std::string>& FileInfoBD::getSortedEntries() const
 std::unordered_set<FileInfoBD*>& FileInfoBD::getSubFolders()
 {
     return m_sub_folds;
+}
+
+const std::vector<FileInfoBD*>& FileInfoBD::getSortedSubFolders()
+{
+    return m_showHiddenFiles ? m_sorted_subFolders_incl_hidden : m_sorted_subFolders_no_hidden;
+}
+
+Order FileInfoBD::getOrder() const
+{
+    return m_order;
 }
 
 
@@ -498,8 +620,33 @@ void FileInfoBD::hideHiddenFiles()
 }
 void FileInfoBD::showHiddenFiles_rec()
 {
-    resetCancelFlags();
+    if(m_parent)
+    {
+        m_parent->showHiddenFiles_rec();
+    }else{
+        resetCancelFlags();
 
+        showHiddenFiles_rec_hlpr();
+
+        emit showingHiddenFilesFinished();
+    }
+}
+void FileInfoBD::hideHiddenFiles_rec()
+{
+    if(m_parent)
+    {
+        m_parent->hideHiddenFiles_rec();
+    }else{
+        resetCancelFlags();
+
+        hideHiddenFiles_rec_hlpr();
+
+        emit hidingHiddenFilesFinished();
+    }
+}
+
+void FileInfoBD::showHiddenFiles_rec_hlpr()
+{
     showHiddenFiles_hlpr();
 
     for(auto it=m_sub_folds.begin(); it != m_sub_folds.end(); ++it)
@@ -507,23 +654,21 @@ void FileInfoBD::showHiddenFiles_rec()
         if(m_cancelled_hidingHiddenFiles)
             break;
 
-        (*it)->showHiddenFiles_rec();
+        (*it)->showHiddenFiles_rec_hlpr();
     }
-    emit showingHiddenFilesFinished();
 }
-void FileInfoBD::hideHiddenFiles_rec()
-{
-    resetCancelFlags();
 
+void FileInfoBD::hideHiddenFiles_rec_hlpr()
+{
     hideHiddenFiles_hlpr();
+
     for(auto it=m_sub_folds.begin(); it != m_sub_folds.end(); ++it)
     {
         if(m_cancelled_hidingHiddenFiles)
             break;
 
-        (*it)->hideHiddenFiles_rec();
+        (*it)->hideHiddenFiles_rec_hlpr();
     }
-    emit hidingHiddenFilesFinished();
 }
 void FileInfoBD::showHiddenFiles_hlpr()
 {
@@ -622,6 +767,8 @@ void FileInfoBD::doSorting()
     m_sortedFileNames_no_hidden.clear();
     m_sortedFoldPaths_no_hidden.clear();
     m_entryPaths_no_hidden.clear();
+    m_sorted_subFolders_incl_hidden.clear();
+    m_sorted_subFolders_no_hidden.clear();
 
     m_current_ordering = m_order;
 
@@ -648,21 +795,38 @@ void FileInfoBD::doSorting()
 
     m_sortedFoldPaths_incl_hidden.reserve(subFolds.size());
     m_sortedFoldPaths_no_hidden.reserve(subFolds.size()); // nicht schaedlich, wenn mehr reserviert als spater tats. belegt wird -> std::vector::size() gibt dann lediglich die tats. anzahl elemente an, nicht die anzahl, die in std::vector::reserve gesetzt wurde!
+    m_sorted_subFolders_incl_hidden.reserve(subFolds.size());
+    m_sorted_subFolders_no_hidden.reserve(subFolds.size());
+
     if(m_order.reversedOrdered)
     {
         for(std::vector<FileInfoBD*>::reverse_iterator it = subFolds.rbegin(); it != subFolds.rend(); ++it)
         {
             std::string path = (*it)->absPath();
             m_sortedFoldPaths_incl_hidden.push_back(path);
+
+            m_sorted_subFolders_incl_hidden.push_back( (*it) );
+
             if(m_hidden_folds.find(path) == m_hidden_folds.end())
+            {
                 m_sortedFoldPaths_no_hidden.push_back(path);
+
+                m_sorted_subFolders_no_hidden.push_back( (*it) );
+            }
         }
     }else{
         for(auto* fold: subFolds){
             std::string path = fold->absPath();
             m_sortedFoldPaths_incl_hidden.push_back(path);
+
+            m_sorted_subFolders_incl_hidden.push_back( fold );
+
             if(m_hidden_folds.find(path) == m_hidden_folds.end())
+            {
                 m_sortedFoldPaths_no_hidden.push_back(path);
+
+                m_sorted_subFolders_no_hidden.push_back( fold );
+            }
         }
     }
 
@@ -799,7 +963,7 @@ void FileInfoBD::revalFolderContent()
     {
         if( newFolder_paths.find( it->first ) == newFolder_paths.end() )
         {
-            deletedDirs.push_back( new FiBDDeletor(it->second, false) );
+            deletedDirs.push_back( new FiBDDeletor(it->second) );
             it = m_path_to_subFold.erase( it );
         }else{
             ++it;
@@ -905,6 +1069,9 @@ void FileInfoBD::clearContainers(bool clearSubFolderContainers)
         FileInfoBD::clearSubFolderContainers();
     }
 
+    m_sorted_subFolders_incl_hidden.clear();
+    m_sorted_subFolders_no_hidden.clear();
+
     m_files.clear();  
     m_hidden_files.clear();
     m_hidden_folds.clear();
@@ -979,26 +1146,34 @@ void FileInfoBD::resetCancelFlags()
 
 
 
-FiBDDeletor::FiBDDeletor(FileInfoBD* fiBD,
-                         bool removeFromParent)
+FiBDDeletor::FiBDDeletor(FileInfoBD* fiBD)
     : QObject(nullptr),
-      m_fiBD(fiBD),
-      m_removeFromParent(removeFromParent)
+      m_fiBD(fiBD)
 {
 }
 
 FiBDDeletor::FiBDDeletor(FiBDDeletor& toCopy)
     : QObject(nullptr),
-      m_fiBD(toCopy.m_fiBD),
-      m_removeFromParent(toCopy.m_removeFromParent)
+      m_fiBD(toCopy.m_fiBD)
+{
+}
+FiBDDeletor::FiBDDeletor(FiBDDeletor* toCopy)
+    : QObject(nullptr),
+      m_fiBD(toCopy->m_fiBD)
 {
 }
 
-void FiBDDeletor::operator=(FiBDDeletor &toCopy)
+FiBDDeletor& FiBDDeletor::operator=(const FiBDDeletor &toCopy)
 {
     this->m_fiBD = toCopy.m_fiBD;
-    this->m_removeFromParent = toCopy.m_removeFromParent;
+    return *this;
 }
+FiBDDeletor* FiBDDeletor::operator=(FiBDDeletor* toCopy)
+{
+    this->m_fiBD = toCopy->m_fiBD;
+    return this;
+}
+
 
 FiBDDeletor::~FiBDDeletor()
 {
@@ -1009,7 +1184,7 @@ void FiBDDeletor::execute_deletion()
 {
     if(m_fiBD)
     {
-        m_fiBD->close(m_removeFromParent);
+        m_fiBD->close();
         m_fiBD = nullptr;
     }
 }

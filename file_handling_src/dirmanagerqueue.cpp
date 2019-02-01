@@ -50,6 +50,22 @@ void DirManagerQueue::dirStructureRevalidated()
     startWorkersInQueue();
 }
 
+void DirManagerQueue::cancelWorkers()
+{
+    std::vector<DirManagerWorker*> workers(m_workersToRun.begin(), m_workersToRun.end());
+
+    emit killWorkers();
+
+    m_workersToRun.clear();
+
+    while(workers.size())
+    {
+        auto* worker = workers[0];
+        workers.erase(workers.begin());
+        delete worker;
+    }
+}
+
 void DirManagerQueue::close()
 {
     m_closed = true;
@@ -119,8 +135,9 @@ void DirManagerQueue::cleanUp()
     {
         auto* worker = m_workersToRun.front();
         m_workersToRun.erase(m_workersToRun.begin());
-        worker->cancel();
-        worker->deleteLater();
+        delete worker;
+//        worker->cancel();
+//        worker->deleteLater();
     }
     emit noMoreWorkersRunning();
 

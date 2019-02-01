@@ -66,6 +66,9 @@ void DirElapseWorker::run()
             connect(thread, &QThread::started, helper, &DirElapseWorkerHelper::run);
 
             thread->start();
+
+            if(m_cancelled)
+                break;
         }
     }
     if( !m_useSubThreads )

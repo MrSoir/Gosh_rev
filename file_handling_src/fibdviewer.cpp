@@ -1,8 +1,19 @@
 #include "fibdviewer.h"
 
-FiBDViewer::FiBDViewer()
-    : m_path(""),
-      m_fileName(""),
+FiBDViewer::FiBDViewer(QString path,
+                       QString fileName,
+
+                       unsigned long long fileSize,
+
+                       QDateTime lastModified,
+
+                       bool isHidden,
+
+                       int depthId,
+
+                       bool isCurrentlyRevalidating)
+    : m_path(path),
+      m_fileName(fileName),
 
       m_folder(false),
       m_searched(false),
@@ -10,52 +21,139 @@ FiBDViewer::FiBDViewer()
       m_selected(false),
       m_isLoaded(false),
       m_isElapsed(false),
+      m_isHidden(isHidden),
 
       m_filesCount(0),
       m_subDirCount(0),
-      m_depthId(0),
+
+      m_depthId(depthId),
+
       m_order(Order()),
 
-      m_fileSize(0),
-      m_lastModified(QDateTime::currentDateTime())
+      m_fileSize(fileSize),
+      m_lastModified(lastModified),
+
+      m_isCurrentlyRevalidating(isCurrentlyRevalidating)
 {
 }
 
-FiBDViewer::FiBDViewer(const QFileInfo &fi)
-    : m_path(fi.absoluteFilePath()),
-      m_fileName(fi.fileName()),
+FiBDViewer::FiBDViewer(unsigned long long fileSize,
+                       QDateTime lastModified,
 
-      m_folder(fi.isDir()),
+                       int depthId,
+
+                       const FileInfoBD& fi)
+
+    : m_path(QString::fromStdString(fi.absPath())),
+      m_fileName(QString::fromStdString(fi.fileName())),
+
+      m_folder(true),
       m_searched(false),
       m_searchFocused(false),
       m_selected(false),
       m_isLoaded(false),
       m_isElapsed(false),
+      m_isHidden(fi.isHidden()),
 
-      m_filesCount(0),
-      m_subDirCount(0),
-      m_depthId(0),
-      m_order(Order()),
+      m_filesCount(fi.getFileCount()),
+      m_subDirCount(fi.getFolderCount()),
 
-      m_fileSize(static_cast<unsigned long long int>(fi.size())),
-      m_lastModified(fi.lastModified())
+      m_depthId(depthId),
+
+      m_order(fi.getOrder()),
+
+      m_fileSize(fileSize),
+      m_lastModified(lastModified),
+
+      m_isCurrentlyRevalidating(false)
+{
+}
+FiBDViewer::FiBDViewer(unsigned long long fileSize,
+                       QDateTime lastModified,
+
+                       int depthId,
+
+                       FileInfoBD* fi)
+
+    : m_path(QString::fromStdString(fi->absPath())),
+      m_fileName(QString::fromStdString(fi->fileName())),
+
+      m_folder(true),
+      m_searched(false),
+      m_searchFocused(false),
+      m_selected(false),
+      m_isLoaded(false),
+      m_isElapsed(false),
+      m_isHidden(fi->isHidden()),
+
+      m_filesCount(fi->getFileCount()),
+      m_subDirCount(fi->getFolderCount()),
+
+      m_depthId(depthId),
+
+      m_order(fi->getOrder()),
+
+      m_fileSize(fileSize),
+      m_lastModified(lastModified),
+
+      m_isCurrentlyRevalidating(false)
 {
 }
 
-FiBDViewer::FiBDViewer(const FiBDViewer &fi)
+FiBDViewer::FiBDViewer(const FiBDViewer& fi)
     : m_path(fi.m_path),
+      m_fileName(fi.fileName()),
+
       m_folder(fi.m_folder),
       m_searched(fi.m_searched),
       m_searchFocused(fi.m_searchFocused),
       m_selected(fi.m_selected),
       m_isLoaded(fi.m_isLoaded),
       m_isElapsed(fi.m_isElapsed),
-      m_filesCount(fi.m_filesCount)
+      m_isHidden(fi.isHidden()),
+
+      m_filesCount(fi.m_filesCount),
+      m_subDirCount(fi.m_subDirCount),
+      m_depthId(fi.m_depthId),
+
+      m_order(fi.m_order),
+
+      m_fileSize(fi.m_fileSize),
+      m_lastModified(fi.m_lastModified),
+
+      m_isCurrentlyRevalidating(fi.m_isCurrentlyRevalidating)
 {
 }
 
 FiBDViewer::~FiBDViewer()
 {
+}
+
+FiBDViewer& FiBDViewer::operator=(const FiBDViewer &fi)
+{
+    this->m_path = fi.m_path;
+    this->m_fileName = fi.m_fileName;
+
+    this->m_folder = fi.m_folder;
+    this->m_searched = fi.m_searched;
+    this->m_searchFocused = fi.m_searchFocused;
+    this->m_selected = fi.m_selected;
+    this->m_isLoaded = fi.m_isLoaded;
+    this->m_isElapsed = fi.m_isElapsed;
+    this->m_isHidden = fi.m_isHidden;
+
+    this->m_filesCount = fi.m_filesCount;
+    this->m_subDirCount = fi.m_subDirCount;
+    this->m_depthId = fi.m_depthId;
+
+    this->m_order = fi.m_order;
+
+    this->m_fileSize = fi.m_fileSize;
+    this->m_lastModified = fi.m_lastModified;
+
+    this->m_isCurrentlyRevalidating = fi.m_isCurrentlyRevalidating;
+
+    return *this;
 }
 
 void FiBDViewer::setSearched(bool searched)
@@ -104,6 +202,11 @@ QDateTime FiBDViewer::lastModified() const
 {
     return m_lastModified;
 }
+
+bool FiBDViewer::isCurrentlyRevalidating() const
+{
+    return m_isCurrentlyRevalidating;
+}
 bool FiBDViewer::selected() const
 {
     return m_selected;
@@ -123,6 +226,11 @@ bool FiBDViewer::isLoaded() const
 bool FiBDViewer::isElapsed() const
 {
     return m_isElapsed;
+}
+
+bool FiBDViewer::isHidden() const
+{
+    return m_isHidden;
 }
 
 bool FiBDViewer::containsFiles() const

@@ -1,5 +1,5 @@
-#ifndef DIRREVALWORKER_H
-#define DIRREVALWORKER_H
+#ifndef DIRCD_UPWORKER_H
+#define DIRCD_UPWORKER_H
 
 #include <QObject>
 #include <QDebug>
@@ -12,14 +12,12 @@
 #include "fileinfobd.h"
 #include "staticfunctions_files.h"
 
-class DirRevalWorker : public DirManagerWorker
+class DirCD_UpWorker : public DirManagerWorker
 {
     Q_OBJECT
 public:
-    explicit DirRevalWorker(FileInfoBD* fi);
-    explicit DirRevalWorker(std::vector<FileInfoBD*> fis);
-
-    virtual ~DirRevalWorker() override;
+    explicit DirCD_UpWorker(FileInfoBD* current_rootDir);
+    virtual ~DirCD_UpWorker() override;
 
     virtual bool blockOtherThreads() const override;
     virtual bool revalidateDirStructureAfterWorkerHasFinished() const override;
@@ -27,8 +25,7 @@ signals:
 public slots:
     void run();
 private:
-
-    std::vector<FileInfoBD*> m_fis;
+    FileInfoBD* m_current_rootDir;
 };
 
-#endif // DIRREVALWORKER_H
+#endif // DIRCD_UPWORKER_H

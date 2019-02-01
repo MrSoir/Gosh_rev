@@ -12,16 +12,40 @@
 #include "selectable.h"
 #include "orderby.h"
 
+#include "dirmanager.h"
+
 //using namespace ORDERED_BY;
 
 class FiBDViewer : public Searchable,
                    public Selectable
 {
 public:
-    explicit FiBDViewer();
-    explicit FiBDViewer(const QFileInfo& fi);
-    FiBDViewer(const FiBDViewer& fi);
+    explicit FiBDViewer(QString path,
+                        QString fileName,
+                        unsigned long long fileSize,
+                        QDateTime lastModified,
+                        bool isHidden,
+                        int depthId,
+                        bool isCurrentlyRevalidating);
+
+    explicit FiBDViewer(unsigned long long m_fileSize,
+                        QDateTime m_lastModified,
+                        int depthId,
+                        const FileInfoBD& fi);
+    explicit FiBDViewer(unsigned long long m_fileSize,
+                        QDateTime m_lastModified,
+                        int depthId,
+                        FileInfoBD* fi);
+
+
+    explicit FiBDViewer(const FiBDViewer& fi);
+
     virtual ~FiBDViewer() override;
+
+    FiBDViewer& operator=(const FiBDViewer& fi);
+
+
+    // getters:
 
     bool searched() const;
     bool searchFocused() const;
@@ -29,6 +53,8 @@ public:
     bool isFolder() const;
     bool isLoaded() const;
     bool isElapsed() const;
+    bool isHidden() const;
+
     bool containsFiles() const;
     bool isEmpty() const;
     bool isReversedSortedBy(Order ord) const;
@@ -37,16 +63,22 @@ public:
 
     int depthId() const;
 
-    void setSearched(bool searched) override;
-    void setSearchFocused(bool focused) override;
-    void setSelected(bool selected) override;
-
     virtual std::string path() const override;
     QString q_path() const;
     QString fileName() const;
 
     unsigned long long int fileSize() const;
     QDateTime lastModified() const;
+
+    bool isCurrentlyRevalidating() const;
+
+
+    // setters:
+
+    void setSearched(bool searched) override;
+    void setSearchFocused(bool focused) override;
+    void setSelected(bool selected) override;
+
 private:
     QString m_path;
     QString m_fileName;
@@ -57,15 +89,19 @@ private:
     bool m_selected;
     bool m_isLoaded;
     bool m_isElapsed;
+    bool m_isHidden;
 
-    int m_filesCount;
-    int m_subDirCount;
+    unsigned long m_filesCount;
+    unsigned long m_subDirCount;
+
     int m_depthId;
 
     Order m_order;
 
     unsigned long long int m_fileSize;
     QDateTime m_lastModified;
+
+    bool m_isCurrentlyRevalidating;
 };
 
 

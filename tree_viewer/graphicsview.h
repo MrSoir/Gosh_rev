@@ -106,7 +106,7 @@ signals:
     void selectButtonDown(bool contrlPrsd, bool shiftPrsd);
     void selectContent(QString entry, bool contrlPrsd, bool shiftPrsd);
 //    void selectFromDisplayedContent(QFileInfo fi, bool contrlPrsd, bool shiftPrsd);
-    void sortFromDisplayedContent(QString fi, Order order);
+    void sortDir(QString fi, Order order);
 
     void copySelectedContent();
     void cutSelectedContent();

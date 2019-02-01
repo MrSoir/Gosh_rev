@@ -73,8 +73,6 @@ void DirDeleteWorker::evalDirsToDelete()
 
     if(invalidPathsDetected)
     {
-        qDebug() << "DirDeleteWorker::evalDirsToDelete - invalidPathsDetected: " << (invalidPathsDetected ? "true" : "false");
-
         std::vector<FiBDDeletor*> validDirsToDelete;
         for(const auto& path: paths_to_delete)
         {

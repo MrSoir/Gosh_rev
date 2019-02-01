@@ -68,22 +68,54 @@ void DirDeepSearchWorker::search(FileInfoBD* dir)
         m_matches.push_back(match);
     }
 
-    for(auto* sub_dir: dir->getSubFolders())
+    const std::vector<std::string>& filePaths = dir->getSortedFiles();
+    const std::vector<std::string>& fileNames = dir->getSortedFileNames();
+    for(unsigned long i=0; i < filePaths.size() && i < fileNames.size(); ++i)
     {
-        ++m_runningThreads;
+        if(m_cancelled)
+            break;
 
-        QThread* thread = new QThread();
+        const auto& filePath = filePaths[i];
+        const auto& fileName = fileNames[i];
 
-        DirDeepSearchHelper* helper = new DirDeepSearchHelper(m_keyword, sub_dir, m_includeHiddenFiles);
-        helper->moveToThread(thread);
-        connect(helper, &DirDeepSearchHelper::finished, this, &DirDeepSearchWorker::workerFinished, Qt::QueuedConnection);
-        connect(this, &DirDeepSearchWorker::killHelpers, helper, &DirDeepSearchHelper::cancel, Qt::DirectConnection);
+        if(StringOps::inStringIgnoreCase(fileName, m_keyword))
+        {
+            DeepSearchResult match;
+            match.isDir = false;
+            match.absPath = filePath;
+            match.closestParentDir = dir;
+            match.containingFiBDExists = true;
 
-        connect(helper, &DirDeepSearchHelper::finished, thread, &QThread::quit);
-        connect(thread, &QThread::finished, thread, &QThread::deleteLater);
-        connect(thread, &QThread::started, helper, &DirDeepSearchHelper::run);
+            m_matches.push_back(match);
+        }
+    }
 
-        thread->start();
+    if(dir->getSubFolders().size() > 0)
+    {
+        for(auto* sub_dir: dir->getSubFolders())
+        {
+            ++m_runningThreads;
+
+            QThread* thread = new QThread();
+
+            DirDeepSearchHelper* helper = new DirDeepSearchHelper(m_keyword, sub_dir, m_includeHiddenFiles);
+            helper->moveToThread(thread);
+            connect(helper, &DirDeepSearchHelper::finished, this, &DirDeepSearchWorker::workerFinished, Qt::QueuedConnection);
+            connect(this, &DirDeepSearchWorker::killHelpers, helper, &DirDeepSearchHelper::cancel, Qt::DirectConnection);
+
+            connect(helper, &DirDeepSearchHelper::finished, thread, &QThread::quit);
+            connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+            connect(thread, &QThread::started, helper, &DirDeepSearchHelper::run);
+
+            thread->start();
+
+            // m_cancelled muss am ende stehen, denn sonst wird ggfs. die loop beendet, bevor auch nur ein einziger thread erzeugt wurde
+            // -> in diesem fall wird workerFinished niemals aufgerufen und der worker steckt in der endlosigkeit fest!
+            if(m_cancelled)
+                break;
+        }
+    }else{
+        elapseMatchingFolders();
     }
 }
 
@@ -91,6 +123,9 @@ void DirDeepSearchWorker::elapseMatchingFolders()
 {
     for(const auto& match: m_matches)
     {
+        if(m_cancelled)
+            break;
+
         if(!match.containingFiBDExists)
         {
             std::string match_dir = PATH::getDirFromPath(match.absPath).toStdString();
@@ -106,6 +141,7 @@ void DirDeepSearchWorker::elapseMatchingFolders()
     {
         matching_paths.push_back(match.absPath);
     }
+
     emit deepSearchFinished(matching_paths, m_keyword);
     emit finished(revalidateDirStructureAfterWorkerHasFinished());
 }
@@ -197,6 +233,9 @@ void DirDeepSearchHelper::search(FileInfoBD *dir)
         const std::vector<std::string>& fileNames = dir->getSortedFileNames();
         for(unsigned long i=0; i < filePaths.size() && i < fileNames.size(); ++i)
         {
+            if(m_cancelled)
+                return;
+
             const auto& filePath = filePaths[i];
             const auto& fileName = fileNames[i];
 
@@ -214,6 +253,8 @@ void DirDeepSearchHelper::search(FileInfoBD *dir)
 
         for(auto* sub_dir: dir->getSubFolders())
         {
+            if(m_cancelled)
+                return;
             search(sub_dir);
         }
     }else{
@@ -242,6 +283,9 @@ void DirDeepSearchHelper::search(const QString& dir_path, FileInfoBD* closestPar
     QFileInfoList files = ListFiles::getFilesInDirectory(QDir(dir_path), m_includeHiddenFiles);
     for(const auto& file: files)
     {
+        if(m_cancelled)
+            return;
+
         if(StringOps::inStringIgnoreCase(file.fileName().toStdString(), m_keyword))
         {
             DeepSearchResult match;
@@ -257,6 +301,8 @@ void DirDeepSearchHelper::search(const QString& dir_path, FileInfoBD* closestPar
     QFileInfoList dirs = ListFiles::getFoldersInDirectory(QDir(dir_path), m_includeHiddenFiles);
     for(const auto& dir: dirs)
     {
+        if(m_cancelled)
+            return;
         search(dir.absoluteFilePath(), closestParentDir);
     }
 }
