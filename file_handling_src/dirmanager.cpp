@@ -18,6 +18,8 @@ DirManager::DirManager(const std::string& root_path,
 
     connectSignals();
 
+    m_root->elapse();
+
     revalidateDirStructure();
 }
 
@@ -34,6 +36,8 @@ DirManager::DirManager(FileInfoBD* root_dir, QObject *parent)
     createThread();
 
     connectSignals();
+
+    m_root->elapse();
 
     revalidateDirStructure();
 }
@@ -227,20 +231,20 @@ void DirManager::cdUP()
 
 void DirManager::revalidateDirStructure()
 {
-    if(!m_closed)
+    if(m_closed)
+        return;
+
+    clearContainers();
+    if(m_root)
     {
-        clearContainers();
-        if(m_root)
-        {
-            m_root_path = m_root->absPath();
-            revalidateDirStructure_hlpr(m_root);
-        }
-
-        addDirsToWatcher_helpr();
-
-        emit treeChanged(genTreeFromRoot());
-        emit dirStructureRevalidated();
+        m_root_path = m_root->absPath();
+        revalidateDirStructure_hlpr(m_root);
     }
+
+    addDirsToWatcher_helpr();
+
+    emit treeChanged(genTreeFromRoot());
+    emit dirStructureRevalidated();
 }
 
 void printDir(FileInfoBD* dir, int padding = 0)

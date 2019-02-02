@@ -9,9 +9,6 @@ FileManager::FileManager(std::string root_path,
       m_dir_manager(new DirManager(root_path)),
       m_tree(m_dir_manager->getTree()),
 
-      m_searcher(new FileSearcher(this)),
-      m_selector(new FileSelector(this)),
-
       m_tasks_queue(new FileQueue()),
 
       m_depthId_elapsed(std::vector<bool>()),
@@ -30,7 +27,17 @@ FileManager::FileManager(std::string root_path,
       m_graphicsViewVBarValueBackup(0),
       m_graphicsViewHBarValueBackup(0),
 
-      m_dirStack(new DirectoryStack())
+      m_dirStack(new DirectoryStack()),
+
+      m_searcher(new FileSearcher(&m_fileNames_colpsd,
+                                  &m_entries_order_colpsd,
+                                  this)),
+      m_selector(new FileSelector(&m_paths_colpsd,
+                                  &m_order_entries_colpsd,
+                                  &m_entries_order_colpsd,
+                                  &m_fileNames_colpsd,
+                                  &m_folder_paths_colpsd,
+                                  this))
 {
     connectSignals();
 
@@ -60,9 +67,13 @@ void FileManager::test()
 QLayout* FileManager::genPane()
 {
     QDir rootDir(QString::fromStdString(m_root_path));
-    GraphicsView* folderViewer = new GraphicsView(m_graphicsViewVBarValueBackup,
+
+    GraphicsView* folderViewer = new GraphicsView(new FileManagerInfo(*this),
+                                                  m_graphicsViewVBarValueBackup,
                                                   m_graphicsViewHBarValueBackup,
                                                   m_zoomFactor);
+    folderViewer->receiveFileViewers( generateViewerData() );
+
     QGridLayout* mainGrid = new QGridLayout();
     DirectorySelectionPane* toolBar = new DirectorySelectionPane(rootDir);
 
@@ -85,7 +96,7 @@ QWidget* FileManager::createWidget()
     return widget;
 }
 
-void FileManager::setRoot(QDir dir)
+void FileManager::setRoot_QDir(QDir dir)
 {
     setRoot(dir.absolutePath().toStdString());
 }
@@ -135,12 +146,12 @@ void FileManager::close()
 
 void FileManager::selectionChanged()
 {
-    revalidateViewer_helper();
+    revalidateViewer_metaData_hlpr();
 }
 
 void FileManager::searchResultsChanged()
 {
-    revalidateViewer_helper();
+    revalidateViewer_metaData_hlpr();
 }
 
 void FileManager::elapseFolder(std::string path)
@@ -263,55 +274,55 @@ void FileManager::openSelectedFoldersInTab()
     }
 }
 
-void FileManager::searchForKeyWord(QString keyword, bool deepsearch)
-{
-    Q_UNUSED(deepsearch);
-    if(m_searcher)
-    {
-        m_searcher->search(keyword.toStdString());
-        m_inSearchMode = true;
-    }
-}
-void FileManager::selectEntireContent()
-{
-    if(m_selector)
-    {
-        m_selector->selectEntireContent();
-        revalidateViewer_helper();
-    }
-}
-void FileManager::clearSelection()
-{
-    if(m_selector)
-    {
-        m_selector->clearSelection();
-        revalidateViewer_helper();
-    }
-}
-void FileManager::selectButtonUp(bool cntrlPrsd, bool shiftPrsd)
-{
-    if(m_selector)
-    {
-        m_selector->selectPrevious(cntrlPrsd, shiftPrsd);
-        revalidateViewer_helper();
-    }
-}
-void FileManager::selectButtonDown(bool cntrlPrsd, bool shiftPrsd)
-{
-    if(m_selector)
-    {
-        m_selector->selectNext(cntrlPrsd, shiftPrsd);
-        revalidateViewer_helper();
-    }
-}
-void FileManager::selectEntry(QString entry, bool contrlPrsd, bool shiftPrsd)
-{
-    if(m_selector)
-    {
-        m_selector->select(entry.toStdString(), contrlPrsd, shiftPrsd);
-        revalidateViewer_helper();
-    }
-}
+//void FileManager::searchForKeyWord(QString keyword, bool deepsearch)
+//{
+//    Q_UNUSED(deepsearch);
+//    if(m_searcher)
+//    {
+//        m_searcher->search(keyword.toStdString());
+//        m_inSearchMode = true;
+//    }
+//}
+//void FileManager::selectEntireContent()
+//{
+//    if(m_selector)
+//    {
+//        m_selector->selectEntireContent();
+//        revalidateViewer_helper();
+//    }
+//}
+//void FileManager::clearSelection()
+//{
+//    if(m_selector)
+//    {
+//        m_selector->clearSelection();
+//        revalidateViewer_helper();
+//    }
+//}
+//void FileManager::selectButtonUp(bool cntrlPrsd, bool shiftPrsd)
+//{
+//    if(m_selector)
+//    {
+//        m_selector->selectPrevious(cntrlPrsd, shiftPrsd);
+//        revalidateViewer_helper();
+//    }
+//}
+//void FileManager::selectButtonDown(bool cntrlPrsd, bool shiftPrsd)
+//{
+//    if(m_selector)
+//    {
+//        m_selector->selectNext(cntrlPrsd, shiftPrsd);
+//        revalidateViewer_helper();
+//    }
+//}
+//void FileManager::selectEntry(QString entry, bool contrlPrsd, bool shiftPrsd)
+//{
+//    if(m_selector)
+//    {
+//        m_selector->select(entry.toStdString(), contrlPrsd, shiftPrsd);
+//        revalidateViewer_helper();
+//    }
+//}
 
 void FileManager::sortDir(QString dir, Order order)
 {
@@ -577,12 +588,12 @@ void FileManager::keyPressed(std::string s)
 
         m_selector->selectKeyWord(m_keysPressed);
 
-        std::string new_last_sel = m_selector->getLastSelectedEntry();
-        if( (old_last_sel.empty() && !new_last_sel.empty()) ||
-            (old_last_sel != new_last_sel))
-        {
-            focusPath(new_last_sel);
-        }
+//        std::string new_last_sel = m_selector->getLastSelectedEntry();
+//        if( (old_last_sel.empty() && !new_last_sel.empty()) ||
+//            (old_last_sel != new_last_sel))
+//        {
+//            focusPath(new_last_sel);
+//        }
     }
 }
 
@@ -628,7 +639,12 @@ void FileManager::requestFileViewerRevalidation(int_bd firstEntryToDispl, int_bd
     m_frstDispFile = firstEntryToDispl;
     m_lastDispFile = lastEntryToDisp;
 
-    revalidateViewer_helper();
+    revalidateViewer_entries_hlpr();
+}
+
+void FileManager::deepSearch(QString key_word)
+{
+    emit deepSearch_dm(key_word.toStdString(), true);
 }
 
 void FileManager::dirChanged_dm(DirManagerInfo* changedDir)
@@ -638,6 +654,7 @@ void FileManager::dirChanged_dm(DirManagerInfo* changedDir)
 
 void FileManager::treeChanged_dm(DirManagerInfo* entireTree)
 {
+    qDebug() << "FileManager::treeChanged_dm";
     replaceTree(entireTree);
 }
 
@@ -655,6 +672,8 @@ void FileManager::setRoot_hlpr(string rootPath, bool addToDirStack)
 
     if(addToDirStack)
         m_dirStack->addPath(rootPath);
+
+    qDebug() << "emitting rootDirChanged";
 
     emit rootDirChanged(rootPath);
 }
@@ -674,40 +693,50 @@ void FileManager::connectSignals()
     }else
         qDebug() << "trying to connect m_tasks_queue -> nullptr! [root_path: "  << QString::fromStdString(m_root_path) << "]";
 
+    if(m_selector)
+    {
+        connect(m_selector, &FileSelector::selectionChanged, this, &FileManager::selectionChanged);
+        connect(m_selector, &FileSelector::focusPath, this, &FileManager::focusPath); // wenn keyPressed -> select_KeyWord -> beim match -> focusMatch
+    }
+
+    if(m_searcher)
+    {
+        connect(m_searcher, &FileSearcher::searchResultsChanged, this, &FileManager::searchResultsChanged);
+    }
 
     if(m_dir_manager)
     {
-        connect(m_dir_manager, &DirManager::dirChanged, this, &FileManager::dirChanged_dm, Qt::QueuedConnection);
-        connect(m_dir_manager, &DirManager::treeChanged, this, &FileManager::treeChanged_dm, Qt::QueuedConnection);
-        connect(m_dir_manager, &DirManager::deepSearchFinished, this, &FileManager::deepSearchFinished_dm, Qt::QueuedConnection);
+        connect(m_dir_manager, &DirManager::dirChanged,                 this, &FileManager::dirChanged_dm,                          Qt::QueuedConnection);
+        connect(m_dir_manager, &DirManager::treeChanged,                this, &FileManager::treeChanged_dm,                         Qt::QueuedConnection);
+        connect(m_dir_manager, &DirManager::deepSearchFinished,         this, &FileManager::deepSearchFinished_dm,                  Qt::QueuedConnection);
 
-        connect(this, SIGNAL(elapse_dm(std::string)), m_dir_manager, SLOT(elapse(std::string)), Qt::QueuedConnection);
-        connect(this, SIGNAL(elapse_dm(std::vector<std::string>)), m_dir_manager, SLOT(elapse(std::vector<std::string>)), Qt::QueuedConnection);
+        connect(this, SIGNAL(elapse_dm(std::string)),                   m_dir_manager, SLOT(elapse(std::string)),                   Qt::QueuedConnection);
+        connect(this, SIGNAL(elapse_dm(std::vector<std::string>)),      m_dir_manager, SLOT(elapse(std::vector<std::string>)),      Qt::QueuedConnection);
 
-        connect(this, SIGNAL(elapseRec_dm(std::string)), m_dir_manager, SLOT(elapseRec(std::string)), Qt::QueuedConnection);
-        connect(this, SIGNAL(elapseRec_dm(std::vector<std::string>)), m_dir_manager, SLOT(elapseRec(std::vector<std::string>)), Qt::QueuedConnection);
+        connect(this, SIGNAL(elapseRec_dm(std::string)),                m_dir_manager, SLOT(elapseRec(std::string)),                Qt::QueuedConnection);
+        connect(this, SIGNAL(elapseRec_dm(std::vector<std::string>)),   m_dir_manager, SLOT(elapseRec(std::vector<std::string>)),   Qt::QueuedConnection);
 
-        connect(this, SIGNAL(collapse_dm(std::string)), m_dir_manager, SLOT(collapse(std::string)), Qt::QueuedConnection);
-        connect(this, SIGNAL(collapse_dm(std::vector<std::string>)), m_dir_manager, SLOT(collapse(std::vector<std::string>)), Qt::QueuedConnection);
+        connect(this, SIGNAL(collapse_dm(std::string)),                 m_dir_manager, SLOT(collapse(std::string)),                 Qt::QueuedConnection);
+        connect(this, SIGNAL(collapse_dm(std::vector<std::string>)),    m_dir_manager, SLOT(collapse(std::vector<std::string>)),    Qt::QueuedConnection);
 
-        connect(this, SIGNAL(collapseRec_dm(std::string)), m_dir_manager, SLOT(collapseRec(std::string)), Qt::QueuedConnection);
+        connect(this, SIGNAL(collapseRec_dm(std::string)),              m_dir_manager, SLOT(collapseRec(std::string)),              Qt::QueuedConnection);
         connect(this, SIGNAL(collapseRec_dm(std::vector<std::string>)), m_dir_manager, SLOT(collapseRec(std::vector<std::string>)), Qt::QueuedConnection);
 
-        connect(this, SIGNAL(deleteDir_dm(std::string)), m_dir_manager, SLOT(deleteDir(std::string)), Qt::QueuedConnection);
-        connect(this, SIGNAL(deleteDirs_dm(std::vector<std::string>)), m_dir_manager, SLOT(deleteDirs(std::vector<std::string>)), Qt::QueuedConnection);
+        connect(this, SIGNAL(deleteDir_dm(std::string)),                m_dir_manager, SLOT(deleteDir(std::string)),                Qt::QueuedConnection);
+        connect(this, SIGNAL(deleteDirs_dm(std::vector<std::string>)),  m_dir_manager, SLOT(deleteDirs(std::vector<std::string>)),  Qt::QueuedConnection);
 
-        connect(this, &FileManager::includeHiddenFiles_SGNL, m_dir_manager, &DirManager::includeHiddenFiles, Qt::QueuedConnection);
-        connect(this, &FileManager::excludeHiddenFiles_SGNL, m_dir_manager, &DirManager::excludeHiddenFiles, Qt::QueuedConnection);
+        connect(this, &FileManager::includeHiddenFiles_SGNL,            m_dir_manager, &DirManager::includeHiddenFiles,             Qt::QueuedConnection);
+        connect(this, &FileManager::excludeHiddenFiles_SGNL,            m_dir_manager, &DirManager::excludeHiddenFiles,             Qt::QueuedConnection);
 
-        connect(this, &FileManager::sortDir_dm, m_dir_manager, &DirManager::sortDir, Qt::QueuedConnection);
-        connect(this, &FileManager::sortDirs_dm, m_dir_manager, &DirManager::sortDirs, Qt::QueuedConnection);
-        connect(this, &FileManager::sortAllDirs_dm, m_dir_manager, &DirManager::sortAllDirs, Qt::QueuedConnection);
+        connect(this, &FileManager::sortDir_dm,                         m_dir_manager, &DirManager::sortDir,                        Qt::QueuedConnection);
+        connect(this, &FileManager::sortDirs_dm,                        m_dir_manager, &DirManager::sortDirs,                       Qt::QueuedConnection);
+        connect(this, &FileManager::sortAllDirs_dm,                     m_dir_manager, &DirManager::sortAllDirs,                    Qt::QueuedConnection);
 
-        connect(this, &FileManager::cdUP_dm, m_dir_manager, &DirManager::cdUP, Qt::QueuedConnection);
+        connect(this, &FileManager::cdUP_dm,                            m_dir_manager, &DirManager::cdUP,                           Qt::QueuedConnection);
 
-        connect(this, &FileManager::deepSearch_dm, m_dir_manager, &DirManager::deepSearch, Qt::QueuedConnection);
+        connect(this, &FileManager::deepSearch_dm,                      m_dir_manager, &DirManager::deepSearch,                     Qt::QueuedConnection);
 
-        connect(this, &FileManager::rootDirChanged, m_dir_manager, &DirManager::rootDirChanged, Qt::QueuedConnection);
+        connect(this, &FileManager::rootDirChanged,                     m_dir_manager, &DirManager::rootDirChanged,                 Qt::QueuedConnection);
     }else
         qDebug() << "trying to connect m_dir_manager -> nullptr! [root_path: "  << QString::fromStdString(m_root_path) << "]";
 }
@@ -722,6 +751,17 @@ void FileManager::disconnectSiganls()
         disconnect(this, &FileManager::continueFileQueueTask, m_tasks_queue, &FileQueue::continue_);
         disconnect(m_tasks_queue, &FileQueue::blockUntilTaskHasFinish, this, &FileManager::startWaitingLoop);
         disconnect(m_tasks_queue, &FileQueue::blockingTaskHasFinished, this, &FileManager::exitWaitingLoop);
+    }
+
+    if(m_selector)
+    {
+        disconnect(m_selector, &FileSelector::selectionChanged, this, &FileManager::selectionChanged);
+        disconnect(m_selector, &FileSelector::focusPath, this, &FileManager::focusPath); // wenn keyPressed -> select_KeyWord -> beim match -> focusMatch
+    }
+
+    if(m_searcher)
+    {
+        disconnect(m_searcher, &FileSearcher::searchResultsChanged, this, &FileManager::searchResultsChanged);
     }
 
     if(m_dir_manager)
@@ -766,15 +806,29 @@ void FileManager::connectViewer(GraphicsView* viewer)
     if(viewer) // if, da m_viewer zu test-zwecken noch auf nullptr gesetzt ist. im eigentlichen programm dann eig nicht mehr notwendig darauf zu testen im konstruktor!
     {
         // FileManager -> GraphicsView:
-        connect(this, &FileManager::startWaitingLoop, viewer, &GraphicsView::startWaitingAnimation);
-        connect(this, &FileManager::exitWaitingLoop,  viewer, &GraphicsView::killWaitingAnimation);
-        connect(this, &FileManager::focusGraphicsView,  viewer, &GraphicsView::focusId);
-        connect(this, &FileManager::requestFocusSGNL,  viewer, &GraphicsView::requestFocus);
-        connect(this, &FileManager::revalidateViewer,  viewer, &GraphicsView::receiveFileViewers);
+        connect(this, &FileManager::startWaitingLoop,           viewer, &GraphicsView::startWaitingAnimation);
+        connect(this, &FileManager::exitWaitingLoop,            viewer, &GraphicsView::killWaitingAnimation);
+        connect(this, &FileManager::focusGraphicsView,          viewer, &GraphicsView::focusId);
+        connect(this, &FileManager::requestFocusSGNL,           viewer, &GraphicsView::requestFocus);
+        connect(this, &FileManager::revalidateViewer_Entries,   viewer, &GraphicsView::receiveFileViewers);
+        connect(this, &FileManager::revalidateViewer_MetaData,  viewer, &GraphicsView::receiveFileManagerMetaData);
 
+        // GraphicsView -> FileSearcher:
+        connect(viewer, &GraphicsView::nextSearchResultSGNL, m_searcher, &FileSearcher::focusNextMatch);
+        connect(viewer, &GraphicsView::prevSearchResultSGNL, m_searcher, &FileSearcher::focusPreviousMatch);
+        connect(viewer, &GraphicsView::closeSearchMenuSGNL,  m_searcher, &FileSearcher::exitSearchMode);
+        connect(viewer, &GraphicsView::searchForKeyWord,     m_searcher, &FileSearcher::search_QString);
+
+        // GraphicsView -> FilesSelector:
+        connect(viewer, &GraphicsView::selectEntireContent, m_selector, &FileSelector::selectEntireContent);
+        connect(viewer, &GraphicsView::clearSelection,      m_selector, &FileSelector::clearSelection);
+        connect(viewer, &GraphicsView::selectButtonUp,      m_selector, &FileSelector::selectPrevious);
+        connect(viewer, &GraphicsView::selectButtonDown,    m_selector, &FileSelector::selectNext);
+        connect(viewer, &GraphicsView::selectContent,       m_selector, &FileSelector::select_QString);
 
         // GraphicsView -> FileManager:
-        connect(viewer, SIGNAL(setRoot(QDir)), this, SLOT(setRoot(QDir))); // setRoot ambiguous -> function overloading!!! -> daher connected mittels SIGNAL() - SLOT()!
+        connect(viewer, &GraphicsView::setRootFolder, this, &FileManager::setRoot_QDir);
+        connect(viewer, &GraphicsView::deepSearch, this, &FileManager::deepSearch);
         connect(viewer, &GraphicsView::elapseAllFoldersOfDepthId, this, &FileManager::elapseAllFoldersOfDepthId);
         connect(viewer, &GraphicsView::elapseSelectedFoldersRecursively, this, &FileManager::elapseSelectedFoldersRecursively);
         connect(viewer, &GraphicsView::elapseSelectedFolders, this, &FileManager::elapseSelectedFolders);
@@ -783,12 +837,6 @@ void FileManager::connectViewer(GraphicsView* viewer)
         connect(viewer, &GraphicsView::elapseOrCollapseFolderDependingOnCurrentState, this, &FileManager::elapseOrCollapseFolderDependingOnCurrentState);
         connect(viewer, &GraphicsView::showHiddenFilesSGNL, this, &FileManager::setIncludeHiddenFiles);
         connect(viewer, &GraphicsView::requestOpenFoldersInTab, this, &FileManager::openSelectedFoldersInTab);
-        connect(viewer, &GraphicsView::searchForKeyWord, this, &FileManager::searchForKeyWord);
-        connect(viewer, &GraphicsView::selectEntireContent, this, &FileManager::selectEntireContent);
-        connect(viewer, &GraphicsView::clearSelection, this, &FileManager::clearSelection);
-        connect(viewer, &GraphicsView::selectButtonUp, this, &FileManager::selectButtonUp);
-        connect(viewer, &GraphicsView::selectButtonDown, this, &FileManager::selectButtonDown);
-        connect(viewer, &GraphicsView::selectContent, this, &FileManager::selectEntry);
         connect(viewer, &GraphicsView::sortDir, this, &FileManager::sortDir);
         connect(viewer, &GraphicsView::sortAllFolders, this, &FileManager::sortAllFolders);
         connect(viewer, &GraphicsView::copySelectedFilePathToClipboard, this, &FileManager::copySelectedFilePathToClipboard);
@@ -832,11 +880,24 @@ void FileManager::disconnectViewer(GraphicsView* viewer)
         disconnect(this, &FileManager::exitWaitingLoop,  viewer, &GraphicsView::killWaitingAnimation);
         disconnect(this, &FileManager::focusGraphicsView,  viewer, &GraphicsView::focusId);
         disconnect(this, &FileManager::requestFocusSGNL,  viewer, &GraphicsView::requestFocus);
-        disconnect(this, &FileManager::revalidateViewer,  viewer, &GraphicsView::receiveFileViewers);
+        disconnect(this, &FileManager::revalidateViewer_Entries,  viewer, &GraphicsView::receiveFileViewers);
+        disconnect(this, &FileManager::revalidateViewer_MetaData, viewer, &GraphicsView::receiveFileManagerMetaData);
 
+        // GraphicsView -> FileSearcher:
+        disconnect(viewer, &GraphicsView::nextSearchResultSGNL, m_searcher, &FileSearcher::focusNextMatch);
+        disconnect(viewer, &GraphicsView::prevSearchResultSGNL, m_searcher, &FileSearcher::focusPreviousMatch);
+        disconnect(viewer, &GraphicsView::closeSearchMenuSGNL,  m_searcher, &FileSearcher::exitSearchMode);
+        disconnect(viewer, &GraphicsView::searchForKeyWord,     m_searcher, &FileSearcher::search_QString);
+
+        // GraphicsView -> FilesSelector:
+        disconnect(viewer, &GraphicsView::selectEntireContent, m_selector, &FileSelector::selectEntireContent);
+        disconnect(viewer, &GraphicsView::clearSelection, m_selector, &FileSelector::clearSelection);
+        disconnect(viewer, &GraphicsView::selectButtonUp, m_selector, &FileSelector::selectPrevious);
+        disconnect(viewer, &GraphicsView::selectButtonDown, m_selector, &FileSelector::selectNext);
+        disconnect(viewer, &GraphicsView::selectContent,       m_selector, &FileSelector::select_QString);
 
         // GraphicsView -> FileManager:
-        disconnect(viewer, SIGNAL(setRoot(QDir)), this, SLOT(setRoot(QDir))); // setRoot ambiguous -> function overloading!!! -> daher connected mittels SIGNAL() - SLOT()!
+        disconnect(viewer, &GraphicsView::setRootFolder, this, &FileManager::setRoot_QDir);
         disconnect(viewer, &GraphicsView::elapseAllFoldersOfDepthId, this, &FileManager::elapseAllFoldersOfDepthId);
         disconnect(viewer, &GraphicsView::elapseSelectedFoldersRecursively, this, &FileManager::elapseSelectedFoldersRecursively);
         disconnect(viewer, &GraphicsView::elapseSelectedFolders, this, &FileManager::elapseSelectedFolders);
@@ -845,12 +906,6 @@ void FileManager::disconnectViewer(GraphicsView* viewer)
         disconnect(viewer, &GraphicsView::elapseOrCollapseFolderDependingOnCurrentState, this, &FileManager::elapseOrCollapseFolderDependingOnCurrentState);
         disconnect(viewer, &GraphicsView::showHiddenFilesSGNL, this, &FileManager::setIncludeHiddenFiles);
         disconnect(viewer, &GraphicsView::requestOpenFoldersInTab, this, &FileManager::openSelectedFoldersInTab);
-        disconnect(viewer, &GraphicsView::searchForKeyWord, this, &FileManager::searchForKeyWord);
-        disconnect(viewer, &GraphicsView::selectEntireContent, this, &FileManager::selectEntireContent);
-        disconnect(viewer, &GraphicsView::clearSelection, this, &FileManager::clearSelection);
-        disconnect(viewer, &GraphicsView::selectButtonUp, this, &FileManager::selectButtonUp);
-        disconnect(viewer, &GraphicsView::selectButtonDown, this, &FileManager::selectButtonDown);
-        disconnect(viewer, &GraphicsView::selectContent, this, &FileManager::selectEntry);
         disconnect(viewer, &GraphicsView::sortDir, this, &FileManager::sortDir);
         disconnect(viewer, &GraphicsView::sortAllFolders, this, &FileManager::sortAllFolders);
         disconnect(viewer, &GraphicsView::copySelectedFilePathToClipboard, this, &FileManager::copySelectedFilePathToClipboard);
@@ -897,7 +952,7 @@ void FileManager::connectDirectorySelectionPane(DirectorySelectionPane* toolBar)
 
     // DirectorySelectionPane -> FileManager:
     connect(toolBar, &DirectorySelectionPane::undo,           this, &FileManager::setLastPathToRoot);
-    connect(toolBar, SIGNAL(buttonClicked(QDir)),  this, SLOT(setRoot(QDir)));
+    connect(toolBar, SIGNAL(buttonClicked(QDir)),  this, SLOT(setRoot_QDir(QDir)));
 }
 
 //void FileManager::revalidateEntries()
@@ -989,7 +1044,17 @@ void FileManager::connectDirectorySelectionPane(DirectorySelectionPane* toolBar)
 //    delete maxDepthId;
 //}
 
-void FileManager::revalidateViewer_helper()
+void FileManager::revalidateViewer_entries_hlpr()
+{
+    emit revalidateViewer_Entries( generateViewerData() );
+}
+
+void FileManager::revalidateViewer_metaData_hlpr()
+{
+    emit revalidateViewer_MetaData( new FileManagerInfo(*this) );
+}
+
+std::unordered_map<long long, FiBDViewer> FileManager::generateViewerData()
 {
     std::unordered_map<int_bd, FiBDViewer> entries;
     for(auto i=m_frstDispFile; i <= m_lastDispFile; ++i)
@@ -1002,16 +1067,30 @@ void FileManager::revalidateViewer_helper()
         if(m_folders_colpsd.find(path) != m_folders_colpsd.end())
         {
             auto* fi = m_folders_colpsd[path];
+
             FiBDViewer fiView(fi, depthId, false);
+
+            bool selected = m_selector->isSelected(path);
+            bool searched = m_searcher->isSearched(path);
+            fiView.setSelected(selected);
+            fiView.setSearched(searched);
+
             entries[i] = fiView;
         }else{
             // dann muss es ein file sein:
             QFileInfo fi(QString::fromStdString(path));
+
             FiBDViewer fiView(fi, depthId);
+
+            bool selected = m_selector->isSelected(path);
+            bool searched = m_searcher->isSearched(path);
+            fiView.setSelected(selected);
+            fiView.setSearched(searched);
+
             entries[i] = fiView;
         }
     }
-    emit revalidateViewer(entries);
+    return entries;
 }
 
 void FileManager::clearEntryContainers()
@@ -1137,7 +1216,7 @@ std::chrono::milliseconds FileManager::getCurrentTime() const
                 );
 }
 
-void FileManager::focusPath(const string &absPath)
+void FileManager::focusPath(string absPath)
 {
     if(m_entries_order_colpsd.find(absPath) != m_entries_order_colpsd.end())
     {
@@ -1166,16 +1245,19 @@ void FileManager::replaceTree(DirManagerInfo* tree)
 
     if(m_selector)
     {
-        m_selector->entriesChanged(&m_paths_colpsd, &m_order_entries_colpsd, &m_entries_order_colpsd, &m_fileNames_colpsd, &m_folder_paths_colpsd);
+        m_selector->entriesChanged();
     }
     if(m_searcher)
     {
-        m_searcher->entriesChanged(&m_fileNames_colpsd, &m_entries_order_colpsd);
+        m_searcher->entriesChanged();
     }
 
     delete cntr;
     delete cntr_colpsd;
     delete maxDepthId;
+
+    revalidateViewer_entries_hlpr();
+    revalidateViewer_metaData_hlpr();
 }
 
 void FileManager::replaceTree_hlpr(DirManagerInfo* entry,
@@ -1264,3 +1346,74 @@ void FileManager::replaceTree_hlpr(DirManagerInfo* entry,
     }
 }
 
+//----------------------------------------------------------
+
+QString FileManager::curRootPath() const
+{
+    return QString::fromStdString(m_root_path);
+}
+
+QString FileManager::curSearchResult() const
+{
+    return QString::fromStdString(m_searcher->focusedSearchPath());
+}
+
+int FileManager::maxDepth() const
+{
+    return static_cast<int>(m_depthId_elapsed.size());
+}
+
+int_bd FileManager::selectionCount() const
+{
+    return m_selector->selectionCount();
+}
+
+int_bd FileManager::displayedFileCount() const
+{
+    return static_cast<int_bd>(m_paths_colpsd.size());
+}
+
+int_bd FileManager::indexCurSearchResult() const
+{
+    return m_searcher->indexCurSearchResult();
+}
+
+int_bd FileManager::searchIndex() const
+{
+    return m_searcher->searchIndex();
+}
+
+int_bd FileManager::searchResultsCount() const
+{
+    return m_searcher->searchResultsCount();
+}
+
+bool FileManager::includeHiddenFiles() const
+{
+    return m_showHiddenFiles;
+}
+
+bool FileManager::inSearchMode() const
+{
+    return m_inSearchMode;
+}
+
+bool FileManager::foldersSelected() const
+{
+    return m_selector->foldersSelected();
+}
+
+bool FileManager::filesSelected() const
+{
+    return m_selector->filesSelected();
+}
+
+bool FileManager::selectionContainsZipFiles() const
+{
+    return false;
+}
+
+std::vector<bool> FileManager::depthIdElapsed() const
+{
+    return std::vector<bool>(m_depthId_elapsed.begin(), m_depthId_elapsed.end());
+}

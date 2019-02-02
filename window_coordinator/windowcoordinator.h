@@ -14,6 +14,7 @@
 #include <QVector>
 #include <QStandardPaths>
 #include <QStringList>
+#include <QDebug>
 
 #include <memory>
 #include <functional>
@@ -82,7 +83,7 @@ private:
     Orientation::ORIENTATION m_orientation;
 
     QStringList m_initPath = QStandardPaths::standardLocations(QStandardPaths::StandardLocation::DocumentsLocation);
-    QDir m_curFocusedRootPath;
+    QString m_curFocusedRootPath;
 
     QString m_starup_res_path;};
 

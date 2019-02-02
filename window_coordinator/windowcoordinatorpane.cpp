@@ -14,6 +14,7 @@ WindowCoordinatorPane::WindowCoordinatorPane(WindowCoordinator* wc,
       m_windowCount(windowCount),
       m_removeDialogSize(QSize(0,0))
 {
+    revalidateLayout();
 }
 
 WindowCoordinatorPane::~WindowCoordinatorPane()

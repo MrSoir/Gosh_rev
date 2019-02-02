@@ -76,7 +76,8 @@ class GraphicsView : public QGraphicsView
 {
     Q_OBJECT
 public:
-    explicit GraphicsView(int hBarValue = 0,
+    explicit GraphicsView(FileManagerInfo* fmi,
+                          int hBarValue = 0,
                           int vBarValue = 0,
                           int zoomFactor = 9,
                           QWidget* parent = nullptr);
@@ -98,7 +99,8 @@ signals:
     void nextSearchResultSGNL(); // -> nextSearchResult()
     void prevSearchResultSGNL(); // -> previousSearchResult()
     void closeSearchMenuSGNL();
-    void searchForKeyWord(QString keyword, bool deepsearch);
+    void searchForKeyWord(QString keyword);
+    void deepSearch(QString keyword);
 
     void elapseAllFoldersOfDepthId(int id);
 
@@ -165,6 +167,7 @@ signals:
 
 public slots:
     void receiveFileViewers(std::unordered_map<int_bd, FiBDViewer> new_files);
+    void receiveFileManagerMetaData(FileManagerInfo* fmi);
 
     void requestFocus();
 
@@ -226,7 +229,7 @@ private:
     void prevSearchResult();
     void closeSearchMenu();
 
-    QString getCurrentSearchResult();
+    QString getFocusedSearchPath();
     long getSearchIndex();
     long getSearchResultsCount();
 
@@ -315,7 +318,7 @@ private:
 
     RectColor m_rectColor;
 
-    FileManagerInfo m_fileMangrInfo;
+    FileManagerInfo* m_fileMangrInfo;
 
 //    std::vector<FiBDViewer> m_entriesToRender;
     std::unordered_map<int_bd, FiBDViewer> m_entriesToRender;

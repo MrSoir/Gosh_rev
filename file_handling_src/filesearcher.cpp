@@ -1,12 +1,17 @@
 #include "filesearcher.h"
 
-FileSearcher::FileSearcher(QObject *parent)
+FileSearcher::FileSearcher(std::unordered_map<std::string, std::string>* fileName_paths,
+                           std::unordered_map<std::string, long long>* path_ord,
+                           QObject *parent)
     : QObject(parent),
       m_key_word(std::string()),
       m_matched_paths(std::unordered_set<std::string>()),
       m_ord_matchedPaths(std::unordered_map<int_bd, std::string>()),
-      m_fileName_path(nullptr),
-      m_enabled(false),
+
+      m_fileName_path(fileName_paths),
+      m_path_ord(path_ord),
+
+      m_inSearchMode(false),
       m_focused_match_id(-1),
       m_focused_path(""),
       m_matchCount(0)
@@ -44,22 +49,49 @@ void FileSearcher::processSearchables(std::vector<Searchable*>& searchables)
     }
 }
 
+std::string FileSearcher::focusedSearchPath() const
+{
+    return m_focused_path;
+}
+
+int_bd FileSearcher::indexCurSearchResult() const
+{
+    if(m_path_ord->find(m_focused_path) != m_path_ord->end())
+    {
+        return (*m_path_ord)[m_focused_path];
+    }
+    return -1;
+}
+
+int_bd FileSearcher::searchIndex() const
+{
+    return m_focused_match_id;
+}
+
+int_bd FileSearcher::searchResultsCount() const
+{
+    return m_matchCount;
+}
+
+
 //-------------------------------------------------------
 
-void FileSearcher::entriesChanged(std::unordered_map<std::string, std::string>* fileName_paths,
-                                  std::unordered_map<std::string, int_bd>* path_ord)
+void FileSearcher::entriesChanged()
 {
-    m_fileName_path = fileName_paths;
-    m_path_ord = path_ord;
+    if(m_inSearchMode)
+        findMatches();
+}
 
-    findMatches();
+void FileSearcher::search_QString(QString key_word)
+{
+    search(key_word.toStdString());
 }
 
 void FileSearcher::search(std::string key_word)
 {
     key_word = StringOps::toLower(key_word);
 
-    if(key_word == m_key_word)
+    if( (key_word == m_key_word) && m_inSearchMode )
     {
         // nichts machen
     }else{
@@ -67,22 +99,12 @@ void FileSearcher::search(std::string key_word)
     }
 }
 
-void FileSearcher::clearSearch()
-{
-    if(m_key_word != "")
-    {
-        m_matched_paths.clear();
-        m_ord_matchedPaths.clear();
-        m_key_word = "";
-
-        emit searchResultsChanged();
-    }
-}
-
 void FileSearcher::setSearched(std::string key_word, std::vector<std::string> matched_paths)
 {
     m_key_word = key_word;
     m_matched_paths = std::unordered_set<std::string>(matched_paths.begin(), matched_paths.end());
+
+    m_inSearchMode = true;
 
     if(m_path_ord)
     {
@@ -112,15 +134,6 @@ void FileSearcher::setSearched(std::string key_word, std::vector<std::string> ma
     }else{
         qDebug() << "FileSearcher::setSearched -> m_path_ord == nullptr!!!";
     }
-}
-
-void FileSearcher::enable()
-{
-    m_enabled = true;
-}
-void FileSearcher::disable()
-{
-    m_enabled = false;
 }
 
 void FileSearcher::focusNextMatch()
@@ -162,6 +175,16 @@ void FileSearcher::focusPreviousMatch()
         emit searchResultsChanged();
 }
 
+void FileSearcher::exitSearchMode()
+{
+    m_inSearchMode = false;
+}
+
+bool FileSearcher::inSearchMode()
+{
+    return m_inSearchMode;
+}
+
 void FileSearcher::close()
 {
     delete this;
@@ -171,8 +194,11 @@ void FileSearcher::close()
 
 void FileSearcher::findMatches()
 {
+    m_inSearchMode = true;
+
     m_matched_paths.clear();
     m_ord_matchedPaths.clear();
+
     m_focused_match_id = -1;
     m_focused_path = "";
 

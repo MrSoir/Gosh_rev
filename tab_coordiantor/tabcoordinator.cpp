@@ -19,6 +19,10 @@ TabCoordinator::~TabCoordinator()
 QWidget* TabCoordinator::createWidget()
 {
     QVector<QDir> labels = generateLabels();
+    for(const auto& label: labels)
+    {
+        qDebug() << "label: " << label.absolutePath();
+    }
     TabCoordinatorPane* tabCoordinatorPane = new TabCoordinatorPane(this, m_curWindowId, labels);
 
     connectTCPane(tabCoordinatorPane);

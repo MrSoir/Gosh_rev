@@ -37,6 +37,9 @@ private:
 
     void cleanUp();
 
+
+    //---------------------------------------------------
+
     int m_workersRunning;
     std::vector<DirManagerWorker*> m_workersToRun;
 

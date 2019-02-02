@@ -2,6 +2,8 @@
 
 DirManagerQueue::DirManagerQueue(QObject *parent)
     : QObject(parent),
+      m_workersRunning(0),
+      m_workersToRun(std::vector<DirManagerWorker*>()),
       m_closed(false)
 {
 }
@@ -27,9 +29,6 @@ void DirManagerQueue::addWorker(DirManagerWorker* worker)
 void DirManagerQueue::workerFinished(bool revalidateDirStructureAfterWorkerHasFinished)
 {
     --m_workersRunning;
-
-//    qDebug() << "DirManagerQueue::workerFinished: revalidateDirStructureAfterWorkerHasFinished: " << revalidateDirStructureAfterWorkerHasFinished
-//             << "   m_workersRunning: " << m_workersRunning;
 
     if(m_closed)
     {
@@ -92,6 +91,7 @@ void DirManagerQueue::startWorkersInQueue()
             return;
 
        auto* worker = m_workersToRun.front();
+
        if(worker->blockOtherThreads())
        {
            if(m_workersRunning == 0)

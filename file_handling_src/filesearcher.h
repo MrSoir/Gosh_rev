@@ -21,28 +21,39 @@ class FileSearcher : public QObject
 {
     Q_OBJECT
 public:
-    explicit FileSearcher(QObject *parent = nullptr);
+    explicit FileSearcher(std::unordered_map<std::string, std::string>* fileName_paths,
+                          std::unordered_map<std::string, int_bd>* path_ord,
+                          QObject *parent = nullptr);
     ~FileSearcher();
 
     bool isSearched(const std::string& path) const;
     bool isFocused(const std::string& path) const;
 
     void processSearchables(std::vector<Searchable*>& searchables);
+
+//    ---------------------------------------------------
+
+    std::string focusedSearchPath() const;
+    int_bd indexCurSearchResult() const;
+    int_bd searchIndex() const;
+    int_bd searchResultsCount() const;
+
+    bool inSearchMode();
+
 signals:
     void searchResultsChanged();
 public slots:
-    void entriesChanged(std::unordered_map<std::string, std::string>* fileName_paths,
-                        std::unordered_map<std::string, int_bd>* path_ord);
+    void entriesChanged();
+
+    void search_QString(QString key_word);
     void search(std::string key_word);
-    void clearSearch();
 
     void setSearched(std::string key_word, std::vector<std::string> matched_paths);
 
-    void enable();
-    void disable();
-
     void focusNextMatch();
     void focusPreviousMatch();
+
+    void exitSearchMode();
 
     void close();
 private:
@@ -58,10 +69,12 @@ private:
     std::unordered_map<std::string, std::string>* m_fileName_path; // map: fileName -> path
     std::unordered_map<std::string, int_bd>* m_path_ord;
 
-    bool m_enabled;
+    bool m_inSearchMode;
     int_bd  m_focused_match_id;
     std::string m_focused_path;
     int_bd m_matchCount;
+
+
 };
 
 #endif // FILESEARCHER_H

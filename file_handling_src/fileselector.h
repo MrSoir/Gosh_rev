@@ -15,7 +15,12 @@ class FileSelector : public QObject
 {
     Q_OBJECT
 public:
-    explicit FileSelector(QObject *parent = nullptr);
+    explicit FileSelector(std::unordered_set<std::string>* paths,
+                          std::unordered_map<int_bd, std::string>* ord_paths,
+                          std::unordered_map<std::string, int_bd>* paths_ord,
+                          std::unordered_map<std::string, std::string>* fileName_paths,
+                          std::unordered_set<std::string>* folder_paths,
+                          QObject* parent = nullptr);
     ~FileSelector();
 
     bool isSelected(const std::string& path) const;
@@ -25,15 +30,19 @@ public:
     const std::unordered_set<std::string>& getSelectedEntries() const;
 
     std::string getLastSelectedEntry() const;
+
+    int_bd selectionCount() const;
+    bool filesSelected() const;
+    bool foldersSelected() const;
+
 signals:
     void selectionChanged();
-public slots:
-    void entriesChanged(std::unordered_set<std::string>* paths,
-                        std::unordered_map<int_bd, std::string>* ord_paths,
-                        std::unordered_map<std::string, int_bd>* paths_ord,
-                        std::unordered_map<std::string, std::string>* fileName_paths,
-                        std::unordered_set<std::string>* folder_paths);
+    void focusPath(std::string path);
 
+public slots:
+    void entriesChanged();
+
+    void select_QString(QString path, bool cntrl_prsd, bool shift_prsd);
     void select(std::string path, bool cntrl_prsd, bool shift_prsd);
     void selectEntireContent();
     void clearSelection();

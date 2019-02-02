@@ -10,7 +10,7 @@ WindowCoordinator::WindowCoordinator(QVector<QDir> initPaths,
       m_windows(QVector<FileManager*>()),
       m_orientation(Orientation::ORIENTATION::VERTICAL),
       m_initPath(QStandardPaths::standardLocations(QStandardPaths::StandardLocation::DocumentsLocation)),
-      m_curFocusedRootPath(QDir("")),
+      m_curFocusedRootPath(QString("")),
       m_starup_res_path(QString("%1%2%3").arg("resources").arg(QDir::separator()).arg("startup.res"))
 {
     if(initPaths.size() > 0)
@@ -83,15 +83,15 @@ void WindowCoordinator::removeWindow(int id)
 
 void WindowCoordinator::addWindow()
 {
-    QDir initDir = m_curFocusedRootPath;
+    QString initDirPath = m_curFocusedRootPath;
 
-    if(     initDir.absolutePath().isEmpty() && !initDir.exists()
+    if(    (initDirPath.isEmpty() || !QFileInfo(initDirPath).exists())
          && m_initPath.size() > 0 && QFileInfo(m_initPath[0]).exists() )
     {
-        initDir = QDir(m_initPath[0]);
+        initDirPath = m_initPath[0];
     }
 
-    addWindowHelper(initDir);
+    addWindowHelper( QDir(initDirPath) );
 }
 void WindowCoordinator::addWindowHelper(QDir initPath)
 {
@@ -100,7 +100,7 @@ void WindowCoordinator::addWindowHelper(QDir initPath)
         while(m_windows.size() < m_windowCounter){
             FileManager* fm = new FileManager(initPath.absolutePath().toStdString());
 
-            m_curFocusedRootPath = initPath;
+            m_curFocusedRootPath = initPath.absolutePath();
 
             connectFileManager(fm);
 
@@ -179,7 +179,7 @@ void WindowCoordinator::excludeHiddenFiles()
 
 void WindowCoordinator::emitLabelChanged(QDir newLabel)
 {
-    m_curFocusedRootPath = newLabel;
+    m_curFocusedRootPath = newLabel.absolutePath();
     emit labelChanged(newLabel);
 }
 void WindowCoordinator::focusedWindowChanged(QDir dir)

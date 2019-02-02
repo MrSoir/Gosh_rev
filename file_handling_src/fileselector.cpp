@@ -1,12 +1,21 @@
 #include "fileselector.h"
 
-FileSelector::FileSelector(QObject *parent)
+FileSelector::FileSelector(std::unordered_set<std::string>* paths,
+                           std::unordered_map<long long, std::string>* ord_paths,
+                           std::unordered_map<std::string, long long>* paths_ord,
+                           std::unordered_map<std::string, std::string>* fileName_paths,
+                           std::unordered_set<std::string>* folder_paths,
+                           QObject *parent)
     : QObject(parent),
+
       m_selected_paths(std::unordered_set<std::string>()),
-      m_paths(nullptr),
-      m_ord_paths(nullptr),
-      m_paths_ord(nullptr),
-      m_fileName_paths(nullptr),
+
+      m_paths(paths),
+      m_ord_paths(ord_paths),
+      m_paths_ord(paths_ord),
+      m_fileName_paths(fileName_paths),
+      m_folder_paths(folder_paths),
+
       m_slctd_id(-1),
       m_latestSelctdPath(std::string("")),
       m_slct_key_word(std::string(""))
@@ -56,22 +65,29 @@ std::string FileSelector::getLastSelectedEntry() const
 //    {
 //        return (*m_ord_paths)[m_slctd_id];
 //    }
-//    return "";
+    //    return "";
+}
+
+int_bd FileSelector::selectionCount() const
+{
+    return static_cast<int_bd>(m_selected_paths.size());
+}
+
+bool FileSelector::filesSelected() const
+{
+    return (m_selected_folders_paths.size() < m_selected_paths.size());
+}
+
+bool FileSelector::foldersSelected() const
+{
+    return (m_selected_folders_paths.size() > 0);
 }
 
 //---------------------------------------------------------
 
-void FileSelector::entriesChanged(std::unordered_set<std::string>* paths,
-                                  std::unordered_map<int_bd, std::string> *ord_paths,
-                                  std::unordered_map<std::string, int_bd> *paths_ord,
-                                  std::unordered_map<std::string, std::string>* fileName_paths,
-                                  std::unordered_set<std::string>* folder_paths)
+void FileSelector::entriesChanged()
 {
-    m_paths = paths;
-    m_ord_paths = ord_paths;
-    m_paths_ord = paths_ord;
-    m_fileName_paths = fileName_paths;
-    m_folder_paths = folder_paths;
+    auto oldMatchCount = m_selected_paths.size();
 
     if(m_paths_ord && !m_latestSelctdPath.empty() )
     {
@@ -97,6 +113,16 @@ void FileSelector::entriesChanged(std::unordered_set<std::string>* paths,
             ++it;
         }
     }
+
+    if(m_selected_paths.size() != oldMatchCount)
+    {
+        emit selectionChanged();
+    }
+}
+
+void FileSelector::select_QString(QString path, bool cntrl_prsd, bool shift_prsd)
+{
+    select(path.toStdString(), cntrl_prsd, shift_prsd);
 }
 
 void FileSelector::select(std::string path, bool cntrl_prsd, bool shift_prsd)
@@ -146,6 +172,7 @@ void FileSelector::selectEntireContent()
         m_selected_folders_paths.emplace(pth);
     m_slctd_id = m_slctd_id == -1 ? 1 : m_slctd_id;
 
+    emit selectionChanged();
 }
 
 void FileSelector::clearSelection()
@@ -177,6 +204,7 @@ void FileSelector::selectNext(bool cntrl_prsd, bool shift_prsd)
         m_selected_paths.emplace( nextPath );
     }
     emit selectionChanged();
+    emit focusPath(m_latestSelctdPath);
 }
 void FileSelector::selectPrevious(bool cntrl_prsd, bool shift_prsd)
 {
@@ -196,6 +224,7 @@ void FileSelector::selectPrevious(bool cntrl_prsd, bool shift_prsd)
         m_selected_paths.emplace( prevPath );
     }
     emit selectionChanged();
+    emit focusPath(m_latestSelctdPath);
 }
 
 void FileSelector::selectKeyWord(std::string key)
@@ -210,7 +239,10 @@ void FileSelector::selectKeyWord(std::string key)
                 m_selected_paths.emplace(it->second);
                 m_latestSelctdPath = it->second;
                 m_slctd_id = static_cast<int_bd>((*m_paths_ord)[it->second]);
+
                 emit selectionChanged();
+                emit focusPath(m_latestSelctdPath);
+
                 return;
             }
         }

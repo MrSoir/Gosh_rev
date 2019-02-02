@@ -62,19 +62,24 @@ public:
 
     virtual QWidget* createWidget() override;
 
+    // for FileManagerInfo:
+    QString curRootPath() const;
+    QString curSearchResult() const;
+    int maxDepth() const;
+    int_bd selectionCount() const;
+    int_bd displayedFileCount() const;
+    int_bd indexCurSearchResult() const;
+    int_bd searchIndex() const;
+    int_bd searchResultsCount() const;
+    bool includeHiddenFiles() const;
+    bool inSearchMode() const;
+    bool foldersSelected() const;
+    bool filesSelected() const;
+    bool selectionContainsZipFiles() const;
+    std::vector<bool> depthIdElapsed() const;
+
 signals:
     void addPathToFileWatcher(std::string path);
-
-
-    // searching:
-    void search(std::string key_word);
-    void clearSearch();
-    void showSearch();
-    void hideSearch(); // closeSearchMenuSGNL
-    void nextSearchResult(); // nextSearchResultSGNL
-    void prevSearchResult(); // prevSearchResultSGNL
-
-
 
     // teilt dem Viewer mit, in die warteschleife zu verfallen bzw. wieder auszubrechen:
     void setViewerIntoWaitingLoop();
@@ -103,8 +108,8 @@ signals:
 
     void requestFocusSGNL(QDir); // -> GrahpicsView::requestFocus()
 
-    void revalidateViewer(std::unordered_map<int_bd, FiBDViewer> entries); // -> GrahpicsView::receiveFileViewers
-
+    void revalidateViewer_Entries(std::unordered_map<int_bd, FiBDViewer> entries); // -> GrahpicsView::receiveFileViewers
+    void revalidateViewer_MetaData( FileManagerInfo* fmi ); // GraphicsView::receiveFileManagerMetaData
 
 
     // signals for DirManager:
@@ -153,7 +158,7 @@ public slots:
     void setLastPathToRoot();
 
     // GrahpicsView -> FileManager:
-    void setRoot(QDir dir); // setRoot(QDir) <- muss mit SIGNAL(...) - SLOT(...) connected werden!!!
+    void setRoot_QDir(QDir dir); // setRoot(QDir) <- muss mit SIGNAL(...) - SLOT(...) connected werden!!!
 
     void saveGraphicsViewVBarValue(int value);
     void saveGraphicsViewHBarValue(int value);
@@ -171,13 +176,13 @@ public slots:
 
     void openSelectedFoldersInTab(); // requestOpenFoldersInTab
 
-    void searchForKeyWord(QString keyword, bool deepsearch); // searchForKeyWord
+//    void searchForKeyWord(QString keyword, bool deepsearch); // searchForKeyWord
 
-    void selectEntireContent(); // selectEntireContent
-    void clearSelection(); // clearSelection
-    void selectButtonUp(bool cntrlPrsd, bool shiftPrsd); // selectButtonUp
-    void selectButtonDown(bool cntrlPrsd, bool shiftPrsd); // selectButtonDown
-    void selectEntry(QString entry, bool contrlPrsd, bool shiftPrsd); // selectContent
+//    void selectEntireContent(); // selectEntireContent
+//    void clearSelection(); // clearSelection
+//    void selectButtonUp(bool cntrlPrsd, bool shiftPrsd); // selectButtonUp
+//    void selectButtonDown(bool cntrlPrsd, bool shiftPrsd); // selectButtonDown
+//    void selectEntry(QString entry, bool contrlPrsd, bool shiftPrsd); // selectContent
 
     void sortDir(QString dir, Order order); // sortDir
     void sortDirs(std::vector<QString> dirs, Order order);
@@ -222,12 +227,18 @@ public slots:
 
 
 
+    // searching:   (depSearch wird hier direkt vom fileManager gehandelt, alles andere uebernimmt direkt der FileSearcher)
+    void deepSearch(QString key_word);
+
+
 
     // DirManager -> FileManager:
     void dirChanged_dm(DirManagerInfo* changedDir);
     void treeChanged_dm(DirManagerInfo* entireTree);
 
     void deepSearchFinished_dm(std::vector<std::string> matchingPaths, std::string keyword);
+
+    void focusPath(std::string absPath);
 
 private:
     void setRoot_hlpr(std::string rootPath, bool addToDirStack = true);
@@ -240,7 +251,9 @@ private:
     void connectDirectorySelectionPane(DirectorySelectionPane* pane);
 
 
-    void revalidateViewer_helper();
+    void revalidateViewer_entries_hlpr();
+    void revalidateViewer_metaData_hlpr();
+    std::unordered_map<int_bd, FiBDViewer> generateViewerData();
 
     void clearEntryContainers();
 
@@ -253,8 +266,6 @@ private:
     std::string getBaseDirOfSelection() const;
 
     std::chrono::milliseconds getCurrentTime() const;
-
-    void focusPath(const std::string& absPath);
 
     void replaceTree(DirManagerInfo* tree);
     void replaceTree_hlpr(DirManagerInfo* entry,
@@ -293,8 +304,6 @@ private:
     std::unordered_map<std::string, std::string> m_fileNames; // FileSearcher: path to fileName
     std::unordered_map<std::string, std::string> m_fileNames_colpsd; // FileSearcher: path to fileName
 
-    FileSearcher* m_searcher;
-    FileSelector* m_selector;
     FileQueue* m_tasks_queue;
 
     std::vector<bool> m_depthId_elapsed;
@@ -314,6 +323,9 @@ private:
     int m_graphicsViewHBarValueBackup;
 
     DirectoryStack* m_dirStack;
+
+    FileSearcher* m_searcher;
+    FileSelector* m_selector;
 };
 
 #endif // FILEMANAGER_H

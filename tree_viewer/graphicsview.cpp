@@ -1,16 +1,21 @@
 #include "graphicsview.h"
 
 
-GraphicsView::GraphicsView(int hBarValue,
+GraphicsView::GraphicsView(FileManagerInfo* fmi,
+                           int hBarValue,
                            int vBarValue,
                            int zoomFactor,
                            QWidget* parent)
     : QGraphicsView(parent),
+      m_scene(new QGraphicsScene()),
       m_fontSize(zoomFactor),
       m_isLoading(false),
       m_loadingId(0),
-      m_animationTimer(new QTimer(this))
+      m_animationTimer(new QTimer(this)),
+      m_fileMangrInfo(fmi)
 {
+    qDebug() << "GraphicsView-Constructor";
+
     revalidateRowHeight();
 
     connect(m_animationTimer, &QTimer::timeout, [=](){
@@ -45,7 +50,6 @@ GraphicsView::GraphicsView(int hBarValue,
         rePaintCanvas();
     });
 
-
     // wichtig: damit die scene immer ganz oben beginnt!
     this->setAlignment(Qt::AlignTop);
 
@@ -59,12 +63,13 @@ GraphicsView::GraphicsView(int hBarValue,
 
     setHBarValue(hBarValue);
     setVBarValue(vBarValue);
+
     rePaintCanvas();
 }
 
 GraphicsView::~GraphicsView()
 {
-    qDebug() << "in GrphicsView.DEstructor";
+    qDebug() << "~GrphicsView";
     if(m_mouseP != nullptr)
         delete m_mouseP;
 
@@ -74,6 +79,10 @@ GraphicsView::~GraphicsView()
             m_animationTimer->isActive())
         m_animationTimer->stop();
     m_animationTimer->deleteLater();
+
+    if(m_fileMangrInfo)
+        delete m_fileMangrInfo;
+    m_fileMangrInfo = nullptr;
 
     delete m_upperRect;
 }
@@ -382,6 +391,21 @@ void GraphicsView::receiveFileViewers(std::unordered_map<int_bd, FiBDViewer> new
     revalidate();
 }
 
+void GraphicsView::receiveFileManagerMetaData(FileManagerInfo* fmi)
+{
+    qDebug() << "GraphicsView::receiveFileManagerMetaData";
+    if(m_fileMangrInfo)
+        delete m_fileMangrInfo;
+
+    m_fileMangrInfo = fmi;
+    m_fileCount = fmi->displayedFileCount();
+    revalFirstAndLastDisplayedFI();
+    qDebug() << "m_firstDispFI: " << m_firstDispFI;
+    qDebug() << "m_lastDispFI: " << m_lastDispFI;
+
+    revalidate();
+}
+
 void GraphicsView::requestFocus()
 {
     this->setFocus();
@@ -497,7 +521,7 @@ void GraphicsView::addMenuBar(){
     menu_caller->setFunction(QString("buttonFunction7"), incognitoFunc);
     menu_caller->setFunction(QString("buttonFunction8"), closeMenuBarFunc);
 
-    QString incognitoImageFileName = m_fileMangrInfo.includeHiddenFiles() ? tr("incognito.png") : tr("incognito_NOT.png");
+    QString incognitoImageFileName = m_fileMangrInfo->includeHiddenFiles() ? tr("incognito.png") : tr("incognito_NOT.png");
 
     auto painting_caller = std::make_shared<DynamicFunctionCaller<QString,std::function<void(QPainter*,QRectF)>>>();
     auto paintSearchModeFunc     = [=](QPainter* painter, QRectF rct){ StaticFunctions::paintLoupe(painter, rct, StaticFunctions::SHAPE::NONE); };
@@ -545,7 +569,7 @@ void GraphicsView::closeMenuBar()
 
 void GraphicsView::addElapseBar()
 {
-    ElapseMenuBD* elapseMenu = new ElapseMenuBD(m_fileMangrInfo.maxDepth()+1,
+    ElapseMenuBD* elapseMenu = new ElapseMenuBD(m_fileMangrInfo->maxDepth()+1,
                                                m_colOffs*2,
                                                QSize(this->viewport()->width(),m_elapseBarHeight),
                                                QPoint(0,0)
@@ -559,7 +583,7 @@ void GraphicsView::addElapseBar()
         return false;
     };
     auto elapsedFunc = [=](int depthId){
-        return m_fileMangrInfo.depthIdElapsed(depthId);
+        return m_fileMangrInfo->depthIdElapsed(depthId);
     };
 
     button_caller->setFunction(QString("call"), buttonClickFunc);
@@ -677,8 +701,8 @@ void GraphicsView::addContentBar()
     bool terminal = false;
     bool openWith = false;
 
-    if(m_fileMangrInfo.foldersSelected()){
-        if(m_fileMangrInfo.singleFolderSelected())
+    if(m_fileMangrInfo->foldersSelected()){
+        if(m_fileMangrInfo->singleFolderSelected())
         {
         }
 
@@ -725,7 +749,7 @@ void GraphicsView::addContentBar()
         groupingMap[funcId] = 0;
         ++funcId;
     }
-    if(m_fileMangrInfo.singleFolderSelected())
+    if(m_fileMangrInfo->singleFolderSelected())
     {
 
         rename = true;
@@ -734,10 +758,10 @@ void GraphicsView::addContentBar()
 
         path = true;
 
-        if(m_fileMangrInfo.filesSelected())
+        if(m_fileMangrInfo->filesSelected())
             openWith = true;
     }
-    if(m_fileMangrInfo.selectionCount() > 0)
+    if(m_fileMangrInfo->selectionCount() > 0)
     {
         // open files/folders:
 
@@ -858,7 +882,7 @@ void GraphicsView::addContentBar()
 
         // unzip files:
 
-        if(m_fileMangrInfo.selectionContainsZippedFile())
+        if(m_fileMangrInfo->selectionContainsZippedFile())
         {
             auto unzipFunc = [=](){
                 executeFileAction(FILE_ACTION::Action::UNZIP);
@@ -954,7 +978,7 @@ void GraphicsView::addSearchMenu(){
     auto nextPrevCaller = [=](){nextSearchResult();return QString("");};
     auto prevPrevCaller = [=](){prevSearchResult();return QString("");};
     auto closePrevCaller = [=](){closeSearchMenu();return QString("");};
-    auto getNextSearchText = [=](){ return getCurrentSearchResult(); };
+    auto getNextSearchText = [=](){ return QFileInfo(getFocusedSearchPath()).fileName(); };
     auto getCurrentSearchIndex = [=](){ return QString("%1").arg( getSearchIndex()+1 ); };
     auto getSearRsltsCount = [=](){ return QString("%1").arg( getSearchResultsCount() ); };
     menu_caller->setFunction(QString("next"), nextPrevCaller);
@@ -1035,8 +1059,6 @@ void GraphicsView::rePaintCanvas()
         m_graphicsGroup->setX(getAbsoluteHorBarValue());
         m_graphicsGroup->setY(getAbsoluteVerticalBarValue());
         m_graphicsGroup->setHandlesChildEvents(false);
-
-        m_fileCount = m_fileMangrInfo.displayedFileCount();
 
         auto height = m_rowHeight*m_fileCount + m_elapseBarHeight;
         if(height < this->viewport()->height()){
@@ -1265,13 +1287,13 @@ int GraphicsView::getViewportYOffset()
     return getAbsoluteVerticalBarValue();
 }
 
-void GraphicsView::handleSearchKeyword(QString keyword, bool deepSearch)
+void GraphicsView::handleSearchKeyword(QString keyword, bool deep_search)
 {
     if(!keyword.isEmpty()){
-        emit searchForKeyWord(keyword, deepSearch);
-//        executeFileAction([=](auto locked){
-//            locked->searchForKeyWord(keyword, deepSearch);
-//        });
+        if(deep_search)
+            emit deepSearch(keyword);
+        else
+            emit searchForKeyWord(keyword);
     }
 }
 void GraphicsView::launchSearchMode()
@@ -1300,18 +1322,18 @@ void GraphicsView::closeSearchMenu()
     emit closeSearchMenuSGNL();
 }
 
-QString GraphicsView::getCurrentSearchResult()
+QString GraphicsView::getFocusedSearchPath()
 {
-    return m_fileMangrInfo.curSearchResult();
+    return m_fileMangrInfo->curFocusedSearchPath();
 }
 long GraphicsView::getSearchIndex()
 {
-    return static_cast<long>(m_fileMangrInfo.searchIndex());
+    return static_cast<long>(m_fileMangrInfo->searchIndex());
 }
 
 long GraphicsView::getSearchResultsCount()
 {
-    return static_cast<long>(m_fileMangrInfo.searchResultsCount());
+    return static_cast<long>(m_fileMangrInfo->searchResultsCount());
 }
 
 void GraphicsView::zoomOut()
@@ -1403,13 +1425,13 @@ void GraphicsView::openTerminal()
 
 void GraphicsView::showHiddenFiles()
 {
-    bool inclHdnFlse = m_fileMangrInfo.includeHiddenFiles();
+    bool inclHdnFlse = m_fileMangrInfo->includeHiddenFiles();
     emit showHiddenFilesSGNL( !inclHdnFlse );
 }
 
 void GraphicsView::showRootSelector()
 {
-    QString curRootDir = m_fileMangrInfo.curRootPath();
+    QString curRootDir = m_fileMangrInfo->curRootPath();
     if( !curRootDir.isEmpty() ){
         DirectorySelectorDialog* dialog = new DirectorySelectorDialog(curRootDir);
         connect(dialog, &DirectorySelectorDialog::directorySelected, this, &GraphicsView::setRootFolder);
@@ -1426,7 +1448,7 @@ void GraphicsView::revalidateRowHeight()
 
 bool GraphicsView::inSearchMode()
 {
-    return m_fileMangrInfo.inSearchMode();
+    return m_fileMangrInfo->inSearchMode();
 }
 
 void GraphicsView::revalFirstAndLastDisplayedFI(bool revalIfStillInBounds)

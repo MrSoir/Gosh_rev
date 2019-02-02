@@ -26,7 +26,7 @@ DirectorySelectorDialog::DirectorySelectorDialog(QString curDir,
     this->setMaximumWidth((int)m_size.width());
     this->setWindowFlags(Qt::FramelessWindowHint | Qt::WindowSystemMenuHint);
 
-    QPushButton* closeBtn = new QPushButton("close window");
+    QPushButton* closeBtn = new QPushButton("close");
     QObject::connect(closeBtn, &QPushButton::clicked, [=](){
         this->close();
     });

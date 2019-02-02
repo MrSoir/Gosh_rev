@@ -1,2 +1,1 @@
-/home/bigdaddy/Software
-/home/bigdaddy/workspace_Qt
+/home/hippo/Documents
