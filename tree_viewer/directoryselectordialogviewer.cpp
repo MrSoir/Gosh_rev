@@ -175,7 +175,7 @@ void DirectorySelectorDialogViewer::paintFileInfo(QFileInfo fi, int rowId, int c
     callFunction->setFunction(QString("select"),
                               [=](){emit directorySelected(QDir(fi.absoluteFilePath()));return false;});
 
-    GraphicsFile* gf = new GraphicsFile(FiBDViewer(fi), QSize(m_size.width()-40,m_rowHeight),
+    GraphicsFile* gf = new GraphicsFile(fi, QSize(static_cast<int>(m_size.width())-40, m_rowHeight),
                                         rowId, m_rowHeight,
                                         colId, m_colOffs,
                                         callFunction);

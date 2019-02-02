@@ -7,10 +7,11 @@ MenuBar::MenuBar(qreal maxWidthOrHeight,
         bool m_centerFromEnd,
         QGraphicsItem* parent)
     : GraphicItemsBD::GraphicsItemBD(QSize(0,0), QPoint(0,0), parent),
-      m_orientation(orientation),
-      m_centerFromEnd(m_centerFromEnd),
+
+      m_maxWidthOrHeight(maxWidthOrHeight),
       m_centerOrientation(centerPosition),
-      m_maxWidthOrHeight(maxWidthOrHeight)
+      m_centerFromEnd(m_centerFromEnd),
+      m_orientation(orientation)
 {
     revalidateSize();
 }
@@ -69,9 +70,9 @@ void MenuBar::setOrientation(GraphicItemsBD::ORIENTATION orientation){
 }
 void MenuBar::revalidateSize(){
     if(orientation() == GraphicItemsBD::ORIENTATION::HORIZONTAL){
-        m_size = QSize(m_maxWidthOrHeight, 0);
+        m_size = QSize(static_cast<int>(m_maxWidthOrHeight), 0);
     }else{
-        m_size = QSize(0,m_maxWidthOrHeight);
+        m_size = QSize(0, static_cast<int>(m_maxWidthOrHeight));
     }
 
     std::pair<int,int> dimensions = evalColumnAndRowDimensions();
@@ -84,7 +85,7 @@ void MenuBar::revalidateSize(){
 
     qreal paneWidth  = anzColumns * (m_btnEdge+m_offsets) + 2.0*m_padding + borderOffsWidth;
     qreal paneHeight = anzRows    * (m_btnEdge+m_offsets) + 2.0*m_padding + borderOffsHeight;
-    m_size = QSize(paneWidth, paneHeight);
+    m_size = QSize(static_cast<int>(paneWidth), static_cast<int>(paneHeight));
 
     m_anzColumns = anzColumns;
     m_anzRows = anzRows;
@@ -153,14 +154,14 @@ void MenuBar::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, Q
         int curCol = 0;
         int curRow = 0;
         int curGroupId = 0;
-        int maxColumns = m_anzColumns;
+//        int maxColumns = static_cast<int>(m_anzColumns);
         auto it = m_groupingMap.begin();
 
         for(int i=0; i < m_buttons.size(); i++){
             if(it == m_groupingMap.end())
                 break;
 
-            int btnId = it->second[curGroupId];
+            int btnId = it->second[static_cast<unsigned int>(curGroupId)];
 
             qreal curX = startX + curCol * (m_btnEdge + m_offsets);
             qreal curY = startY + curRow * (m_btnEdge + m_offsets);
@@ -182,7 +183,7 @@ void MenuBar::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, Q
 
             bool endOfGroupReached = false;
 
-            if(curGroupId >= it->second.size())
+            if(curGroupId >= static_cast<int>(it->second.size()))
             {
                 endOfGroupReached = true;
 
@@ -222,7 +223,7 @@ void MenuBar::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, Q
             if(endOfGroupReached && i < m_buttons.size()-1)
             {
                 qreal maxWidth = m_anzColumns * (m_btnEdge + m_offsets);
-                if(orientation() == ORIENTATION::VERTICAL){
+                if(orientation() == GraphicItemsBD::ORIENTATION::VERTICAL){
                     curY += (m_btnEdge + m_offsets) + groupBorderPadding;
                     std::pair<QPointF,QPointF> borderPoints(QPointF(startX + m_padding, curY), QPointF(startX + maxWidth - m_padding, curY));
                     m_groupSeparators.push_back( borderPoints );
@@ -252,7 +253,7 @@ void MenuBar::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, Q
     linePen.setWidth( groupBordStrokeWidth );
     painter->setPen(linePen);
 
-    for(int i=0; i < m_groupSeparators.size(); ++i)
+    for(std::size_t i=0; i < m_groupSeparators.size(); ++i)
     {
         painter->drawLine(m_groupSeparators[i].first, m_groupSeparators[i].second);
     }
@@ -304,7 +305,7 @@ void MenuBar::hoverMoveEvent(QGraphicsSceneHoverEvent * event){
 
 int MenuBar::groupCount()
 {
-    return m_groupingMap.size();
+    return static_cast<int>(m_groupingMap.size());
 }
 
 void MenuBar::revalGroupMap()
@@ -390,7 +391,7 @@ std::pair<int, int> MenuBar::evalColumnAndRowDimensions()
 
                     for(auto it = m_groupingMap.begin(); it != m_groupingMap.end(); ++it)
                     {
-                        for(int j=0; j < it->second.size(); ++j)
+                        for(std::size_t j=0; j < it->second.size(); ++j)
                         {
                             ++curId;
                             if( curId % anzColumns == 0 )
@@ -446,7 +447,7 @@ std::pair<int, int> MenuBar::evalColumnAndRowDimensions()
 
                     for(auto it = m_groupingMap.begin(); it != m_groupingMap.end(); ++it)
                     {
-                        for(int j=0; j < it->second.size(); ++j)
+                        for(std::size_t j=0; j < it->second.size(); ++j)
                         {
                             ++curId;
                             if( curId % anzRows == 0 )
@@ -477,7 +478,7 @@ QString MenuBar::vec_to_str(const std::vector<int> vec)
 
     std::stringstream ss;
     ss << "[";
-    for(int i=0; i < vec.size(); ++i)
+    for(std::size_t i=0; i < vec.size(); ++i)
     {
         ss << vec[i];
         if(i < (vec.size()-1))
@@ -502,34 +503,34 @@ int MenuBar::getMaxElementsPerRowOrColumn()
 
 qreal MenuBar::paintHeight()
 {
-    qreal grpBord = (qreal)(m_groupingBorder + m_groupingPadding);
+    qreal grpBord = static_cast<qreal>(m_groupingBorder + m_groupingPadding);
 
     return paneHeight() - 2.0*m_padding - bordersToPaint() * grpBord;
 }
 qreal MenuBar::paintWidth()
-{    qreal grpBord = (qreal)m_groupingBorder;
+{    qreal grpBord = static_cast<qreal>(m_groupingBorder);
 
     return paneWidth() - 2.0*m_padding - bordersToPaint() * grpBord;
 }
 
 qreal MenuBar::paneWidth()
 {
-    return (qreal)m_size.width();;
+    return static_cast<qreal>(m_size.width());
 }
 qreal MenuBar::paneHeight()
 {
-    return (qreal)m_size.height();;
+    return static_cast<qreal>(m_size.height());
 }
 
 qreal MenuBar::bordersToPaint()
 {
-    qreal grpCnt = (qreal)groupCount();
+    qreal grpCnt = static_cast<qreal>(groupCount());
     return qreal(std::max(qreal(0), grpCnt-1.0));
 }
 
 qreal MenuBar::buttonCount()
 {
-    return (qreal)m_btnsCount;
+    return static_cast<qreal>(m_btnsCount);
 }
 
 int MenuBar::getBiggestGroupSize()

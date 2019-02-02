@@ -20,22 +20,27 @@ class FiBDViewer : public Searchable,
                    public Selectable
 {
 public:
+    explicit FiBDViewer();
     explicit FiBDViewer(QString path,
                         QString fileName,
                         unsigned long long fileSize,
                         QDateTime lastModified,
                         bool isHidden,
+                        int depthId);
+    explicit FiBDViewer(const QFileInfo& fi,
+                        int depthId = 0);
+    explicit FiBDViewer(const DirManagerInfo& dmi,
                         int depthId,
-                        bool isCurrentlyRevalidating);
-
-    explicit FiBDViewer(unsigned long long m_fileSize,
-                        QDateTime m_lastModified,
+                        bool isCurrentlyRevalidating,
+                        bool isSearched = false,
+                        bool isSearchFocused = false,
+                        bool isSelected = false);
+    explicit FiBDViewer(DirManagerInfo* dmi,
                         int depthId,
-                        const FileInfoBD& fi);
-    explicit FiBDViewer(unsigned long long m_fileSize,
-                        QDateTime m_lastModified,
-                        int depthId,
-                        FileInfoBD* fi);
+                        bool isCurrentlyRevalidating,
+                        bool isSearched = false,
+                        bool isSearchFocused = false,
+                        bool isSelected = false);
 
 
     explicit FiBDViewer(const FiBDViewer& fi);
@@ -43,6 +48,7 @@ public:
     virtual ~FiBDViewer() override;
 
     FiBDViewer& operator=(const FiBDViewer& fi);
+    FiBDViewer* operator=(FiBDViewer* fi);
 
 
     // getters:

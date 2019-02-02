@@ -1,6 +1,8 @@
 #include "tabcoordinator.h"
 
-TabCoordinator::TabCoordinator(QObject *parent) : QObject(parent)
+TabCoordinator::TabCoordinator(QObject *parent)
+    : QObject(parent),
+      WidgetCreator()
 {
     addTab();
 }
@@ -12,24 +14,30 @@ TabCoordinator::~TabCoordinator()
 
     for(auto& window: m_windows)
         deleteWindow(window);
-    m_windows.clear();
+    m_windows.clear();}
 
-    deleteTCPane();
-}
-
-TabCoordinatorPane* TabCoordinator::genTabCoordinatorPane()
+QWidget* TabCoordinator::createWidget()
 {
     QVector<QDir> labels = generateLabels();
-    TabCoordinatorPane* tabCoordinatorPane = new TabCoordinatorPane(m_curWindowId, labels);
+    TabCoordinatorPane* tabCoordinatorPane = new TabCoordinatorPane(this, m_curWindowId, labels);
 
-    connectTCPane();
+    connectTCPane(tabCoordinatorPane);
 
     return tabCoordinatorPane;
 }
 
+QWidget* TabCoordinator::createCentralWidget()
+{
+    return m_currentlyDisplWindow->createWidget();
+}
+
+
 void TabCoordinator::setFullScreen()
 {
     m_isFullScreen = !m_isFullScreen;
+
+    qDebug() << "TabCoordinator::setFullScreen not implemented!!!";
+
     if(m_isFullScreen){
 
     }else{
@@ -46,9 +54,9 @@ void TabCoordinator::setTab(int id)
 {
     if(m_windows.size() > id)
     {
-        emit resetTabCoordPaneCentralWidget();
+        emit revalidateTabCoordinatorPane();
 
-        if(m_curWindowId < m_windows.size())
+        if(m_curWindowId > 0 && m_curWindowId < m_windows.size())
             disconnectWindow(m_windows[m_curWindowId]);
 
         m_currentlyDisplWindow = m_windows[id];
@@ -85,11 +93,6 @@ void TabCoordinator::revalidateLabels()
 {
     QVector<QDir> newLabels = generateLabels();
     emit labelsChanged( newLabels );
-}
-
-void TabCoordinator::receiveCentralWidgetForTCPane(QWidget* widget)
-{
-    emit sendCentralWidgetToTCPane(widget);
 }
 
 QVector<QDir> TabCoordinator::generateLabels()
@@ -131,54 +134,39 @@ void TabCoordinator::closeActiveTab()
 
 void TabCoordinator::connectWindow(WindowCoordinator *window)
 {
-    connect(this, &TabCoordinator::resetTabCoordPaneCentralWidget, window, &WindowCoordinator::createPane);
-    connect(window, &WindowCoordinator::paneCreated, this, &TabCoordinator::receiveCentralWidgetForTCPane);
     connect(window, &WindowCoordinator::openFoldersInNewTab, this, &TabCoordinator::openFoldersInNewTab);
     connect(window, &WindowCoordinator::labelChanged,        this, &TabCoordinator::revalidateLabels);
 }
 
 void TabCoordinator::disconnectWindow(WindowCoordinator *window)
 {
-    disconnect(this, &TabCoordinator::resetTabCoordPaneCentralWidget, window, &WindowCoordinator::createPane);
-    disconnect(window, &WindowCoordinator::paneCreated, this, &TabCoordinator::receiveCentralWidgetForTCPane);
     disconnect(window, &WindowCoordinator::openFoldersInNewTab, this, &TabCoordinator::openFoldersInNewTab);
     disconnect(window, &WindowCoordinator::labelChanged,        this, &TabCoordinator::revalidateLabels);
 }
-void TabCoordinator::deleteWindow(WindowCoordinator *window)
+void TabCoordinator::deleteWindow(WindowCoordinator* window)
 {
     disconnectWindow(window);
     window->close();
     window->deleteLater();
 }
 
-void TabCoordinator::connectTCPane()
+void TabCoordinator::connectTCPane(TabCoordinatorPane* tcPane)
 {
-    connect(m_tcPane, &TabCoordinatorPane::tabClicked,    this, &TabCoordinator::setTab);
-    connect(m_tcPane, &TabCoordinatorPane::tabCloseClicked, this, &TabCoordinator::removeTab);
-    connect(m_tcPane, &TabCoordinatorPane::tabAddClicked,   this, &TabCoordinator::addTab);
+    connect(tcPane, &TabCoordinatorPane::tabClicked,    this, &TabCoordinator::setTab);
+    connect(tcPane, &TabCoordinatorPane::tabCloseClicked, this, &TabCoordinator::removeTab);
+    connect(tcPane, &TabCoordinatorPane::tabAddClicked,   this, &TabCoordinator::addTab);
 
-    connect(this, &TabCoordinator::sendCentralWidgetToTCPane,    m_tcPane, &TabCoordinatorPane::setCentralWidget);
-    connect(this, &TabCoordinator::revalidateTabCoordinatorPane, m_tcPane, &TabCoordinatorPane::revalidate);
-    connect(this, &TabCoordinator::labelsChanged,                m_tcPane, &TabCoordinatorPane::updateTabLabels);
-    connect(this, &TabCoordinator::activeTabIdChanged,           m_tcPane, &TabCoordinatorPane::activeTabIdChanged);
+    connect(this, &TabCoordinator::revalidateTabCoordinatorPane, tcPane, &TabCoordinatorPane::revalidate);
+    connect(this, &TabCoordinator::labelsChanged,                tcPane, &TabCoordinatorPane::updateTabLabels);
+    connect(this, &TabCoordinator::activeTabIdChanged,           tcPane, &TabCoordinatorPane::activeTabIdChanged);
 }
-void TabCoordinator::disconnectTCPane()
+void TabCoordinator::disconnectTCPane(TabCoordinatorPane* tcPane)
 {
-    disconnect(m_tcPane, &TabCoordinatorPane::tabClicked,    this, &TabCoordinator::setTab);
-    disconnect(m_tcPane, &TabCoordinatorPane::tabCloseClicked, this, &TabCoordinator::removeTab);
-    disconnect(m_tcPane, &TabCoordinatorPane::tabAddClicked,   this, &TabCoordinator::addTab);
+    disconnect(tcPane, &TabCoordinatorPane::tabClicked,    this, &TabCoordinator::setTab);
+    disconnect(tcPane, &TabCoordinatorPane::tabCloseClicked, this, &TabCoordinator::removeTab);
+    disconnect(tcPane, &TabCoordinatorPane::tabAddClicked,   this, &TabCoordinator::addTab);
 
-    disconnect(this, &TabCoordinator::sendCentralWidgetToTCPane,    m_tcPane, &TabCoordinatorPane::setCentralWidget);
-    disconnect(this, &TabCoordinator::revalidateTabCoordinatorPane, m_tcPane, &TabCoordinatorPane::revalidate);
-    disconnect(this, &TabCoordinator::labelsChanged,                m_tcPane, &TabCoordinatorPane::updateTabLabels);
-    disconnect(this, &TabCoordinator::activeTabIdChanged,           m_tcPane, &TabCoordinatorPane::activeTabIdChanged);
-}
-void TabCoordinator::deleteTCPane()
-{
-    if(m_tcPane)
-    {
-        disconnectTCPane();
-        m_tcPane->deleteLater();
-        m_tcPane = nullptr;
-    }
+    disconnect(this, &TabCoordinator::revalidateTabCoordinatorPane, tcPane, &TabCoordinatorPane::revalidate);
+    disconnect(this, &TabCoordinator::labelsChanged,                tcPane, &TabCoordinatorPane::updateTabLabels);
+    disconnect(this, &TabCoordinator::activeTabIdChanged,           tcPane, &TabCoordinatorPane::activeTabIdChanged);
 }

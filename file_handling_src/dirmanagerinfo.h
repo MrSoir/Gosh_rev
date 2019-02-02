@@ -26,6 +26,8 @@ public:
     explicit DirManagerInfo(const DirManagerInfo& dmi);
     explicit DirManagerInfo(DirManagerInfo* dmi);
 
+    explicit DirManagerInfo();
+
     DirManagerInfo& operator=(const DirManagerInfo& dmf);
     DirManagerInfo* operator=(DirManagerInfo* dmf);
 

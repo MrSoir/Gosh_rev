@@ -25,9 +25,9 @@ public:
                            int padding = 5,//m_padding(5),
                            QGraphicsItem* parent = nullptr);
 
-    ~WaitingBarGraphicsItem();
+    virtual ~WaitingBarGraphicsItem() override;
 
-    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget);
+    virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
 
     void startAnimation();
     void stopAnimation();

@@ -22,6 +22,7 @@
 
 class DirectorySelectorDialogViewer : public QGraphicsView
 {
+    Q_OBJECT
 public:
     DirectorySelectorDialogViewer(
             QString currentDirectory,

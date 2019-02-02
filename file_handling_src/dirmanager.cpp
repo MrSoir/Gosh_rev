@@ -332,11 +332,16 @@ void DirManager::delete_hlpr(std::vector<string> pathsToDelete)
 void DirManager::delete_hlpr(std::vector<FiBDDeletor*> dirsToDelete)
 {
     if(dirsToDelete.size()){
-        qDebug() << "delete_hlpr: dirsToDelete: " << dirsToDelete.size();
-        for(auto* deletor: dirsToDelete)
+//        qDebug() << "delete_hlpr: dirsToDelete: " << dirsToDelete.size();
+//        for(auto* deletor: dirsToDelete)
+//        {
+//            qDebug() << "deletor: " << QString::fromStdString(deletor->m_fiBD->absPath());
+//        }
+        for(auto* dirDeletor: dirsToDelete)
         {
-            qDebug() << "deletor: " << QString::fromStdString(deletor->m_fiBD->absPath());
+            disconnectDir(dirDeletor->m_fiBD);
         }
+
         DirDeleteWorker* worker = new DirDeleteWorker(dirsToDelete);
         emit addWorker(worker);
     }
@@ -397,8 +402,10 @@ void DirManager::connectWatcher()
 
 void DirManager::connectDirs()
 {
-    connect(FIBD_COLLECTOR, &FiBD_Collector::fiBD_created,   this, &DirManager::connectDir,    Qt::DirectConnection);
-    connect(FIBD_COLLECTOR, &FiBD_Collector::fIBD_destroyed, this, &DirManager::disconnectDir, Qt::DirectConnection);
+    // herausgenommen, da FIBD_COLLECTOR agiert, es vom DirManager aber idR mehrere instanzen im gesamten Programm gibt
+    // -> daher muss das connectDir und disconnectDir anders ablaufen!
+//    connect(FIBD_COLLECTOR, &FiBD_Collector::fiBD_created,   this, &DirManager::connectDir,    Qt::DirectConnection);
+//    connect(FIBD_COLLECTOR, &FiBD_Collector::fIBD_destroyed, this, &DirManager::disconnectDir, Qt::DirectConnection);
 }
 
 void DirManager::connectDir(FileInfoBD* dir)
@@ -424,6 +431,14 @@ void DirManager::revalidateDirStructure_hlpr(FileInfoBD* fiBD)
     std::string fileName = fiBD->fileName();
     m_path_to_dir[absPath] = fiBD;
     m_path_fileName[absPath] = fileName;
+
+    if( !fiBD->alreadyRegistered() )
+    {
+        m_watcher->addDir(absPath);
+        connectDir(fiBD);
+        fiBD->setAlreadRegistered(true);
+    }
+
     for(auto* sub_dir: fiBD->getSubFolders())
     {
         if(m_closed)

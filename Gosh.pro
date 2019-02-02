@@ -73,7 +73,6 @@ SOURCES += \
          tab_coordiantor/tabcoordinatorpane.cpp \
          threaded_dialog/dialogworker.cpp \
          threaded_dialog/threadeddialog.cpp \
-         tree_viewer/customgraphicitems.cpp \
          tree_viewer/directoryselectordialog.cpp \
          tree_viewer/directoryselectordialogviewer.cpp \
          tree_viewer/elapsemenubd.cpp \
@@ -81,7 +80,6 @@ SOURCES += \
          tree_viewer/graphicsfile.cpp \
          tree_viewer/graphicsview.cpp \
          tree_viewer/menubar.cpp \
-         tree_viewer/rectbd.cpp \
          tree_viewer/rectcolor.cpp \
          tree_viewer/searchfiledialog.cpp \
          tree_viewer/searchmenubd.cpp \
@@ -92,12 +90,19 @@ SOURCES += \
          window_coordinator/removewindowdialog.cpp \
          window_coordinator/windowcoordinator.cpp \
          window_coordinator/windowcoordinatorpane.cpp \
-    file_handling_src/dirmanagerinfo.cpp \
-    file_handling_src/filedata.cpp \
-    file_handling_src/dirreplacerootworker.cpp \
-    file_handling_src/dircd_upworker.cpp \
-    file_handling_src/dirincludehiddenfilesworker.cpp \
-    file_handling_src/dirsortworker.cpp
+        file_handling_src/dirmanagerinfo.cpp \
+        file_handling_src/filedata.cpp \
+        file_handling_src/dirreplacerootworker.cpp \
+        file_handling_src/dircd_upworker.cpp \
+        file_handling_src/dirincludehiddenfilesworker.cpp \
+        file_handling_src/dirsortworker.cpp \
+        tree_viewer/graphicsviewinfo.cpp \
+        tree_viewer/directoryselectionpane.cpp \
+        file_handling_src/directorystack.cpp \
+        tab_coordiantor/tabselectorpane.cpp \
+        customgraphicitems.cpp \
+        tab_coordiantor/tabrect.cpp \
+    widgetcreator.cpp
 
 HEADERS += \
          mainwindow.h \
@@ -149,7 +154,6 @@ HEADERS += \
          tab_coordiantor/tabcoordinatorpane.h \
          threaded_dialog/dialogworker.h \
          threaded_dialog/threadeddialog.h \
-         tree_viewer/customgraphicitems.h \
          tree_viewer/directoryselectordialog.h \
          tree_viewer/directoryselectordialogviewer.h \
          tree_viewer/dynamicfunctioncaller.h \
@@ -158,7 +162,6 @@ HEADERS += \
          tree_viewer/graphicsfile.h \
          tree_viewer/graphicsview.h \
          tree_viewer/menubar.h \
-         tree_viewer/rectbd.h \
          tree_viewer/rectcolor.h \
          tree_viewer/searchfiledialog.h \
          tree_viewer/searchmenubd.h \
@@ -169,12 +172,20 @@ HEADERS += \
          window_coordinator/removewindowdialog.h \
          window_coordinator/windowcoordinator.h \
          window_coordinator/windowcoordinatorpane.h \
-    file_handling_src/dirmanagerinfo.h \
-    file_handling_src/filedata.h \
-    file_handling_src/dirreplacerootworker.h \
-    file_handling_src/dircd_upworker.h \
-    file_handling_src/dirincludehiddenfilesworker.h \
-    file_handling_src/dirsortworker.h
+        file_handling_src/dirmanagerinfo.h \
+        file_handling_src/filedata.h \
+        file_handling_src/dirreplacerootworker.h \
+        file_handling_src/dircd_upworker.h \
+        file_handling_src/dirincludehiddenfilesworker.h \
+        file_handling_src/dirsortworker.h \
+        tree_viewer/graphicsviewinfo.h \
+        tree_viewer/directoryselectionpane.h \
+        tree_viewer/graphicsviewupdater.h \
+        file_handling_src/directorystack.h \
+        tab_coordiantor/tabselectorpane.h \
+        customgraphicitems.h \
+        tab_coordiantor/tabrect.h \
+        widgetcreator.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

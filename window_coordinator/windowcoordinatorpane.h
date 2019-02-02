@@ -30,17 +30,21 @@
 #include "helpdialog.h"
 #include "infodialog.h"
 
+class WindowCoordinator;
+
 using namespace Orientation;
 
 class WindowCoordinatorPane : public QWidget
 {
     Q_OBJECT
 public:
-    explicit WindowCoordinatorPane(QList<QList<int>> splitterRatios = QList<QList<int>>(),
+    explicit WindowCoordinatorPane(WindowCoordinator* wc,
+                                   QList<QList<int>> splitterRatios = QList<QList<int>>(),
                                    int windowCount = 2,
-                                   ORIENTATION orientation = ORIENTATION::HORIZONTAL,
+                                   Orientation::ORIENTATION orientation = Orientation::ORIENTATION::HORIZONTAL,
                                    QWidget *parent = nullptr);
-    ~WindowCoordinatorPane() override;
+
+    virtual ~WindowCoordinatorPane() override;
 
 signals:
     void addWindow();
@@ -53,8 +57,7 @@ signals:
     void setRemoveDialogPosition(QPoint);
     void setRemoveDialogSize(QSize);
 public slots:
-    void revalidateLayout(QVector<QLayout*> windowLayouts,
-                          ORIENTATION orientation);
+    void revalidateLayout();
 //    void resetWindows(QVector<QWidget*> windows);
 //    void orientationChanged(ORIENTATION o);
     void splitterRatiosChanged();
@@ -78,6 +81,10 @@ private:
 
     void setToolBar();
 
+//    -------------------------------------------------
+
+    WindowCoordinator* m_windowCoordinator;
+
     QHBoxLayout* m_toolBar = nullptr;
     QVector<QWidget*> m_toolBarChilds;
 
@@ -90,7 +97,7 @@ private:
 
     float m_dialogSizeFactor = 0.8f;
 
-    ORIENTATION m_orientation;
+    Orientation::ORIENTATION m_orientation;
     int m_windowCount;
 
     QSize m_removeDialogSize;

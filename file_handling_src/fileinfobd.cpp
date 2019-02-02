@@ -64,7 +64,9 @@ FileInfoBD::FileInfoBD(const std::string& path,
       m_cancelled_sorting(false),
 
       m_order(Order()),
-      m_current_ordering(Order())
+      m_current_ordering(Order()),
+
+      m_alrRegistered(false)
 {
     registerThis();
 }
@@ -108,7 +110,9 @@ FileInfoBD::FileInfoBD(const QFileInfo& fileInfo,
       m_cancelled_sorting(false),
 
       m_order(Order()),
-      m_current_ordering(Order())
+      m_current_ordering(Order()),
+
+      m_alrRegistered(false)
 {
     registerThis();
 }
@@ -149,7 +153,9 @@ FileInfoBD::FileInfoBD(const FileInfoBD &fi)
       m_cancelled_sorting(fi.m_cancelled_sorting),
 
       m_order(fi.m_order),
-      m_current_ordering(fi.m_current_ordering)
+      m_current_ordering(fi.m_current_ordering),
+
+      m_alrRegistered(fi.m_alrRegistered)
 {
     registerThis();
 }
@@ -190,7 +196,9 @@ FileInfoBD::FileInfoBD(FileInfoBD* fi)
       m_cancelled_sorting(fi->m_cancelled_sorting),
 
       m_order(fi->m_order),
-      m_current_ordering(fi->m_current_ordering)
+      m_current_ordering(fi->m_current_ordering),
+
+      m_alrRegistered(fi->m_alrRegistered)
 {
     registerThis();
 }
@@ -232,6 +240,8 @@ FileInfoBD& FileInfoBD::operator=(const FileInfoBD& fi)
 
     this->m_order = fi.m_order;
     this->m_current_ordering = fi.m_current_ordering;
+
+    this->m_alrRegistered = fi.m_alrRegistered;
 
     registerThis();
 
@@ -276,10 +286,15 @@ FileInfoBD* FileInfoBD::operator=(FileInfoBD* fi)
     this->m_order = fi->m_order;
     this->m_current_ordering = fi->m_current_ordering;
 
+    this->m_alrRegistered = fi->m_alrRegistered;
+
     registerThis();
 
     return this;
 }
+
+
+
 
 FileInfoBD::~FileInfoBD()
 {
@@ -287,9 +302,23 @@ FileInfoBD::~FileInfoBD()
     unregisterThis();
 }
 
+
+//-----------------------------------------------------
+
 FileInfoBD *FileInfoBD::getParentDir()
 {
     return m_parent;
+}
+
+//-----------------------------------------------------
+
+bool FileInfoBD::alreadyRegistered() const
+{
+    return m_alrRegistered;
+}
+void FileInfoBD::setAlreadRegistered(bool alrReg)
+{
+    m_alrRegistered = alrReg;
 }
 
 //-----------------------------------------------------

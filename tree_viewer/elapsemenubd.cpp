@@ -124,6 +124,7 @@ void ElapseMenuBD::hoverMoveEvent(QGraphicsSceneHoverEvent * event){
 //        return QGraphicsItem::hoverEnterEvent(event);
 }
 void ElapseMenuBD::hoverLeaveEvent(QGraphicsSceneHoverEvent* event){
+    Q_UNUSED(event)
     m_mouInButtonId = -1;
     update();
 }

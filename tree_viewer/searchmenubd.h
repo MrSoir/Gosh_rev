@@ -18,12 +18,13 @@
 #include "customgraphicitems.h"
 #include "dynamicfunctioncaller.h"
 
-class SearchMenuBD : public GraphicItemsBD::GraphicsItemBD{
+class SearchMenuBD : public GraphicItemsBD::GraphicsItemBD
+{
 public:
     SearchMenuBD(const QSize& size = QSize(0,0),
                  const QPoint& pos = QPoint(0,0),
                  QGraphicsItem* parent = nullptr);
-    ~SearchMenuBD() override;
+    virtual ~SearchMenuBD() override;
     void setCaller(std::shared_ptr<DynamicFunctionCaller<QString, std::function<QString()>>> caller);
 
     void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;

@@ -34,15 +34,27 @@
 #include "file_handling_src/fibdviewer.h"
 #include "orderby.h"
 
+#define int_bd long long
+
 class GraphicsFile : public QGraphicsItem
 {
 public:
     explicit GraphicsFile(const FiBDViewer& m_fileInfo,
                           const QSize& size,
-                          const int rowId=0,
-                          const int rowHeight=0,
-                          const int colId=0,
-                          const int colOff=0,
+                          const int_bd rowId=0,
+                          const int_bd rowHeight=0,
+                          const int_bd colId=0,
+                          const int_bd colOff=0,
+                          std::shared_ptr<DynamicFunctionCaller<QString, std::function<bool()>>> caller = std::shared_ptr<DynamicFunctionCaller<QString, std::function<bool()>>>(),
+                          std::shared_ptr<DynamicFunctionCaller<QString, std::function<bool(Order)>>> sortCaller = std::shared_ptr<DynamicFunctionCaller<QString, std::function<bool(Order)>>>(),
+                          const int fontSize = 8,
+                          QGraphicsItem *parent = nullptr);
+    explicit GraphicsFile(const QFileInfo& m_fileInfo,
+                          const QSize& size,
+                          const int_bd rowId=0,
+                          const int_bd rowHeight=0,
+                          const int_bd colId=0,
+                          const int_bd colOff=0,
                           std::shared_ptr<DynamicFunctionCaller<QString, std::function<bool()>>> caller = std::shared_ptr<DynamicFunctionCaller<QString, std::function<bool()>>>(),
                           std::shared_ptr<DynamicFunctionCaller<QString, std::function<bool(Order)>>> sortCaller = std::shared_ptr<DynamicFunctionCaller<QString, std::function<bool(Order)>>>(),
                           const int fontSize = 8,
@@ -94,10 +106,10 @@ private:
     QSize m_size;
     QPoint m_pos;
     bool m_hover = false;
-    int m_rowId;
-    int m_rowHeight;
-    int m_colId;
-    int m_colOffs;
+    int_bd m_rowId;
+    int_bd m_rowHeight;
+    int_bd m_colId;
+    int_bd m_colOffs;
 
     QRectF* m_elapseRect = nullptr;
     QVector<QRectF> m_sortRects;

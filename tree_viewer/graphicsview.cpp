@@ -6,17 +6,14 @@ GraphicsView::GraphicsView(int hBarValue,
                            int zoomFactor,
                            QWidget* parent)
     : QGraphicsView(parent),
+      m_fontSize(zoomFactor),
       m_isLoading(false),
       m_loadingId(0),
-      m_animationTimer(new QTimer(this)),
-      m_fontSize(zoomFactor)
+      m_animationTimer(new QTimer(this))
 {
-    qDebug() << "in GraphcisView-Constructor";
-
     revalidateRowHeight();
 
     connect(m_animationTimer, &QTimer::timeout, [=](){
-//        qDebug() << "running in timer: loadingId: " << loadingId;
         int id = m_loadingId;
         m_loadingId = (id+1) % m_loadingLength;
 
@@ -27,18 +24,23 @@ GraphicsView::GraphicsView(int hBarValue,
         QPixmap cursor_pixmap = QPixmap(cursor_pixmap_path);
 
         QTransform trans;
-        qreal id_rl = (qreal)id;
-        qreal pi = 3.14159265;
-        qreal value = (id_rl / ((qreal)m_loadingLength)) * (2*pi);
-        qreal scaleFactor = (sin(value) +1) * 0.3;
+        double id_rl = static_cast<double>(id);
+        double pi = 3.14159265;
+        double d_loadeingLength = static_cast<double>(m_loadingLength);
+        double value = (id_rl / d_loadeingLength) * (2.0*pi);
+        double scaleFactor = (sin(value) +1.0) * 0.3;
 
         trans.rotate(id * 4);
         trans.scale(1.0 + scaleFactor, 1.0 + scaleFactor);
 
         cursor_pixmap = cursor_pixmap.transformed(trans);
+
+        double cursor_width = cursor_pixmap.size().width();
+        double cursor_height = cursor_pixmap.size().height();
+
         setCursor(QCursor(cursor_pixmap,
-                          (int)(-((qreal)cursor_pixmap.size().width())*0.5),
-                          (int)(-((qreal)cursor_pixmap.size().height())*0.5)));
+                          static_cast<int>(-cursor_width*0.5),
+                          static_cast<int>(-cursor_height*0.5)));
 
         rePaintCanvas();
     });
@@ -58,8 +60,6 @@ GraphicsView::GraphicsView(int hBarValue,
     setHBarValue(hBarValue);
     setVBarValue(vBarValue);
     rePaintCanvas();
-
-//    qDebug() << "in GraphcisView-Constructor-finished";
 }
 
 GraphicsView::~GraphicsView()
@@ -76,35 +76,37 @@ GraphicsView::~GraphicsView()
     m_animationTimer->deleteLater();
 
     delete m_upperRect;
-
-//    qDebug() << "   -> GraphicsView.DEstructor finished";
 }
 
 void GraphicsView::revalidate(){
     rePaintCanvas();
 }
 
-int GraphicsView::getFirstToDispFi(){
-    qreal yOffs = getViewportYOffset();
+int_bd GraphicsView::getFirstToDispFi(){
+    double yOffs = getViewportYOffset();
 
-    int firstToDispFi = (yOffs / m_rowHeight) -m_filePuffer;
+
+    int_bd firstToDispFi = static_cast<int_bd>((yOffs / static_cast<double>(m_rowHeight))) -m_filePuffer;
     if(firstToDispFi < 0)
         firstToDispFi = 0;
     return firstToDispFi;
 }
-int GraphicsView::getLastToDispFi(){
-    qreal vwPrtHght = getDisplayableHeight();
+int_bd GraphicsView::getLastToDispFi(){
+    double vwPrtHght = getDisplayableHeight();
+    double frstToDisp = static_cast<double>(getFirstToDispFi());
+    double d_rowHeight = static_cast<double>(m_rowHeight);
+    double d_filePuffer = static_cast<double>(m_filePuffer);
 
-    int lastToDispFi = getFirstToDispFi() + (vwPrtHght / m_rowHeight) + m_filePuffer*2.0;
+    int_bd lastToDispFi = static_cast<int_bd>(frstToDisp + (vwPrtHght / d_rowHeight) + d_filePuffer*2.0);
     if(lastToDispFi >= m_fileCount)
         lastToDispFi = m_fileCount-1;
     return lastToDispFi;
 }
 bool GraphicsView::viewPortOutOfDisplayedRange(){
-    int newFirstToDispFi = getFirstToDispFi();
-    int newLastToDispFi = getLastToDispFi();
-    int curFirst = m_firstDispFI;
-    int curLast =  m_lastDispFI;
+    auto newFirstToDispFi = getFirstToDispFi();
+    auto newLastToDispFi = getLastToDispFi();
+    auto curFirst = m_firstDispFI;
+    auto curLast =  m_lastDispFI;
 
     if(curFirst < 0)
         curFirst = 0;
@@ -129,8 +131,6 @@ qreal GraphicsView::getDisplayableHeight()
 
 void GraphicsView::vScrollValueChanged(int newValue)
 {
-//    qDebug() << "in vScrollValueChanged -> viewPortOutOfDisplayedRange: " << viewPortOutOfDisplayedRange();
-
     bool revalidate = false;
     if( viewPortOutOfDisplayedRange() ){
         revalidate = true;
@@ -138,8 +138,11 @@ void GraphicsView::vScrollValueChanged(int newValue)
     if(!revalidate && m_graphicsGroup){
         m_graphicsGroup->setY(newValue);
     }
+
     if(revalidate)
-        rePaintCanvas();
+    {
+        revalFirstAndLastDisplayedFI();
+    }
 }
 
 void GraphicsView::hScrollValueChanged(int newValue)
@@ -160,7 +163,6 @@ void GraphicsView::killWaitingAnimation()
 {
     if(m_animationTimer && m_animationTimer->isActive()){
         m_isLoading = false;
-//        qDebug() << "stopping timer";
         this->setCursor(QCursor(Qt::ArrowCursor));
         m_animationTimer->stop();
         update();
@@ -182,7 +184,7 @@ void GraphicsView::EnterPressedBD(QKeyEvent* event)
     if( inSearchMode() )
         emit nextSearchResult();
     else
-        emit openSelection();
+        emit openSelectedContent();
 }
 
 void GraphicsView::keyPressEvent(QKeyEvent *event)
@@ -205,7 +207,7 @@ void GraphicsView::keyPressEvent(QKeyEvent *event)
               event->key() == Qt::Key_Return){
         EnterPressedBD(event);
     }else if(event->key() == Qt::Key_Backspace){
-        emit setParentToRoot();
+        emit cdUp();
     }else if(event->key() == Qt::Key_Up){
         emit selectButtonUp(contrlPrsd, shiftPrsd);
     }else if(event->key() == Qt::Key_Down){
@@ -222,7 +224,7 @@ void GraphicsView::keyPressEvent(QKeyEvent *event)
             zoomOut();
     }else if(event->key() == Qt::Key_F4){
         if(contrlPrsd){
-            executeFileAction(FILE_ACTION::CLOSE_TAB);
+            executeFileAction(FILE_ACTION::Action::CLOSE_TAB);
         }
     }else if(event->key() == Qt::Key_F5){
 
@@ -231,10 +233,10 @@ void GraphicsView::keyPressEvent(QKeyEvent *event)
 
     }else if (event->key() == Qt::Key_Left)
     {
-        executeFileAction(FILE_ACTION::COLLAPSE);
+        executeFileAction(FILE_ACTION::Action::COLLAPSE);
     }else if (event->key() == Qt::Key_Right)
     {
-        executeFileAction(FILE_ACTION::ELAPSE);
+        executeFileAction(FILE_ACTION::Action::ELAPSE);
     }else if(event->key() == Qt::Key_A){
         if(StaticFunctions::controlPressed()){
             emit selectEntireContent();
@@ -273,7 +275,7 @@ void GraphicsView::keyPressEvent(QKeyEvent *event)
         }
     }else if(event->key() == Qt::Key_W){
         if(contrlPrsd){
-            executeFileAction(FILE_ACTION::TAB);
+            executeFileAction(FILE_ACTION::Action::TAB);
         }
     }else if(event->key() == Qt::Key_H){
         if(contrlPrsd){
@@ -288,7 +290,7 @@ void GraphicsView::keyPressEvent(QKeyEvent *event)
         QString txt = event->text();
         bool startsWithBackslash = txt.startsWith("\\");
         if( !startsWithBackslash && !txt.isEmpty() )
-            emit keyPressed(event->key());
+            emit keyPressed(txt.toStdString());
     }
 
     this->rePaintCanvas();
@@ -350,7 +352,7 @@ void GraphicsView::mouseMoveEvent(QMouseEvent *event)
 void GraphicsView::enterEvent(QEvent *event)
 {
     Q_UNUSED(event);
-    executeFileAction(FILE_ACTION::REQUEST_FOCUS); // <- keyboard-focus: damit sofort, wenn man mit der maus ueber das fenster geht, das fenster den fokus hat
+    executeFileAction(FILE_ACTION::Action::REQUEST_FOCUS); // <- keyboard-focus: damit sofort, wenn man mit der maus ueber das fenster geht, das fenster den fokus hat
 }
 
 void GraphicsView::leaveEvent(QEvent *event)
@@ -366,7 +368,6 @@ void GraphicsView::updateGraphicsView()
 
 int GraphicsView::getVScrollBarValue()
 {
-    QScrollBar* scrBr = verticalScrollBar();
     return this->verticalScrollBar()->value();
 }
 
@@ -375,47 +376,55 @@ int GraphicsView::getHScrollBarValue()
     return this->horizontalScrollBar()->value();
 }
 
+void GraphicsView::receiveFileViewers(std::unordered_map<int_bd, FiBDViewer> new_files)
+{
+    m_entriesToRender = new_files;
+    revalidate();
+}
+
 void GraphicsView::requestFocus()
 {
     this->setFocus();
 }
 
-void GraphicsView::focusId(int id, bool repaintAnyway)
+void GraphicsView::focusId(int_bd id)
 {
     revalidate(); // das revalidate macht eigetnlich das repaintAnyway komplett zunichte. aber:
     // wenn beim suchergebnis bisher nur 10 dateien angezeigt wurden -> vScrollBar also nicht existent
     // und nun 1000 files dargestellt werden und man versucht vScrollBar->setValue(1000) zu setzen,
     // juckt das den vScrollBar nicht und sein wert bleibt bei 0.
 
-    qreal potSearchMenuHeight = (inSearchMode() ? m_searchMenuHeight : 0);
+    double potSearchMenuHeight = (inSearchMode() ? static_cast<double>(m_searchMenuHeight) : 0.0);
 
-    qreal yStart = this->verticalScrollBar()->value() + m_elapseBarHeight + potSearchMenuHeight;
-    qreal paneHeight = this->viewport()->height() -m_elapseBarHeight - potSearchMenuHeight;
+    double yStart = this->verticalScrollBar()->value() + m_elapseBarHeight + potSearchMenuHeight;
+    double paneHeight = this->viewport()->height() -m_elapseBarHeight - potSearchMenuHeight;
 
-    int startId = yStart / m_rowHeight;
-    int endId = startId + paneHeight / m_rowHeight-1;
+    double d_rowHeight = static_cast<double>(m_rowHeight);
+
+    int startId = static_cast<int>(yStart / d_rowHeight);
+    int endId = startId + static_cast<int>(paneHeight / d_rowHeight-1.0);
     if(endId < startId)
         endId = startId;
 
     bool repaintingIsNecessary = false;
     if(startId > id){
-        qreal newVScrBrVal = id * m_rowHeight - m_elapseBarHeight - potSearchMenuHeight + m_rowHeight - 10;
+        double newVScrBrVal = id * m_rowHeight - m_elapseBarHeight - potSearchMenuHeight + m_rowHeight - 10;
         if(newVScrBrVal < 0)
             newVScrBrVal = 0;
-        this->verticalScrollBar()->setValue(newVScrBrVal);
+        this->verticalScrollBar()->setValue( static_cast<int>(newVScrBrVal) );
         repaintingIsNecessary = true;
     }else if(endId < id){
-        qreal newVScrBrVal = id * m_rowHeight - m_elapseBarHeight
+        double newVScrBrVal = id * m_rowHeight - m_elapseBarHeight
                 - (this->viewport()->height()-m_elapseBarHeight) + m_rowHeight*2;
         if(newVScrBrVal < 0)
             newVScrBrVal = 0;
-        this->verticalScrollBar()->setValue(newVScrBrVal);
+        this->verticalScrollBar()->setValue( static_cast<int>(newVScrBrVal) );
 
         repaintingIsNecessary = true;
     }
 
-    if(repaintingIsNecessary || repaintAnyway){
-        this->rePaintCanvas();
+    if(repaintingIsNecessary){
+        revalFirstAndLastDisplayedFI(true);
     }
 }
 
@@ -429,8 +438,12 @@ void GraphicsView::setVBarValue(int vBarValue)
     this->verticalScrollBar()->setValue(vBarValue);
 }
 
-void GraphicsView::paintTopRectangle(const QPointF& center, const QSize& size){
-    const QSizeF halfSize(((float)size.width())*0.5, ((float)size.height())*0.5);
+void GraphicsView::paintTopRectangle(const QPointF& center, const QSize& size)
+{
+    auto width  = static_cast<double>(size.width());
+    auto height = static_cast<double>(size.height());
+
+    const QSizeF halfSize(width*0.5, height*0.5);
 
     QPointF p1(-halfSize.width(), -halfSize.height());
     QPointF p2(+halfSize.width(), -halfSize.height());
@@ -458,11 +471,7 @@ void GraphicsView::paintTopRectangle(const QPointF& center, const QSize& size){
 }
 
 void GraphicsView::addMenuBar(){
-    m_menuBar = new MenuBar(this->viewport()->width(),//void GraphicsView::folderChanged(std::weak_ptr<const FileInfoBD> f)
-                            //{
-                            //    Q_UNUSED(f);
-                            //    rePaintCanvas();
-                            //}
+    m_menuBar = new MenuBar(this->viewport()->width(),
                             QPointF(this->viewport()->width()*0.5, m_elapseBarHeight));
     m_menuBar->setPosition(QPoint(this->horizontalScrollBar()->value(),
                                    this->verticalScrollBar()->value()));
@@ -561,74 +570,74 @@ void GraphicsView::addElapseBar()
     m_graphicsGroup->addToGroup(elapseMenu);
 }
 
-void GraphicsView::executeFileAction(FILE_ACTION action)
+void GraphicsView::executeFileAction(FILE_ACTION::Action action)
 {
     switch(action)
     {
-        case FILE_ACTION::COPY:
+        case FILE_ACTION::Action::COPY:
             emit copySelectedContent();
             break;
-        case FILE_ACTION::CUT:
+        case FILE_ACTION::Action::CUT:
             emit cutSelectedContent();
             break;
-        case FILE_ACTION::PASTE:
+        case FILE_ACTION::Action::PASTE:
             emit pasteFromClipboard();
             break;
-        case FILE_ACTION::DUPLICATE:
+        case FILE_ACTION::Action::DUPLICATE:
             emit duplicateSelectedContent();
             break;
-        case FILE_ACTION::OPEN:
+        case FILE_ACTION::Action::OPEN:
             emit openSelectedContent();
             break;
-        case FILE_ACTION::OPEN_WITH:
+        case FILE_ACTION::Action::OPEN_WITH:
             emit openSelectedContentWith();
             break;
-        case FILE_ACTION::DELETE:
+        case FILE_ACTION::Action::DELETE:
             emit deleteSelectedContent();
             break;
-        case FILE_ACTION::ZIP:
+        case FILE_ACTION::Action::ZIP:
             emit zipSelectedContent();
             break;
-        case FILE_ACTION::UNZIP:
+        case FILE_ACTION::Action::UNZIP:
             emit unzipSelectedContent();
             break;
-        case FILE_ACTION::RENAME:
+        case FILE_ACTION::Action::RENAME:
             emit renameSelectedContent();
             break;
-        case FILE_ACTION::TERMINAL:
+        case FILE_ACTION::Action::TERMINAL:
             openTerminal();
             break;
-        case FILE_ACTION::DETAILS:
+        case FILE_ACTION::Action::DETAILS:
             emit showDetailsOfSelectedContent();
             break;
-        case FILE_ACTION::ELAPSE_REC:
+        case FILE_ACTION::Action::ELAPSE_REC:
             emit elapseSelectedFoldersRecursively();
             break;
-        case FILE_ACTION::ELAPSE:
+        case FILE_ACTION::Action::ELAPSE:
             emit elapseSelectedFolders();
             break;
-        case FILE_ACTION::LOAD:
+        case FILE_ACTION::Action::LOAD:
             emit setSelectionToRoot();
             break;
-        case FILE_ACTION::COLLAPSE_REC:
+        case FILE_ACTION::Action::COLLAPSE_REC:
             emit collapseSelectedFoldersRecursively();
             break;
-        case FILE_ACTION::COLLAPSE:
+        case FILE_ACTION::Action::COLLAPSE:
             emit collapseSelectedFolders();
             break;
-        case FILE_ACTION::PATH:
+        case FILE_ACTION::Action::PATH:
             emit copySelectedFilePathToClipboard();
             break;
-        case CANCEL_CURRENT_ACTION:
+        case FILE_ACTION::Action::CANCEL_CURRENT_ACTION:
             emit killCurrentBlockingAction();
             break;
-        case REQUEST_FOCUS:
+        case FILE_ACTION::Action::REQUEST_FOCUS:
             emit requestFocusSGNL();
             break;
-        case TAB:
+        case FILE_ACTION::Action::TAB:
             emit requestOpenFoldersInTab();
             break;
-        case CLOSE_TAB:
+        case FILE_ACTION::Action::CLOSE_TAB:
             emit requestCloseCurrentTab();
             break;
     }
@@ -676,7 +685,7 @@ void GraphicsView::addContentBar()
         // elapse folders:
 
         auto setElapseFunc = [=](){
-            executeFileAction(FILE_ACTION::ELAPSE_REC);
+            executeFileAction(FILE_ACTION::Action::ELAPSE_REC);
         };
         menu_caller->setFunction(QString("buttonFunction%1").arg(funcId), setElapseFunc);
         auto paintElapseFunc = [=](QPainter* painter, QRectF rct){
@@ -691,7 +700,7 @@ void GraphicsView::addContentBar()
         // -> d.h. der ausgewaehlte ordner + alle darin eventuell bereits "elapseten" sub-folders:
 
         auto setCollapseFunc = [=](){
-            executeFileAction(FILE_ACTION::COLLAPSE_REC);
+            executeFileAction(FILE_ACTION::Action::COLLAPSE_REC);
         };
         menu_caller->setFunction(QString("buttonFunction%1").arg(funcId), setCollapseFunc);
         auto paintCollapseFunc = [=](QPainter* painter, QRectF rct){
@@ -705,7 +714,7 @@ void GraphicsView::addContentBar()
         // tab: open selected folders in new tab:
 
         auto setTabFunc = [=](){
-            executeFileAction(FILE_ACTION::TAB);
+            executeFileAction(FILE_ACTION::Action::TAB);
         };
         menu_caller->setFunction(QString("buttonFunction%1").arg(funcId), setTabFunc);
         auto paintTabFunc = [=](QPainter* painter, QRectF rct){
@@ -733,7 +742,7 @@ void GraphicsView::addContentBar()
         // open files/folders:
 
         auto openFunc = [=](){
-            executeFileAction(FILE_ACTION::OPEN);
+            executeFileAction(FILE_ACTION::Action::OPEN);
         };
         menu_caller->setFunction(QString("buttonFunction%1").arg(funcId), openFunc);
         std::function<void(QPainter*,QRectF)> paintElapseFunc = [=](QPainter* painter, QRectF rct){
@@ -747,7 +756,7 @@ void GraphicsView::addContentBar()
         if(openWith)
         {
             auto openWithFunc = [=](){
-                executeFileAction(FILE_ACTION::OPEN_WITH);
+                executeFileAction(FILE_ACTION::Action::OPEN_WITH);
             };
             menu_caller->setFunction(QString("buttonFunction%1").arg(funcId), openWithFunc);
             paintElapseFunc = [=](QPainter* painter, QRectF rct){
@@ -765,7 +774,7 @@ void GraphicsView::addContentBar()
             // rename file/folder:
 
             auto renameFunc = [=](){
-                executeFileAction(FILE_ACTION::RENAME);
+                executeFileAction(FILE_ACTION::Action::RENAME);
             };
             menu_caller->setFunction(QString("buttonFunction%1").arg(funcId), renameFunc);
             auto paintRenameFunc = [=](QPainter* painter, QRectF rct){
@@ -780,7 +789,7 @@ void GraphicsView::addContentBar()
         // copy files/folders:
 
         std::function<void()> setFunc = [=](){
-            executeFileAction(FILE_ACTION::COPY);
+            executeFileAction(FILE_ACTION::Action::COPY);
         };
         menu_caller->setFunction(QString("buttonFunction%1").arg(funcId), setFunc);
         paintElapseFunc = [=](QPainter* painter, QRectF rct){
@@ -794,7 +803,7 @@ void GraphicsView::addContentBar()
         // duplicate files/folders:
 
         setFunc = [=](){
-            executeFileAction(FILE_ACTION::DUPLICATE);
+            executeFileAction(FILE_ACTION::Action::DUPLICATE);
         };
         menu_caller->setFunction(QString("buttonFunction%1").arg(funcId), setFunc);
         paintElapseFunc = [=](QPainter* painter, QRectF rct){
@@ -807,7 +816,7 @@ void GraphicsView::addContentBar()
 
         // cut files/folders:
         setFunc = [=](){
-            executeFileAction(FILE_ACTION::CUT);
+            executeFileAction(FILE_ACTION::Action::CUT);
         };
         menu_caller->setFunction(QString("buttonFunction%1").arg(funcId), setFunc);
         paintElapseFunc = [=](QPainter* painter, QRectF rct){
@@ -821,7 +830,7 @@ void GraphicsView::addContentBar()
         // paste files/folders:
 
         setFunc = [=](){
-            executeFileAction(FILE_ACTION::PASTE);
+            executeFileAction(FILE_ACTION::Action::PASTE);
         };
         menu_caller->setFunction(QString("buttonFunction%1").arg(funcId), setFunc);
         paintElapseFunc = [=](QPainter* painter, QRectF rct){
@@ -835,7 +844,7 @@ void GraphicsView::addContentBar()
         // zip files:
 
         auto zipFunc = [=](){
-            executeFileAction(FILE_ACTION::ZIP);
+            executeFileAction(FILE_ACTION::Action::ZIP);
         };
         menu_caller->setFunction(QString("buttonFunction%1").arg(funcId), zipFunc);
         auto paintZipFunc = [=](QPainter* painter, QRectF rct){
@@ -852,7 +861,7 @@ void GraphicsView::addContentBar()
         if(m_fileMangrInfo.selectionContainsZippedFile())
         {
             auto unzipFunc = [=](){
-                executeFileAction(FILE_ACTION::UNZIP);
+                executeFileAction(FILE_ACTION::Action::UNZIP);
             };
             menu_caller->setFunction(QString("buttonFunction%1").arg(funcId), unzipFunc);
             auto paintUnZipFunc = [=](QPainter* painter, QRectF rct){
@@ -869,7 +878,7 @@ void GraphicsView::addContentBar()
             // path:
 
             auto copyPathToClipboardFunc = [=](){
-                executeFileAction(FILE_ACTION::PATH);
+                executeFileAction(FILE_ACTION::Action::PATH);
             };
             menu_caller->setFunction(QString("buttonFunction%1").arg(funcId), copyPathToClipboardFunc);
             auto paintPathToClipboardFunc = [=](QPainter* painter, QRectF rct){
@@ -886,7 +895,7 @@ void GraphicsView::addContentBar()
             // terminal:
 
             auto terminalFunc = [=](){
-                executeFileAction(FILE_ACTION::TERMINAL);
+                executeFileAction(FILE_ACTION::Action::TERMINAL);
             };
             menu_caller->setFunction(QString("buttonFunction%1").arg(funcId), terminalFunc);
             auto paintTerminalFunc = [=](QPainter* painter, QRectF rct){
@@ -901,7 +910,7 @@ void GraphicsView::addContentBar()
         // delete files/folders:
 
         setFunc = [=](){
-            executeFileAction(FILE_ACTION::DELETE);
+            executeFileAction(FILE_ACTION::Action::DELETE);
         };
         menu_caller->setFunction(QString("buttonFunction%1").arg(funcId), setFunc);
         paintElapseFunc = [=](QPainter* painter, QRectF rct){
@@ -993,14 +1002,17 @@ void GraphicsView::rePaintCanvas()
             QPixmap cancelPixmap(cancelPixmapPath);
             cancelPixmap = cancelPixmap.scaled(QSize(300,300));
 
+            auto view_pix_width = static_cast<double>(this->viewport()->width()-cancelPixmap.width());
+            auto x_pos = view_pix_width * 0.5;
+
             m_cancelBtnSize = QSize(cancelPixmap.width(), cancelPixmap.height());
             m_cancelBtn = new GraphicItemsBD::PixmapRect(cancelPixmap,
                                                          m_cancelBtnSize,
-                                                         QPoint((this->viewport()->width()-cancelPixmap.width()) * 0.5f, 50),
+                                                         QPoint(static_cast<int>(x_pos), 50),
                                                          QColor(255,255,255, 255), QColor(240,240,255, 255),
                                                          QColor(255,150,150, 255), QColor(255,0,0, 255));
             m_cancelBtn->setCallFunction([=](){
-                executeFileAction(FILE_ACTION::CANCEL_CURRENT_ACTION);
+                executeFileAction(FILE_ACTION::Action::CANCEL_CURRENT_ACTION);
             });
 
             m_graphicsGroup->addToGroup(m_cancelBtn);
@@ -1026,24 +1038,24 @@ void GraphicsView::rePaintCanvas()
 
         m_fileCount = m_fileMangrInfo.displayedFileCount();
 
-        int height = m_rowHeight*m_fileCount + m_elapseBarHeight;
+        auto height = m_rowHeight*m_fileCount + m_elapseBarHeight;
         if(height < this->viewport()->height()){
             height = this->viewport()->height();
         }
-        m_scene->setSceneRect(QRect(0,0,this->viewport()->width(), height));
+        m_scene->setSceneRect(QRect(0,0,this->viewport()->width(), static_cast<int>(height)));
 
 //        auto lckdFiCoord = lockFilesCoordinator();
 
-        if(m_fileCount < m_fileMaxCount){
-            m_firstDispFI = 0;
-            m_lastDispFI = m_fileCount-1;
-            m_curDispFI = m_fileCount-1;
-        }else{
-            m_firstDispFI = getFirstToDispFi();
-            m_lastDispFI = getLastToDispFi();
-        }
+//        if(m_fileCount < m_fileMaxCount){
+//            m_firstDispFI = 0;
+//            m_lastDispFI = m_fileCount-1;
+//            m_curDispFI = m_fileCount-1;
+//        }else{
+//            m_firstDispFI = getFirstToDispFi();
+//            m_lastDispFI = getLastToDispFi();
+//        }
 
-        std::function<void(const FiBDViewer&,int,int)> dirFunc = [=](const FiBDViewer& fiv, int row, int col)
+        std::function<void(const FiBDViewer&,int_bd,int_bd)> dirFunc = [=](const FiBDViewer& fiv, int_bd row, int_bd col)
         {
             auto elapseFunc = [=](){
                 emit elapseOrCollapseFolderDependingOnCurrentState(fiv.q_path());
@@ -1103,7 +1115,7 @@ void GraphicsView::rePaintCanvas()
             paintFileInfo(fiv, row, col, caller, sortCaller);
         };
 
-        std::function<void(const FiBDViewer&,int,int)> fileFunc = [=](const FiBDViewer& fiv, int row, int col)
+        std::function<void(const FiBDViewer&,int_bd,int_bd)> fileFunc = [=](const FiBDViewer& fiv, int_bd row, int_bd col)
         {
             auto isDirFunc = [=](){ return false; };
             auto selectFunc = [=](){
@@ -1127,7 +1139,7 @@ void GraphicsView::rePaintCanvas()
             paintFileInfo(fiv, row, col, caller);
         };
 
-        for(int i=m_firstDispFI, j=0; i <= m_lastDispFI && j < m_entriesToRender.size(); ++i, ++j){
+        for(auto i=m_firstDispFI; (i <= m_lastDispFI) && (m_entriesToRender.find(i) != m_entriesToRender.end()); ++i){
 
             const FiBDViewer& fiv = m_entriesToRender[i];
 
@@ -1143,10 +1155,12 @@ void GraphicsView::rePaintCanvas()
         m_graphicsGroup->setY(this->verticalScrollBar()->value());
 
         if(!inSearchMode() && m_paintUpperRect){
-            qreal trnglWidth = m_upperRectWidth;//qMin(trnglWidth, (qreal)20.);
-            float trnglHeight = trnglWidth*0.5;
-            QPointF center( ((float)this->viewport()->width())*0.5, trnglHeight*0.5+5. + getViewportYOffset()+m_elapseBarHeight);
-            paintTopRectangle(center, QSize(trnglWidth,trnglHeight));
+            double trnglWidth = m_upperRectWidth;//qMin(trnglWidth, (qreal)20.);
+            double trnglHeight = trnglWidth*0.5;
+            auto viewport_width = static_cast<double>(this->viewport()->width());
+            QPointF center( viewport_width*0.5, trnglHeight*0.5+5. + getViewportYOffset()+m_elapseBarHeight);
+            paintTopRectangle(center, QSize(static_cast<int>(trnglWidth),
+                                            static_cast<int>(trnglHeight)));
         }
         if(inSearchMode()){
             addSearchMenu();
@@ -1174,8 +1188,9 @@ void GraphicsView::rePaintCanvas()
                        QColor(255,255,255, 0),QColor(255,255,255, 0),
                        QColor(255,0,200, 255), QColor(255,200,200, 255));
             rotSlctr->setCallFunction([=](){showRootSelector();});
-            rotSlctr->setPosition(QPoint(this->viewport()->width() - (rotSlctr->boundingRect().width() + 4),
-                                           getViewportYOffset()));
+
+            auto p_x = static_cast<int>(this->viewport()->width() - (rotSlctr->boundingRect().width() + 4));
+            rotSlctr->setPosition(QPoint(p_x, getViewportYOffset()));
             m_graphicsGroup->addToGroup(rotSlctr);
         }
     }
@@ -1190,10 +1205,12 @@ void GraphicsView::setWaitingBarSizeAndPos()
     m_waitingBar->setPosition( QPoint(0, 5) );//(this->viewport()->height()-m_waitingBarHeight) * 0.5f) );
 
 //    m_cancelBtn->setSize(m_cancelBtnSize);
-    m_cancelBtn->setPosition(QPoint((this->viewport()->width()-m_cancelBtnSize.width()) * 0.5f, 50));
+    auto view_cncl_width = static_cast<double>(this->viewport()->width() - m_cancelBtnSize.width());
+    auto view_cncl_width_half = view_cncl_width * 0.5;
+    m_cancelBtn->setPosition(QPoint( static_cast<int>(view_cncl_width_half), 50));
 }
 
-void GraphicsView::paintFileInfo(const FiBDViewer& fiv, int rowId, int colId,
+void GraphicsView::paintFileInfo(const FiBDViewer& fiv, int_bd rowId, int_bd colId,
                                  std::shared_ptr<DynamicFunctionCaller<QString, std::function<bool()>>> caller,
                                  std::shared_ptr<DynamicFunctionCaller<QString, std::function<bool(Order)>>> sortCaller){
     int colOffs = 30;
@@ -1210,7 +1227,8 @@ void GraphicsView::paintFileInfo(const FiBDViewer& fiv, int rowId, int colId,
     gf->setInitDraggingFunction([=](QString draggingSource){
         emit initDragging(draggingSource);
     });
-    gf->setPosition(QPoint(0, rowId*m_rowHeight + m_elapseBarHeight));
+    int pos_y = static_cast<int>(rowId*m_rowHeight + m_elapseBarHeight);
+    gf->setPosition(QPoint(0, pos_y));
     m_scene->addItem(gf);
 }
 
@@ -1409,4 +1427,28 @@ void GraphicsView::revalidateRowHeight()
 bool GraphicsView::inSearchMode()
 {
     return m_fileMangrInfo.inSearchMode();
+}
+
+void GraphicsView::revalFirstAndLastDisplayedFI(bool revalIfStillInBounds)
+{
+    auto old_firstDispFI = m_firstDispFI;
+    auto old_lastDispFI = m_lastDispFI;
+
+    if(m_fileCount < m_fileMaxCount){
+        m_firstDispFI = 0;
+        m_lastDispFI = m_fileCount-1;
+        m_curDispFI = m_fileCount-1;
+    }else{
+        m_firstDispFI = getFirstToDispFi();
+        m_lastDispFI = getLastToDispFi();
+    }
+
+    if( (old_firstDispFI != m_firstDispFI) ||
+        (old_lastDispFI  != m_lastDispFI) )
+    {
+        emit requestFileViewerRevalidation(m_firstDispFI, m_lastDispFI);
+    }else if(revalIfStillInBounds)
+    {
+        revalidate();
+    }
 }

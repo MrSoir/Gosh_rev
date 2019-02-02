@@ -4,7 +4,6 @@ GraphicItemsBD::GraphicsItemBD::GraphicsItemBD(const QSize& size,
                const QPoint& pos,
                QGraphicsItem* parent)
     : QGraphicsItem(parent),
-      QObject(nullptr),
       m_size(size),
       m_pos(pos)
 {
@@ -30,11 +29,13 @@ QRectF GraphicItemsBD::GraphicsItemBD::boundingRect() const {
     return QRectF(m_pos, m_size);
 }
 
-void GraphicItemsBD::GraphicsItemBD::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget* widget)
+void GraphicItemsBD::GraphicsItemBD::paint(QPainter* painter,
+                                           const QStyleOptionGraphicsItem* option,
+                                           QWidget* widget)
 {
-    Q_UNUSED(painter);
-    Q_UNUSED(option);
-    Q_UNUSED(widget);
+    Q_UNUSED(painter)
+    Q_UNUSED(option)
+    Q_UNUSED(widget)
 }
 
 
@@ -64,7 +65,7 @@ GraphicItemsBD::ButtonBD::~ButtonBD()
 
 void GraphicItemsBD::ButtonBD::revalidateSize(float width, float height)//float paddingX = 2, float paddingY = 2)
 {
-    setSize( QSize(width, height) );
+    setSize( QSize(static_cast<int>(width), static_cast<int>(height)) );
     revalidate = true;
     update();
 }
@@ -159,9 +160,9 @@ void GraphicItemsBD::TextRect::setText(QString str, int paddingX, int paddingY)
 void GraphicItemsBD::TextRect::revalidateSize(float paddingX, float paddingY)
 {
     QFontMetrics fm(m_font);
-    int width = fm.width(m_str) + paddingX;
-    int height = fm.height() + paddingY;
-    setSize( QSize(width, height) );
+    auto width = fm.width(m_str) + paddingX;
+    auto height = fm.height() + paddingY;
+    setSize( QSize(static_cast<int>(width), static_cast<int>(height)) );
     revalidate = true;
     update();
 }
@@ -266,8 +267,8 @@ GraphicItemsBD::IconAndLabelItem::IconAndLabelItem(const QString &pixmapPath, bo
                                                    QGraphicsItem *parent)
     : GraphicsItemBD(size, pos, parent),
       m_pixmapPath(pixmapPath),
-      m_labelTxt(labelTxt),
-      m_loadAsFileIcon(loadAsFilIcon)
+      m_loadAsFileIcon(loadAsFilIcon),
+      m_labelTxt(labelTxt)
 {
 }
 
@@ -276,13 +277,18 @@ GraphicItemsBD::IconAndLabelItem::~IconAndLabelItem()
     m_onClicked = nullptr;
 }
 
-void GraphicItemsBD::IconAndLabelItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
+void GraphicItemsBD::IconAndLabelItem::paint(QPainter *painter,
+                                             const QStyleOptionGraphicsItem *option,
+                                             QWidget *widget)
 {
+    Q_UNUSED(option)
+    Q_UNUSED(widget)
+
     QRectF rct = boundingRect();
 
     int padding = 10;
 
-    int pixmapEdge = rct.height();
+    auto pixmapEdge = rct.height();
 
 
     QColor backgrCol(255,255,255, 255);
@@ -319,13 +325,13 @@ void GraphicItemsBD::IconAndLabelItem::paint(QPainter *painter, const QStyleOpti
 
     QPixmap pixmap;
     if(m_loadAsFileIcon)
-        pixmap = StaticFunctions::getFilePixmap(m_pixmapPath, QSize(pixmapEdge,pixmapEdge));
+        pixmap = StaticFunctions::getFilePixmap(m_pixmapPath, QSize(static_cast<int>(pixmapEdge),static_cast<int>(pixmapEdge)));
     else
     {
         pixmap = QPixmap(m_pixmapPath);
     }
 
-    pixmap = pixmap.scaled(QSize(pixmapEdge, pixmapEdge));
+    pixmap = pixmap.scaled(QSize(static_cast<int>(pixmapEdge), static_cast<int>(pixmapEdge)));
     painter->drawPixmap(pixmapRect,
                         pixmap,
                         pixmap.rect());

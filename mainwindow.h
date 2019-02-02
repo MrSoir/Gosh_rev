@@ -3,6 +3,8 @@
 
 #include <QMainWindow>
 
+#include "tab_coordiantor/tabcoordinator.h"
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT

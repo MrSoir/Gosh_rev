@@ -2,16 +2,65 @@
 
 GraphicsFile::GraphicsFile(const FiBDViewer& fiv,
                            const QSize& size,
-                           const int rowId,
-                           const int rowHeight,
-                           const int colId,
-                           const int colOffs,
+                           const int_bd rowId,
+                           const int_bd rowHeight,
+                           const int_bd colId,
+                           const int_bd colOffs,
                            std::shared_ptr<DynamicFunctionCaller<QString, std::function<bool()>>> caller,
                            std::shared_ptr<DynamicFunctionCaller<QString, std::function<bool(Order)>>>  sortCaller,
                            const int fontSize,
                            QGraphicsItem *parent)
     : QGraphicsItem(parent),
       m_fiv(fiv),
+      m_size(size),
+      m_pos(QPoint(0,0)),
+      m_hover(false),
+      m_rowId(rowId),
+      m_rowHeight(rowHeight),
+      m_colId(colId),
+      m_colOffs(colOffs),
+
+      m_elapseRect(nullptr),
+      m_sortRects(QVector<QRectF>()),
+      m_sortRectHoverId(-1),
+
+      m_textColor(QColor(0,0,0)),
+      m_detailsTextColor(m_textColor),
+      m_drawAbsoluteFilePath(false),
+      m_openOnDoubleClick(true),
+      m_rightClickEnabled(false),
+      m_backgroundColor(QColor(255,255,255)),
+
+      m_fontSize(fontSize),
+
+      m_dragEntered(false),
+
+      m_caller(caller),
+      m_sortCaller(sortCaller),
+      isPressed(false),
+      m_initMousePrsdPos(QPointF()),
+      lastTmePrsd(Q_INT64_C(0)),
+
+      m_isCurrentlyRepainting(std::atomic<int>())
+{
+    m_isCurrentlyRepainting.store(0);
+
+    setAcceptDrops(true);
+    setAcceptHoverEvents(true);
+}
+
+GraphicsFile::GraphicsFile(const QFileInfo &m_fileInfo,
+                           const QSize& size,
+                           const int_bd rowId,
+                           const int_bd rowHeight,
+                           const int_bd colId,
+                           const int_bd colOffs,
+                           std::shared_ptr<DynamicFunctionCaller<QString, std::function<bool()>>> caller,
+                           std::shared_ptr<DynamicFunctionCaller<QString, std::function<bool(Order)>>>  sortCaller,
+                           const int fontSize,
+                           QGraphicsItem *parent)
+    : QGraphicsItem(parent),
+      m_fiv(FiBDViewer(m_fileInfo)),
       m_size(size),
       m_pos(QPoint(0,0)),
       m_hover(false),
@@ -133,7 +182,7 @@ void GraphicsFile::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
 
     QColor backgroundColor = m_backgroundColor;//(255,255,255);
 
-    if(m_selected && m_hover || m_dragEntered){
+    if( (m_selected && m_hover) || m_dragEntered){
         backgroundColor = QColor(150,255,255, 255);
         painter->setBrush(backgroundColor);
         painter->drawRect(br);
@@ -150,19 +199,29 @@ void GraphicsFile::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
         painter->setBrush(backgroundColor);
         painter->drawRect(br);
     }else if(m_rowId % 2){
-        qreal fctr = 0.98;
-        backgroundColor = QColor(backgroundColor.red()*fctr,
-                                 backgroundColor.green()*fctr,
-                                 backgroundColor.blue()*fctr,
-                                 backgroundColor.alpha());
+
+        double fctr = 0.98;
+
+        auto d_red   = static_cast<double>(backgroundColor.red());
+        auto d_green = static_cast<double>(backgroundColor.green());
+        auto d_blue  = static_cast<double>(backgroundColor.blue());
+        auto d_alpha = static_cast<double>(backgroundColor.alpha());
+
+        auto i_red   = static_cast<int>(d_red   * fctr);
+        auto i_green = static_cast<int>(d_green * fctr);
+        auto i_blue  = static_cast<int>(d_blue  * fctr);
+        auto i_alpha = static_cast<int>(d_alpha);
+
+
+        backgroundColor = QColor(i_red, i_green, i_blue, i_alpha);
         painter->setPen(Qt::transparent);
         painter->setBrush(QBrush(backgroundColor));
         painter->drawRect(br);
     }
     painter->restore();
 
-    int icon_offs = 3;
-    int xOffs = m_pos.x() + m_colId * m_colOffs +icon_offs;
+    auto icon_offs = 3;
+    auto xOffs = m_pos.x() + m_colId * m_colOffs +icon_offs;
 
     bool isDir = m_caller && m_caller->containsFunction(QString("isDir")) &&
                  m_caller->getFunction(QString("isDir"))();
@@ -172,8 +231,8 @@ void GraphicsFile::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
             m_caller->getFunction(QString("containsFiles"))();
 
     if(isDir){
-        float ellHeight = (float)m_rowHeight*0.5;
-        float yStart = ((float)m_rowHeight-ellHeight)*0.5;
+        auto ellHeight = static_cast<double>(m_rowHeight)*0.5;
+        auto yStart = (static_cast<double>(m_rowHeight)-ellHeight)*0.5;
         if(!m_elapseRect){
             m_elapseRect = new QRectF(xOffs, m_pos.y()+yStart, ellHeight,ellHeight);
         }
@@ -201,8 +260,8 @@ void GraphicsFile::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
                 painter->setBrush(QBrush(dirRctCol));
             }
         }
-        int rectArc = qMin(m_elapseRect->width(), m_elapseRect->height());
-        int borderWidth = 1;//m_fontSize < 10 ? 1 : 2;
+        auto rectArc = static_cast<int>(qMin(m_elapseRect->width(), m_elapseRect->height()));
+        auto borderWidth = 1;//m_fontSize < 10 ? 1 : 2;
         painter->setPen(QPen(QColor(0,0,0, 150), borderWidth));
         painter->drawRoundRect(*m_elapseRect, rectArc,rectArc);
         xOffs += ellHeight + icon_offs;
@@ -210,9 +269,14 @@ void GraphicsFile::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
     }
 
 //    QIcon icon = StaticFunctions::getFileIcon(m_fileInfo);
-    float fctr = 0.8;
-    float icnRctHght = ((float)m_size.height())*fctr;
-    QRect iconRct(xOffs+icon_offs, m_pos.y()+((float)m_size.height()-icnRctHght)*0.5, m_size.height()*fctr,m_size.height()*fctr);
+    auto fctr = 0.8;
+    auto d_height = static_cast<double>(m_size.height());
+//    auto d_width  = static_cast<double>(m_size.width());
+    auto icnRctHght = d_height * fctr;
+    QRect iconRct(static_cast<int>(xOffs+icon_offs),
+                  m_pos.y()+ static_cast<int>((d_height-icnRctHght)*0.5),
+                  static_cast<int>(d_height*fctr),
+                  static_cast<int>(d_height*fctr));
     QPixmap iconPixmap = StaticFunctions::getFilePixmap(m_fiv.path(), iconRct.size());
     painter->drawPixmap(iconRct, iconPixmap);//icon.pixmap(iconRct.size()));
 
@@ -223,12 +287,12 @@ void GraphicsFile::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
     painter->setFont(txtFont);
     QString fileNameToDraw = m_drawAbsoluteFilePath ? m_fiv.q_path() : m_fiv.fileName();
     int txtX = txt_offs;
-    int txtY = br.center().y() - fm.height()*0.5;
+    int txtY = static_cast<int>(br.center().y() - static_cast<double>(fm.height()*0.5));
     int txtWidth = fm.width(fileNameToDraw);
     int txtAscent = fm.ascent();
     int txtHeight = fm.height();
 
-    int smallerFont = m_fontSize * 0.8;
+    int smallerFont = static_cast<int>(static_cast<double>(m_fontSize) * 0.8);
 
     if(isDir){
         if(isElapsed && containsFiles)
@@ -255,7 +319,7 @@ void GraphicsFile::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
 
             txt_offs += curTxtWidth +10;
 
-            int selColIntensity = 100;
+//            int selColIntensity = 100;
 
             QColor plainCol1(255,255,255,255),
                    plainCol2(230,230,255,255),
@@ -337,7 +401,7 @@ void GraphicsFile::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
             }
         }
     }else{
-        txt_offs = br.right()-3;
+        txt_offs = static_cast<int>(br.right()-3);
 
         QFont sortFont = StaticFunctions::getGoshFont(smallerFont, QFont::Normal);
         fm = QFontMetrics (sortFont);
@@ -555,7 +619,7 @@ void GraphicsFile::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
     isPressed = false;
 }
 
-void GraphicsFile::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
+void GraphicsFile::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 {
 //    QGraphicsItem::mouseMoveEvent(event);
 
@@ -566,22 +630,25 @@ void GraphicsFile::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
         }
     }
 }
-void GraphicsFile::hoverEnterEvent(QGraphicsSceneHoverEvent * event){
+void GraphicsFile::hoverEnterEvent(QGraphicsSceneHoverEvent* event){
 //    QGraphicsItem::hoverEnterEvent(event);
+    Q_UNUSED(event)
 
     m_hover = true;
     m_sortRectHoverId = -1;
     repaintBD();
 }
-void GraphicsFile::hoverLeaveEvent(QGraphicsSceneHoverEvent * event){
+void GraphicsFile::hoverLeaveEvent(QGraphicsSceneHoverEvent* event){
 //    QGraphicsItem::hoverLeaveEvent(event);
+    Q_UNUSED(event)
 
     m_hover = false;
     m_sortRectHoverId = -1;
     repaintBD();
 }
-void GraphicsFile::hoverMoveEvent(QGraphicsSceneHoverEvent * event){
+void GraphicsFile::hoverMoveEvent(QGraphicsSceneHoverEvent* event){
 //    QGraphicsItem::hoverMoveEvent(event);
+    Q_UNUSED(event)
 
     int sortHoverId = -1;
 
@@ -715,6 +782,7 @@ void GraphicsFile::dragEnterEvent(QGraphicsSceneDragDropEvent *event)
 }
 void GraphicsFile::dragLeaveEvent(QGraphicsSceneDragDropEvent *event){
 //    QGraphicsItem::dragLeaveEvent(event);
+    Q_UNUSED(event)
 
     m_dragEntered = false;
     repaintBD();

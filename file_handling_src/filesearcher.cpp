@@ -4,7 +4,7 @@ FileSearcher::FileSearcher(QObject *parent)
     : QObject(parent),
       m_key_word(std::string()),
       m_matched_paths(std::unordered_set<std::string>()),
-      m_ord_matchedPaths(std::unordered_map<unsigned long long, std::string>()),
+      m_ord_matchedPaths(std::unordered_map<int_bd, std::string>()),
       m_fileName_path(nullptr),
       m_enabled(false),
       m_focused_match_id(-1),
@@ -47,7 +47,7 @@ void FileSearcher::processSearchables(std::vector<Searchable*>& searchables)
 //-------------------------------------------------------
 
 void FileSearcher::entriesChanged(std::unordered_map<std::string, std::string>* fileName_paths,
-                                  std::unordered_map<std::string, unsigned long long>* path_ord)
+                                  std::unordered_map<std::string, int_bd>* path_ord)
 {
     m_fileName_path = fileName_paths;
     m_path_ord = path_ord;
@@ -86,13 +86,13 @@ void FileSearcher::setSearched(std::string key_word, std::vector<std::string> ma
 
     if(m_path_ord)
     {
-        std::vector<unsigned long long> orders;
-        std::unordered_map<unsigned long long, std::string> ord_paths;
+        std::vector<int_bd> orders;
+        std::unordered_map<int_bd, std::string> ord_paths;
         for(const auto& path: matched_paths)
         {
             if(m_path_ord->find(path) != m_path_ord->end())
             {
-                unsigned long long ord = (*m_path_ord)[path];
+                auto ord = (*m_path_ord)[path];
                 orders.push_back(ord);
                 ord_paths[ord] = path;
             }
@@ -100,7 +100,7 @@ void FileSearcher::setSearched(std::string key_word, std::vector<std::string> ma
 
         std::sort(orders.begin(), orders.end());
 
-        unsigned long long cntr = 0;
+        int_bd cntr = 0;
         for(const auto& ord: orders)
         {
             m_ord_matchedPaths[++cntr] = ord_paths[ord];
@@ -131,12 +131,12 @@ void FileSearcher::focusNextMatch()
         return;
     }
 
-    long long oldId = m_focused_match_id;
+    int_bd oldId = m_focused_match_id;
 
-    if(static_cast<unsigned long long>(++m_focused_match_id) >= m_matchCount)
+    if(static_cast<int_bd>(++m_focused_match_id) >= m_matchCount)
         m_focused_match_id = 0;
 
-    m_focused_path = m_focused_match_id > -1 ? m_ord_matchedPaths[static_cast<unsigned long long>(m_focused_match_id)] : "";
+    m_focused_path = m_focused_match_id > -1 ? m_ord_matchedPaths[static_cast<int_bd>(m_focused_match_id)] : "";
 
     if(oldId != m_focused_match_id)
         emit searchResultsChanged();
@@ -149,14 +149,14 @@ void FileSearcher::focusPreviousMatch()
         return;
     }
 
-    long long oldId = m_focused_match_id;
+    int_bd oldId = m_focused_match_id;
 
     if(--m_focused_match_id < 0)
     {
-        m_focused_match_id = static_cast<long long>(m_matchCount) - 1;
+        m_focused_match_id = static_cast<int_bd>(m_matchCount) - 1;
     }
 
-    m_focused_path = m_ord_matchedPaths[static_cast<unsigned long long>(m_focused_match_id)];
+    m_focused_path = m_ord_matchedPaths[static_cast<int_bd>(m_focused_match_id)];
 
     if(oldId != m_focused_match_id)
         emit searchResultsChanged();
@@ -178,7 +178,7 @@ void FileSearcher::findMatches()
 
     if(m_fileName_path)
     {
-        unsigned long long cntr = 0;
+        int_bd cntr = 0;
         for(auto it=m_fileName_path->begin(); it != m_fileName_path->end(); ++it)
         {
             const std::string& entry_name = it->first;
@@ -196,9 +196,9 @@ void FileSearcher::findMatches()
 
 void FileSearcher::resetCurMatchVars()
 {
-    m_matchCount = static_cast<unsigned long long>(m_matched_paths.size());
+    m_matchCount = static_cast<int_bd>(m_matched_paths.size());
     m_focused_match_id = m_matchCount <= 0 ? -1 : 0;
-    m_focused_path     = m_matchCount <= 0 ? "" : m_ord_matchedPaths[static_cast<unsigned long long>(m_focused_match_id)];
+    m_focused_path     = m_matchCount <= 0 ? "" : m_ord_matchedPaths[static_cast<int_bd>(m_focused_match_id)];
 }
 
 

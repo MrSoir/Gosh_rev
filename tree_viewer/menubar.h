@@ -24,19 +24,20 @@
 #include "dynamicfunctioncaller.h"
 #include "customgraphicitems.h"
 
-class MenuBar : public GraphicItemsBD::GraphicsItemBD{
-    Q_OBJECT
+
+class MenuBar : public GraphicItemsBD::GraphicsItemBD
+{
 public:
-    MenuBar(qreal maxWidthOrHeight,
+    explicit MenuBar(qreal maxWidthOrHeight,
             QPointF centerPosition,
             GraphicItemsBD::ORIENTATION orientation = GraphicItemsBD::ORIENTATION::HORIZONTAL,
             bool m_centerFromEnd = false,
             QGraphicsItem* parent = nullptr);
-    ~MenuBar() override;
+    virtual ~MenuBar() override;
 
-    void setPosition(QPoint position);
+    virtual void setPosition(QPoint position) override;
 
-    QRectF boundingRect() const override;
+    virtual QRectF boundingRect() const override;
     void setOrientation(GraphicItemsBD::ORIENTATION orientation);
     void revalidateSize();
 
@@ -44,7 +45,7 @@ public:
                    std::shared_ptr<DynamicFunctionCaller<QString, std::function<void(QPainter*, QRectF)>>> buttonPaintingFunctions,
                    std::function<int(int)> groupingFunc = nullptr);
 
-    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
+    virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
 
     GraphicItemsBD::ORIENTATION orientation();
 protected:
@@ -67,13 +68,15 @@ private:
 
     std::pair<int,int> evalColumnAndRowDimensions();
 
+//    ------------------------------------------------------
+
     int m_anzRows = 1;
     int m_anzColumns = 1;
     qreal m_btnEdge = 45.0;
     qreal m_padding = 3.0;
     qreal m_offsets = 2.0;
     qreal m_maxWidthOrHeight = 0.0;
-    QPointF m_centerOrientation = QPointF(0,0);
+    QPointF m_centerOrientation;
     bool m_centerFromEnd = false;
     int m_btnsCount = 0;
     QVector<QRectF> m_buttons;

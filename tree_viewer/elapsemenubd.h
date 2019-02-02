@@ -26,16 +26,16 @@ public:
                  const QPoint& pos = QPoint(0,0),
                  QGraphicsItem* parent = nullptr);
 
-    ~ElapseMenuBD() override;
+    virtual ~ElapseMenuBD() override;
     void setCaller(std::shared_ptr<DynamicFunctionCaller<QString, std::function<bool(int)>>> caller);
 
     void setBackroundColor(QColor grad1, QColor grad2);
 
-    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
+    virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
 protected:
-    void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
-    void hoverMoveEvent(QGraphicsSceneHoverEvent * event) override;
-    void hoverLeaveEvent(QGraphicsSceneHoverEvent* event) override;
+    virtual void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
+    virtual void hoverMoveEvent(QGraphicsSceneHoverEvent * event) override;
+    virtual void hoverLeaveEvent(QGraphicsSceneHoverEvent* event) override;
 private:
     QVector<QRectF> m_buttons;
     int m_mouInButtonId = -1;

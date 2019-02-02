@@ -3,14 +3,15 @@
 WindowCoordinator::WindowCoordinator(QVector<QDir> initPaths,
                                      QObject *parent)
     : QObject(parent),
+      WidgetCreator(),
+
       m_windowCounter(0),
       m_maxWindows(4),
       m_windows(QVector<FileManager*>()),
-      m_orientation(ORIENTATION::VERTICAL),
+      m_orientation(Orientation::ORIENTATION::VERTICAL),
       m_initPath(QStandardPaths::standardLocations(QStandardPaths::StandardLocation::DocumentsLocation)),
       m_curFocusedRootPath(QDir("")),
-      m_starup_res_path(QString("%1%2%3").arg("resources").arg(QDir::separator()).arg("startup.res")),
-      m_windowCoordPane(nullptr)
+      m_starup_res_path(QString("%1%2%3").arg("resources").arg(QDir::separator()).arg("startup.res"))
 {
     if(initPaths.size() > 0)
     {
@@ -21,37 +22,47 @@ WindowCoordinator::WindowCoordinator(QVector<QDir> initPaths,
         addWindow();
 }
 
-
-void WindowCoordinator::createPane()
+void WindowCoordinator::close()
 {
-    if(m_windowCoordPane)
-        disconnectWCPane();
-
-    m_windowCoordPane = new WindowCoordinatorPane();
-    connectWCPane();
-
-    emit paneCreated(m_windowCoordPane);
+    for(auto* window: m_windows)
+    {
+        disconnectFileManager(window);
+        window->close();
+    }
+    m_windows.clear();
 }
 
 
 WindowCoordinator::~WindowCoordinator()
 {
-    for(int i=0; i < m_windows.size(); i++)
-    {
-        if(m_windows[i])
-            m_windows[i]->close();
-    }
-    m_windows.clear();
+    qDebug() << "~WindowCoordinator";
 }
 
-void WindowCoordinator::revalidateWCPane()
+QDir WindowCoordinator::getCurrentFocusedDir() const
 {
-    QVector<QLayout*> frames;
-    for(int i=0; i < m_windows.size(); ++i)
+    return m_curFocusedRootPath;
+}
+
+QWidget* WindowCoordinator::createWidget()
+{
+    WindowCoordinatorPane* pane = new WindowCoordinatorPane(this);
+    connectWCPane(pane);
+    return pane;
+}
+
+QVector<QWidget*> WindowCoordinator::createCentralWidgets()
+{
+    QVector<QWidget*> centralWidgets;
+    for(auto* window: m_windows)
     {
-        frames.push_back(m_windows[i]->genPane());
+        centralWidgets.push_back(window->createWidget());
     }
-    emit revalidateWCPaneSGNL(frames, m_orientation);
+    return centralWidgets;
+}
+
+Orientation::ORIENTATION WindowCoordinator::getOrientation()
+{
+    return m_orientation;
 }
 
 void WindowCoordinator::removeWindow(int id)
@@ -66,7 +77,7 @@ void WindowCoordinator::removeWindow(int id)
         m_windows.remove(id);
         --m_windowCounter;
 
-        revalidateWCPane();
+        emit revalidateWCPane();
     }
 }
 
@@ -74,7 +85,8 @@ void WindowCoordinator::addWindow()
 {
     QDir initDir = m_curFocusedRootPath;
 
-    if( initDir.isEmpty() && m_initPath.size() > 0)
+    if(     initDir.absolutePath().isEmpty() && !initDir.exists()
+         && m_initPath.size() > 0 && QFileInfo(m_initPath[0]).exists() )
     {
         initDir = QDir(m_initPath[0]);
     }
@@ -88,50 +100,56 @@ void WindowCoordinator::addWindowHelper(QDir initPath)
         while(m_windows.size() < m_windowCounter){
             FileManager* fm = new FileManager(initPath.absolutePath().toStdString());
 
+            m_curFocusedRootPath = initPath;
+
             connectFileManager(fm);
 
             m_windows.append(fm);
         }
 
-        resetWCPaneFrames();
+        revalidateWCPane();
     }
 }
 
-void WindowCoordinator::connectWCPane()
+void WindowCoordinator::connectWCPane(WindowCoordinatorPane* pane)
 {
-    if(m_windowCoordPane)
+    if(pane)
     {
-        connect(this, &WindowCoordinator::revalidateWCPaneSGNL,      m_windowCoordPane, &WindowCoordinatorPane::revalidateLayout);
+        connect(this, &WindowCoordinator::revalidateWCPane,      pane, &WindowCoordinatorPane::revalidateLayout);
 
-        connect(m_windowCoordPane, &WindowCoordinatorPane::addWindow,         this, &WindowCoordinator::addWindow);
-        connect(m_windowCoordPane, &WindowCoordinatorPane::removeWindow,      this, &WindowCoordinator::removeWindow);
-        connect(m_windowCoordPane, &WindowCoordinatorPane::changeOrientation, this, &WindowCoordinator::changeOrientation);
+        connect(pane, &WindowCoordinatorPane::addWindow,         this, &WindowCoordinator::addWindow);
+        connect(pane, &WindowCoordinatorPane::removeWindow,      this, &WindowCoordinator::removeWindow);
+        connect(pane, &WindowCoordinatorPane::changeOrientation, this, &WindowCoordinator::changeOrientation);
     }
 }
-void WindowCoordinator::disconnectWCPane()
+void WindowCoordinator::disconnectWCPane(WindowCoordinatorPane* pane)
 {
-    if(m_windowCoordPane)
+    if(pane)
     {
-        disconnect(this, &WindowCoordinator::revalidateWCPaneSGNL,      m_windowCoordPane, &WindowCoordinatorPane::revalidateLayout);
+        disconnect(this, &WindowCoordinator::revalidateWCPane,      pane, &WindowCoordinatorPane::revalidateLayout);
 
-        disconnect(m_windowCoordPane, &WindowCoordinatorPane::addWindow,         this, &WindowCoordinator::addWindow);
-        disconnect(m_windowCoordPane, &WindowCoordinatorPane::removeWindow,      this, &WindowCoordinator::removeWindow);
-        disconnect(m_windowCoordPane, &WindowCoordinatorPane::changeOrientation, this, &WindowCoordinator::changeOrientation);
+        disconnect(pane, &WindowCoordinatorPane::addWindow,         this, &WindowCoordinator::addWindow);
+        disconnect(pane, &WindowCoordinatorPane::removeWindow,      this, &WindowCoordinator::removeWindow);
+        disconnect(pane, &WindowCoordinatorPane::changeOrientation, this, &WindowCoordinator::changeOrientation);
     }
 }
 void WindowCoordinator::connectFileManager(FileManager* fm)
 {
-    connect(fm, &FileManager::includeHiddenFiles,   this, &WindowCoordinator::setIncludeHiddenFiles);
-    connect(fm, &FileManager::requestFocus,         this, &WindowCoordinator::emitLabelChanged);
+    connect(fm, &FileManager::includeHiddenFiles_SGNL,   this, &WindowCoordinator::includeHiddenFiles);
+    connect(fm, &FileManager::excludeHiddenFiles_SGNL,   this, &WindowCoordinator::excludeHiddenFiles);
 
-    connect(this, &WindowCoordinator::includeHiddenFiles,   fm, &FileManager::setIncludeHiddenFiles);
+    connect(fm, &FileManager::requestFocusSGNL,         this, &WindowCoordinator::emitLabelChanged);
+
+//    connect(this, &WindowCoordinator::includeHiddenFiles_SGNL,   fm, &FileManager::setIncludeHiddenFiles);
 }
 void WindowCoordinator::disconnectFileManager(FileManager* fm)
 {
-    disconnect(fm, &FileManager::includeHiddenFiles,   this, &WindowCoordinator::setIncludeHiddenFiles);
-    disconnect(fm, &FileManager::requestFocus,         this, &WindowCoordinator::emitLabelChanged);
+    disconnect(fm, &FileManager::includeHiddenFiles_SGNL,   this, &WindowCoordinator::includeHiddenFiles);
+    disconnect(fm, &FileManager::excludeHiddenFiles_SGNL,   this, &WindowCoordinator::excludeHiddenFiles);
 
-    disconnect(this, &WindowCoordinator::includeHiddenFiles,   fm, &FileManager::setIncludeHiddenFiles);
+    disconnect(fm, &FileManager::requestFocusSGNL,         this, &WindowCoordinator::emitLabelChanged);
+
+//    disconnect(this, &WindowCoordinator::includeHiddenFiles_SGNL,   fm, &FileManager::setIncludeHiddenFiles);
 }
 
 void WindowCoordinator::changeOrientation()
@@ -146,11 +164,22 @@ void WindowCoordinator::changeOrientation()
 
 void WindowCoordinator::setIncludeHiddenFiles(bool inclHdnFls)
 {
-    emit includeHiddenFiles(inclHdnFls);
+    emit includeHiddenFiles_SGNL(inclHdnFls);
+}
+
+void WindowCoordinator::includeHiddenFiles()
+{
+    emit includeHiddenFiles_SGNL(true);
+}
+
+void WindowCoordinator::excludeHiddenFiles()
+{
+    emit includeHiddenFiles_SGNL(false);
 }
 
 void WindowCoordinator::emitLabelChanged(QDir newLabel)
 {
+    m_curFocusedRootPath = newLabel;
     emit labelChanged(newLabel);
 }
 void WindowCoordinator::focusedWindowChanged(QDir dir)

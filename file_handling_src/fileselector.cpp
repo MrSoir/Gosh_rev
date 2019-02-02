@@ -62,8 +62,8 @@ std::string FileSelector::getLastSelectedEntry() const
 //---------------------------------------------------------
 
 void FileSelector::entriesChanged(std::unordered_set<std::string>* paths,
-                                  std::unordered_map<unsigned long long, std::string> *ord_paths,
-                                  std::unordered_map<std::string, unsigned long long> *paths_ord,
+                                  std::unordered_map<int_bd, std::string> *ord_paths,
+                                  std::unordered_map<std::string, int_bd> *paths_ord,
                                   std::unordered_map<std::string, std::string>* fileName_paths,
                                   std::unordered_set<std::string>* folder_paths)
 {
@@ -78,7 +78,7 @@ void FileSelector::entriesChanged(std::unordered_set<std::string>* paths,
         auto srch = (*m_paths_ord).find(m_latestSelctdPath);
         if(srch != m_paths_ord->end())
         {
-            m_slctd_id = static_cast<long long>(srch->second);
+            m_slctd_id = static_cast<int_bd>(srch->second);
         }else{
             m_slctd_id = -1;
             m_latestSelctdPath = "";
@@ -106,7 +106,7 @@ void FileSelector::select(std::string path, bool cntrl_prsd, bool shift_prsd)
         if(m_paths_ord)
         {
             auto id = (*m_paths_ord)[path];
-            auto lastId = m_slctd_id == -1 ? id : static_cast<unsigned long long>(m_slctd_id);
+            auto lastId = m_slctd_id == -1 ? id : static_cast<int_bd>(m_slctd_id);
             auto lower = id < lastId ? id : lastId;
             auto upper = id > lastId ? id : lastId;
             for(auto i = lower; i <= upper; ++i)
@@ -118,7 +118,7 @@ void FileSelector::select(std::string path, bool cntrl_prsd, bool shift_prsd)
                 if(m_folder_paths->find(cur_path) != m_folder_paths->end())
                     m_selected_folders_paths.emplace(cur_path);
             }
-            m_slctd_id = static_cast<long long>(id);
+            m_slctd_id = static_cast<int_bd>(id);
         }
     }else{
         if( !cntrl_prsd )
@@ -127,7 +127,7 @@ void FileSelector::select(std::string path, bool cntrl_prsd, bool shift_prsd)
             m_selected_folders_paths.clear();
         }
         m_selected_paths.emplace(path);
-        m_slctd_id = static_cast<long long>((*m_paths_ord)[path]);
+        m_slctd_id = static_cast<int_bd>((*m_paths_ord)[path]);
 
         if(m_folder_paths->find(path) != m_folder_paths->end())
             m_selected_folders_paths.emplace(path);
@@ -172,7 +172,7 @@ void FileSelector::selectNext(bool cntrl_prsd, bool shift_prsd)
         {
             m_slctd_id = 0;
         }
-        std::string nextPath = (*m_ord_paths)[static_cast<unsigned long long>(m_slctd_id)];
+        std::string nextPath = (*m_ord_paths)[static_cast<int_bd>(m_slctd_id)];
         m_latestSelctdPath = nextPath;
         m_selected_paths.emplace( nextPath );
     }
@@ -191,7 +191,7 @@ void FileSelector::selectPrevious(bool cntrl_prsd, bool shift_prsd)
         {
             m_slctd_id = 0;
         }
-        std::string prevPath = (*m_ord_paths)[static_cast<unsigned long long>(m_slctd_id)];
+        std::string prevPath = (*m_ord_paths)[static_cast<int_bd>(m_slctd_id)];
         m_latestSelctdPath = prevPath;
         m_selected_paths.emplace( prevPath );
     }
@@ -209,7 +209,7 @@ void FileSelector::selectKeyWord(std::string key)
                 m_selected_paths.clear();
                 m_selected_paths.emplace(it->second);
                 m_latestSelctdPath = it->second;
-                m_slctd_id = static_cast<long long>((*m_paths_ord)[it->second]);
+                m_slctd_id = static_cast<int_bd>((*m_paths_ord)[it->second]);
                 emit selectionChanged();
                 return;
             }

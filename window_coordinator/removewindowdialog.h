@@ -23,6 +23,7 @@
 
 class RemoveWindowDialog : public QDialog
 {
+    Q_OBJECT
 public:
     RemoveWindowDialog(int anzRects,
                Orientation::ORIENTATION orientation,

@@ -90,7 +90,16 @@ public:
 
     ~FileInfoBD();
 
+    //-----------------------------------------------------
+
     FileInfoBD* getParentDir();
+
+    //-----------------------------------------------------
+
+    bool alreadyRegistered() const;
+    void setAlreadRegistered(bool alrReg);
+
+    //-----------------------------------------------------
 
     bool isElapsed() const;
     bool isLoaded() const;
@@ -268,6 +277,8 @@ private:
 
     Order m_order;
     Order m_current_ordering;
+
+    bool m_alrRegistered;
 };
 
 #endif // FILEINFOBD_H

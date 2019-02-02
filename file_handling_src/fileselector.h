@@ -9,6 +9,7 @@
 #include "stringops.h"
 #include "selectable.h"
 
+#define int_bd long long
 
 class FileSelector : public QObject
 {
@@ -28,8 +29,8 @@ signals:
     void selectionChanged();
 public slots:
     void entriesChanged(std::unordered_set<std::string>* paths,
-                        std::unordered_map<unsigned long long, std::string>* ord_paths,
-                        std::unordered_map<std::string, unsigned long long>* paths_ord,
+                        std::unordered_map<int_bd, std::string>* ord_paths,
+                        std::unordered_map<std::string, int_bd>* paths_ord,
                         std::unordered_map<std::string, std::string>* fileName_paths,
                         std::unordered_set<std::string>* folder_paths);
 
@@ -48,12 +49,12 @@ private:
     std::unordered_set<std::string> m_selected_folders_paths;
 
     std::unordered_set<std::string>* m_paths;
-    std::unordered_map<unsigned long long, std::string>* m_ord_paths;
-    std::unordered_map<std::string, unsigned long long>* m_paths_ord;
+    std::unordered_map<int_bd, std::string>* m_ord_paths;
+    std::unordered_map<std::string, int_bd>* m_paths_ord;
     std::unordered_map<std::string, std::string>* m_fileName_paths;
     std::unordered_set<std::string>* m_folder_paths;
 
-    long long m_slctd_id;
+    int_bd m_slctd_id;
     std::string m_latestSelctdPath;
     std::string m_slct_key_word;
 };

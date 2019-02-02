@@ -56,7 +56,7 @@ Process* ZIP::unzipFile(const std::string& zipFilePath, const std::string& tarUn
 
 ZIP::ZipFiles::ZipFiles(std::vector<std::string> pathsToZip,
                         std::string tarPath)
-    : ProgressDialogWorker(nullptr),
+    : ProgressDialogWorker(pathsToZip.size()),
       m_pathsToZip(pathsToZip),
       m_tarPath(tarPath),
       m_zipProcess(nullptr)
@@ -114,7 +114,7 @@ void ZIP::ZipFiles::zipFiles()
 //---------------------------------------------------------
 
 ZIP::UnZipFile::UnZipFile(string zipFilePath, string unZipTarPath)
-    : ProgressDialogWorker(),
+    : ProgressDialogWorker(1),
       m_zipFilePath(zipFilePath),
       m_unZipTarPath(unZipTarPath),
       m_zipProcess(nullptr)

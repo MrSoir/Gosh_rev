@@ -32,8 +32,10 @@
 #include "openfiles.h"
 #include"dirmanager.h"
 #include "dirmanagerinfo.h"
+#include "directorystack.h"
 
 #include "tree_viewer/graphicsview.h"
+#include "tree_viewer/directoryselectionpane.h"
 
 #include "file_manipulation/copyfiles.h"
 #include "file_manipulation/zipfiles.h"
@@ -41,22 +43,28 @@
 #include "file_manipulation/createfolder.h"
 #include "file_manipulation/createfile.h"
 
+#include "widgetcreator.h"
 
-class FileManager : public QObject
+#define int_bd long long
+
+class FileManager : public QObject,
+                    public WidgetCreator
 {
     Q_OBJECT
 public:
     explicit FileManager(std::string root_path,
                          bool showHiddenFiles = false);
-    ~FileManager();
+    virtual ~FileManager() override;
 
     void test();
 
     QLayout* genPane();
+
+    virtual QWidget* createWidget() override;
+
 signals:
     void addPathToFileWatcher(std::string path);
 
-    void revalidateViewer(std::vector<FiBDViewer> entries);
 
     // searching:
     void search(std::string key_word);
@@ -66,28 +74,41 @@ signals:
     void nextSearchResult(); // nextSearchResultSGNL
     void prevSearchResult(); // prevSearchResultSGNL
 
+
+
     // teilt dem Viewer mit, in die warteschleife zu verfallen bzw. wieder auszubrechen:
     void setViewerIntoWaitingLoop();
     void exitViewerWaitingLoop();
+
+
+
+    // signals for FileQueue:
     void cancelFileQueueTask();
     void pauseFileQueueTask();
     void continueFileQueueTask();
-    void startWaitingLoop();
-    void exitWaitingLoop();
 
     void addQueueTask(QueueTask* task);
 
-    void includeHiddenFiles(bool);
-    void requestFocusSGNL(QDir);
+    void openFoldersInTab_SGNL(std::vector<std::string> folders);
 
-    void closeCurrentTab(); // -> GraphicsView::requestCloseCurrentTab
-    void openFoldersInTab(std::vector<std::string> folders);
 
-    void focusGraphicsView(unsigned long long entry_id);
+
+    // signals for GraphicsView:
+    void closeCurrentTab(); // GraphicsView::requestCloseCurrentTab() (signal -> signal!)
+
+    void focusGraphicsView(int_bd entry_id); // -> GraphicsView::focusId(int_bd)
+
+    void startWaitingLoop(); // -> GraphicsView::startWaitingAnimation()
+    void exitWaitingLoop();  // -> GraphicsView::killWaitingAnimation()
+
+    void requestFocusSGNL(QDir); // -> GrahpicsView::requestFocus()
+
+    void revalidateViewer(std::unordered_map<int_bd, FiBDViewer> entries); // -> GrahpicsView::receiveFileViewers
+
 
 
     // signals for DirManager:
-    void rootDirChanged_dm(std::string);
+    void rootDirChanged(std::string);
 
     void deepSearch_dm(std::string keyword,
                        bool includeHiddenFiles);
@@ -107,8 +128,8 @@ signals:
 
     void cdUP_dm();
 
-    void includeHiddenFiles_dm();
-    void excludeHiddenFiles_dm();
+    void includeHiddenFiles_SGNL();
+    void excludeHiddenFiles_SGNL();
 
     void sortDir_dm(Order order, std::string path);
     void sortDirs_dm(Order order, std::vector<std::string> paths);
@@ -122,23 +143,32 @@ public slots:
     void selectionChanged();
     void searchResultsChanged();
 
-    void directoryChanged(std::string path);
-
     void elapseFolder(std::string path);
     void elapseFolder_rec(std::string path);
     void collapseFolder(std::string path);
     void collapseFolder_rec(std::string path);
 
-    void elapseAllFoldersOfDepthId(int id); // elapseAllFoldersOfDepthId
-    void collapseAllFoldersOfDepthId(int id); // collapseAllFoldersOfDepthId
-    void elapseSelectedFoldersRecursively();
-    void elapseSelectedFolders();
-    void collapseSelectedFoldersRecursively();
-    void collapseSelectedFolders();
-    void elapseOrCollapseFolderDependingOnCurrentState(QString path);
 
-    void setIncludeHiddenFiles(bool inclHdnFls);
-//---------------------------------------------------------------------
+    // DirectorySelectionPane -> FileManager:
+    void setLastPathToRoot();
+
+    // GrahpicsView -> FileManager:
+    void setRoot(QDir dir); // setRoot(QDir) <- muss mit SIGNAL(...) - SLOT(...) connected werden!!!
+
+    void saveGraphicsViewVBarValue(int value);
+    void saveGraphicsViewHBarValue(int value);
+
+    void setZoomFactor(int zoomFactor);
+
+    void elapseAllFoldersOfDepthId(int id); // elapseAllFoldersOfDepthId
+    void elapseSelectedFoldersRecursively(); // elapseSelectedFoldersRecursively
+    void elapseSelectedFolders(); // elapseSelectedFolders
+    void collapseSelectedFoldersRecursively(); // collapseSelectedFoldersRecursively
+    void collapseSelectedFolders(); // collapseSelectedFolders
+    void elapseOrCollapseFolderDependingOnCurrentState(QString path); // elapseOrCollapseFolderDependingOnCurrentState(QString)
+
+    void setIncludeHiddenFiles(bool inclHdnFls); // showHiddenFilesSGNL
+
     void openSelectedFoldersInTab(); // requestOpenFoldersInTab
 
     void searchForKeyWord(QString keyword, bool deepsearch); // searchForKeyWord
@@ -153,7 +183,7 @@ public slots:
     void sortDirs(std::vector<QString> dirs, Order order);
     void sortAllFolders(Order order); // sortAllFolders
 
-    void copySelectedFilePathToClipboard();
+    void copySelectedFilePathToClipboard(); // copySelectedFilePathToClipboard
     void copySelectedContent(); // copySelectedContent
     void cutSelectedContent(); // cutSelectedContent
     void duplicateSelectedContent(); // duplicateSelectedContent
@@ -175,29 +205,40 @@ public slots:
 
     void killCurrentBlockingAction(); // -> killCurrentBlockingAction()
 
-    void requestFocus(); // -> requestFocus()
+    void requestFocus(); // -> requestFocusSGNL()
 
-    void initDragging(QString draggingSource);
+    void initDragging(QString draggingSource); // initDragging(QString)
 
-    void keyPressed(char c);
+    void keyPressed(std::string s); // keyPressed(std::string)
 
-    void setSelectionToRoot();
-    void setParentToRoot();
+    void setSelectionToRoot(); // setSelectionToRoot
+    void setParentToRoot(); // cdUp
 
-    void openTerminal(); // -> openTerminal
+    void openTerminal(); // -> openTerminalSGNL()
 
-    void zoomFactorChanged(int newZoomFactor);
+    void zoomFactorChanged(int newZoomFactor); // zoomFactorChanged
+
+    void requestFileViewerRevalidation(int_bd firstEntryToDispl, int_bd lastEntryToDisp); // requestFileViewerRevalidation
 
 
-    // DirManager-slots:
+
+
+    // DirManager -> FileManager:
     void dirChanged_dm(DirManagerInfo* changedDir);
     void treeChanged_dm(DirManagerInfo* entireTree);
 
     void deepSearchFinished_dm(std::vector<std::string> matchingPaths, std::string keyword);
 
 private:
+    void setRoot_hlpr(std::string rootPath, bool addToDirStack = true);
+
     void connectSignals();
     void disconnectSiganls();
+
+    void connectViewer(GraphicsView* viewer);
+    void disconnectViewer(GraphicsView* viewer);
+    void connectDirectorySelectionPane(DirectorySelectionPane* pane);
+
 
     void revalidateViewer_helper();
 
@@ -219,8 +260,8 @@ private:
     void replaceTree_hlpr(DirManagerInfo* entry,
                           DirManagerInfo* firstNonCollapsedFold,
                           bool isCollapsed,
-                          unsigned long long* cntr,
-                          unsigned long long* cntr_clpsd,
+                          int_bd* cntr,
+                          int_bd* cntr_clpsd,
                           int depthId,
                           int* maxDepthId);
 
@@ -240,29 +281,26 @@ private:
     std::unordered_set<std::string> m_folder_paths;
     std::unordered_set<std::string> m_folder_paths_colpsd;
 
-    std::unordered_map<std::string, unsigned long long> m_entries_order; // FileSearcher: path to order/id in list
-    std::unordered_map<unsigned long long, std::string> m_order_entries; // FileSelector: order/id in list to path
-    std::unordered_map<std::string, unsigned long long> m_entries_order_colpsd; // FileSearcher: path to order/id in list
-    std::unordered_map<unsigned long long, std::string> m_order_entries_colpsd; // FileSelector: order/id in list to path
+    std::unordered_map<std::string, int_bd> m_entries_order; // FileSearcher: path to order/id in list
+    std::unordered_map<int_bd, std::string> m_order_entries; // FileSelector: order/id in list to path
+    std::unordered_map<std::string, int_bd> m_entries_order_colpsd; // FileSearcher: path to order/id in list
+    std::unordered_map<int_bd, std::string> m_order_entries_colpsd; // FileSelector: order/id in list to path
 
-//    std::unordered_map<std::string, FileData*> m_entries; // FileNamanger: path to FiBD struct {FileInfoBD | isFolder}
-//    std::unordered_map<std::string, FileData*> m_entries_colpsd; // FileNamanger: path to FiBD struct {FileInfoBD | isFolder}
+    std::unordered_map<std::string, int> m_path_depthId;
+    std::unordered_map<std::string, int> m_path_depthId_colpsd;
+    std::unordered_map<int, std::unordered_set<std::string>> m_depth_folders_colpsd; // FileManager: depthID of folder -> folder (wird fuer collapseFoldersOfDepthId benoetigt)
 
     std::unordered_map<std::string, std::string> m_fileNames; // FileSearcher: path to fileName
     std::unordered_map<std::string, std::string> m_fileNames_colpsd; // FileSearcher: path to fileName
-
-    std::unordered_map<int, std::unordered_set<std::string>> m_depth_folders_colpsd; // FileManager: depthID of folder -> folder (wird fuer collapseFoldersOfDepthId benoetigt)
 
     FileSearcher* m_searcher;
     FileSelector* m_selector;
     FileQueue* m_tasks_queue;
 
-    GraphicsView* m_viewer;
-
     std::vector<bool> m_depthId_elapsed;
 
-    int m_frstDispFile;
-    int m_lastDispFile;
+    int_bd m_frstDispFile;
+    int_bd m_lastDispFile;
 
     bool m_showHiddenFiles;
     bool m_inSearchMode;
@@ -271,6 +309,11 @@ private:
     std::string m_keysPressed;
 
     int m_zoomFactor;
+
+    int m_graphicsViewVBarValueBackup;
+    int m_graphicsViewHBarValueBackup;
+
+    DirectoryStack* m_dirStack;
 };
 
 #endif // FILEMANAGER_H

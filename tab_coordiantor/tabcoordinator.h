@@ -25,20 +25,25 @@
 #include "tabcoordinatorpane.h"
 #include "window_coordinator/windowcoordinator.h"
 
-class TabCoordinator : public QObject
+#include "widgetcreator.h"
+
+class TabCoordinator : public QObject,
+                       public WidgetCreator
 {
     Q_OBJECT
 public:
     explicit TabCoordinator(QObject *parent = nullptr);
-    ~TabCoordinator();
+    virtual ~TabCoordinator() override;
 
-    TabCoordinatorPane* genTabCoordinatorPane();
+    virtual QWidget* createWidget() override;
+
+    QWidget* createCentralWidget();
+
 signals:
     void revalidateTabCoordinatorPane();
     void labelsChanged(QVector<QDir> labels);
     void activeTabIdChanged(int id);
-    void resetTabCoordPaneCentralWidget();
-    void sendCentralWidgetToTCPane(QWidget* wiget);
+
 public slots:
     void setFullScreen();
 
@@ -51,7 +56,6 @@ public slots:
 
     void revalidateLabels();
 
-    void receiveCentralWidgetForTCPane(QWidget* widget);
 private:
     QVector<QDir> generateLabels();
 
@@ -61,9 +65,8 @@ private:
     void connectWindow(WindowCoordinator* window);
     void disconnectWindow(WindowCoordinator* window);
 
-    void connectTCPane();
-    void disconnectTCPane();
-    void deleteTCPane();
+    void connectTCPane(TabCoordinatorPane* tcPane);
+    void disconnectTCPane(TabCoordinatorPane* tcPane);
 
     bool m_isFullScreen = false;
 
@@ -71,8 +74,6 @@ private:
 
     WindowCoordinator* m_currentlyDisplWindow;
     int m_curWindowId = -1;
-
-    TabCoordinatorPane* m_tcPane;
 };
 
 #endif // TABCOORDINATOR_H

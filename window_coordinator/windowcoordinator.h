@@ -13,6 +13,7 @@
 #include <QDir>
 #include <QVector>
 #include <QStandardPaths>
+#include <QStringList>
 
 #include <memory>
 #include <functional>
@@ -23,32 +24,33 @@
 #include "windowcoordinatorpane.h"
 #include "file_handling_src/filemanager.h"
 
-using namespace Orientation;
+#include "widgetcreator.h"
 
-class WindowCoordinator : public QObject
+class WindowCoordinator : public QObject,
+                          public WidgetCreator
 {
     Q_OBJECT
 public:
     explicit WindowCoordinator(QVector<QDir> initPaths = QVector<QDir>(),
                                QObject *parent = nullptr);
-    ~WindowCoordinator();
+    virtual ~WindowCoordinator() override;
 
     QDir getCurrentFocusedDir() const;
+
+    virtual QWidget* createWidget() override;
+
+    QVector<QWidget*> createCentralWidgets();
+    Orientation::ORIENTATION getOrientation();
+
 signals:
-    void paneCreated(QWidget* pane);
+    void revalidateWCPane();
     void openFoldersInNewTab(QVector<QDir>);
     void labelChanged(QDir);
 
-    void revalidateWCPaneSGNL(QVector<QLayout*> windowsLayouts, ORIENTATION orientation);
+    void includeHiddenFiles_SGNL(bool includeHiddenFiles_SGNL);
 
-    void includeHiddenFiles(bool includeHiddenFiles);
-
-    void resetWCPaneFramesSGNL(QVector<QWidget*>);
-
-    void orientationChanged(ORIENTATION);
+//    void orientationChanged(Orientation::ORIENTATION);
 public slots:
-    void revalidateWCPane();
-    void createPane();
     void close();
 
     void removeWindow(int id = -1);
@@ -56,12 +58,11 @@ public slots:
 
     void changeOrientation();
 
-    void genWindowCoordinatorPane(QWidget*);
     void focusedWindowChanged(QDir dir);
 
-    void setIncludeHiddenFiles(bool includeHiddenFiles);
-
-    void resetWCPaneFrames();
+    void setIncludeHiddenFiles(bool includeHiddenFiles_SGNL);
+    void includeHiddenFiles();
+    void excludeHiddenFiles();
 private:
     void addWindowHelper(QDir initDir);
 
@@ -70,8 +71,8 @@ private:
     int m_windowCounter;
     int m_maxWindows;
 
-    void connectWCPane();
-    void disconnectWCPane();
+    void connectWCPane(WindowCoordinatorPane* pane);
+    void disconnectWCPane(WindowCoordinatorPane* pane);
 
     void connectFileManager(FileManager* fm);
     void disconnectFileManager(FileManager* fm);
@@ -80,12 +81,9 @@ private:
 
     Orientation::ORIENTATION m_orientation;
 
-    QStringList m_initPath;
+    QStringList m_initPath = QStandardPaths::standardLocations(QStandardPaths::StandardLocation::DocumentsLocation);
     QDir m_curFocusedRootPath;
 
-    QString m_starup_res_path;
-
-    WindowCoordinatorPane* m_windowCoordPane;
-};
+    QString m_starup_res_path;};
 
 #endif // WINDOWCOORDINATOR_H

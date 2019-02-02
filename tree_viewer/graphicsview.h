@@ -41,7 +41,6 @@
 #include "menubar.h"
 #include "waitingbargraphicsitem.h"
 #include "searchmenubd.h"
-#include "menubar.h"
 #include "elapsemenubd.h"
 #include "rectcolor.h"
 #include "windowselector.h"
@@ -49,24 +48,29 @@
 #include "file_handling_src/fibdviewer.h"
 #include "orderby.h"
 
+#define int_bd long long
+
 //using namespace ORDERED_BY;
 
-enum FILE_ACTION{
-    COPY, CUT, PASTE, DUPLICATE,
-    ZIP, UNZIP,
-    RENAME,
-    DELETE,
-    OPEN, OPEN_WITH,
-    TERMINAL,
-    DETAILS,
-    ELAPSE, ELAPSE_REC, // ELAPSE_REC == elapse RECursively
-    TAB, CLOSE_TAB,
-    LOAD,
-    COLLAPSE, COLLAPSE_REC, // COLLAPSE_REC == collapse RECursively
-    PATH,
-    CANCEL_CURRENT_ACTION,
-    REQUEST_FOCUS
-};
+namespace FILE_ACTION {
+    enum Action{
+        COPY, CUT, PASTE, DUPLICATE,
+        ZIP, UNZIP,
+        RENAME,
+        DELETE,
+        OPEN, OPEN_WITH,
+        TERMINAL,
+        DETAILS,
+        ELAPSE, ELAPSE_REC, // ELAPSE_REC == elapse RECursively
+        TAB, CLOSE_TAB,
+        LOAD,
+        COLLAPSE, COLLAPSE_REC, // COLLAPSE_REC == collapse RECursively
+        PATH,
+        CANCEL_CURRENT_ACTION,
+        REQUEST_FOCUS
+    };
+}
+
 
 class GraphicsView : public QGraphicsView
 {
@@ -139,7 +143,7 @@ signals:
 
     void initDragging(QString draggingSource);
 
-    void keyPressed(int keyId);
+    void keyPressed(std::string s);
 
     void setSelectionToRoot();
     void setRootFolder(QDir newRoot);
@@ -149,21 +153,25 @@ signals:
     void sortAllFolders(Order order);
 
     void openTerminalSGNL(); // -> openTerminal
-    void openSelection();
-    void setParentToRoot();
+    void cdUp();
 
     void zoomFactorChanged(int newZoomFactor);
 
     void showHiddenFilesSGNL(bool showHiddenFiles);
 
     void elapseOrCollapseFolderDependingOnCurrentState(QString path);
+
+    void requestFileViewerRevalidation(int_bd firstDispFI, int_bd lastDispFI);
+
 public slots:
+    void receiveFileViewers(std::unordered_map<int_bd, FiBDViewer> new_files);
+
     void requestFocus();
 
 //    void folderChanged(std::weak_ptr<const FileInfoBD> f = std::weak_ptr<FileInfoBD>());
     void revalidate();
 
-    void focusId(int id, bool repaintAnyway = false);
+    void focusId(int_bd id);
 
     void vScrollValueChanged(int newValue);
     void hScrollValueChanged(int newValue);
@@ -192,8 +200,8 @@ private:
     void paintTopRectangle(const QPointF& center,
                            const QSize& size);
 
-    int getFirstToDispFi();
-    int getLastToDispFi();
+    int_bd getFirstToDispFi();
+    int_bd getLastToDispFi();
     bool viewPortOutOfDisplayedRange();
 
     qreal getDisplayableHeight();
@@ -201,7 +209,8 @@ private:
 
     void setWaitingBarSizeAndPos();
 
-    void paintFileInfo(const FiBDViewer& fi, int rowId=0, int colId=0,
+    void paintFileInfo(const FiBDViewer& fi,
+                       int_bd rowId=0, int_bd colId=0,
                        std::shared_ptr<DynamicFunctionCaller<QString, std::function<bool()>>> caller = std::shared_ptr<DynamicFunctionCaller<QString, std::function<bool()>>>(),
                        std::shared_ptr<DynamicFunctionCaller<QString, std::function<bool(Order)>>> sortCaller = std::shared_ptr<DynamicFunctionCaller<QString,std::function<bool(Order)>>>());
 
@@ -224,7 +233,7 @@ private:
     void addMenuBar();
     void closeMenuBar();
 
-    void executeFileAction(FILE_ACTION action);
+    void executeFileAction(FILE_ACTION::Action action);
 //    void executeFileAction(std::function<void (std::shared_ptr<FilesCoordinator>)> fctn);
 
     void addContentBar();
@@ -249,6 +258,8 @@ private:
 
     bool inSearchMode();
 
+    void revalFirstAndLastDisplayedFI(bool revalIfStillInBounds=false);
+
     QGraphicsScene* m_scene;
 
     int m_fontSize;
@@ -256,12 +267,12 @@ private:
     int m_rowHeight = 20;
     int m_colOffs = 15;
 
-    int m_firstDispFI = 0;
-    int m_lastDispFI = 0;
-    int m_curDispFI = 0;
-    int m_fileCount = 0;
-    int m_fileMaxCount = 500;
-    int m_filePuffer = 200;
+    int_bd m_firstDispFI = 0;
+    int_bd m_lastDispFI = 0;
+    int_bd m_curDispFI = 0;
+    int_bd m_fileCount = 0;
+    int_bd m_fileMaxCount = 500;
+    int_bd m_filePuffer = 200;
 
     QGraphicsItemGroup* m_graphicsGroup = new QGraphicsItemGroup();
 
@@ -306,7 +317,8 @@ private:
 
     FileManagerInfo m_fileMangrInfo;
 
-    QVector<FiBDViewer> m_entriesToRender;
+//    std::vector<FiBDViewer> m_entriesToRender;
+    std::unordered_map<int_bd, FiBDViewer> m_entriesToRender;
 };
 
 #endif // GRAPHICSVIEW_H

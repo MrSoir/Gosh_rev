@@ -1,10 +1,12 @@
 #include "searchmenubd.h"
 
 SearchMenuBD::SearchMenuBD(const QSize& size,
-             const QPoint& pos,
-             QGraphicsItem* parent)
+                           const QPoint& pos,
+                           QGraphicsItem* parent)
     : GraphicItemsBD::GraphicsItemBD(size, pos, parent)
-{}
+{
+}
+
 SearchMenuBD::~SearchMenuBD(){
     m_caller.reset();
 }

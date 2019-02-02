@@ -18,20 +18,21 @@
 #include "customgraphicitems.h"
 #include "dynamicfunctioncaller.h"
 
-class WindowSelector : public GraphicItemsBD::GraphicsItemBD{
+class WindowSelector : public GraphicItemsBD::GraphicsItemBD
+{
 public:
     WindowSelector(const QSize& size,
                    const QPoint& pos,
                    QGraphicsItem *parent = nullptr);
-    ~WindowSelector() override;
+    virtual ~WindowSelector() override;
 
 
     void setCaller(std::function<void(int)> caller);
 
-    void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
+    virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
 protected:
-    void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
-    void hoverMoveEvent(QGraphicsSceneHoverEvent * event) override;
+    virtual void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
+    virtual void hoverMoveEvent(QGraphicsSceneHoverEvent * event) override;
 private:
     bool m_hover = false;
 

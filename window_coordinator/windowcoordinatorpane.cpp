@@ -1,11 +1,14 @@
 #include "windowcoordinatorpane.h"
 
+#include "windowcoordinator.h"
 
-WindowCoordinatorPane::WindowCoordinatorPane(QList<QList<int>> splitterRatios,
+WindowCoordinatorPane::WindowCoordinatorPane(WindowCoordinator* wc,
+                                             QList<QList<int>> splitterRatios,
                                              int windowCount,
-                                             ORIENTATION orientation,
+                                             Orientation::ORIENTATION orientation,
                                              QWidget *parent)
     : QWidget(parent),
+      m_windowCoordinator(wc),
       m_splitterRatios(splitterRatios),
       m_orientation(orientation),
       m_windowCount(windowCount),
@@ -63,8 +66,9 @@ void WindowCoordinatorPane::resizeEvent(QResizeEvent *event)
 
     m_removeDialogSize = QSize(edge, edge);
 
-    QPoint newPos( (this->width() -m_removeDialogSize.width())  *0.5f,
-                   (this->height()-m_removeDialogSize.height()) *0.5f);
+    auto pos_x = static_cast<int>(static_cast<double>(this->width()  -m_removeDialogSize.width())  * 0.5);
+    auto pos_y = static_cast<int>(static_cast<double>(this->height() -m_removeDialogSize.height()) * 0.5);
+    QPoint newPos( pos_x, pos_y );
 
     emit setRemoveDialogSize(m_removeDialogSize);
     emit setRemoveDialogPosition(newPos);
@@ -95,8 +99,9 @@ void WindowCoordinatorPane::showRemoveWindowDialog()
 {
     int edge = int(float(std::min(this->width(), this->height()) * m_dialogSizeFactor));
     m_removeDialogSize = QSize(edge, edge);
-    QPoint position( (this->width() -m_removeDialogSize.width())  *0.5f,
-                     (this->height()-m_removeDialogSize.height())*0.5f);
+    auto pos_x = static_cast<int>(static_cast<double>(this->width()  -m_removeDialogSize.width())  * 0.5);
+    auto pos_y = static_cast<int>(static_cast<double>(this->height() -m_removeDialogSize.height()) * 0.5);
+    QPoint position( pos_x, pos_y);
 
     RemoveWindowDialog* removeDialog = new RemoveWindowDialog(m_windowCount, m_orientation,
                             m_removeDialogSize, position,
@@ -131,14 +136,18 @@ void addLayoutToSplitter(QSplitter* splitter, QLayout* widget){
     splitter->addWidget(wrpr);
 }
 void addWidgetToSplitter(QSplitter* splitter, QWidget* widget){
-    QVBoxLayout* vBox = new QVBoxLayout();
-    vBox->addWidget(widget);
-    vBox->setContentsMargins(3,3,3,3);
-    addLayoutToSplitter(splitter, vBox);
+    splitter->addWidget(widget);
+//    QVBoxLayout* vBox = new QVBoxLayout();
+//    vBox->addWidget(widget);
+//    vBox->setContentsMargins(3,3,3,3);
+//    addLayoutToSplitter(splitter, vBox);
 }
-void WindowCoordinatorPane::revalidateLayout(QVector<QLayout*> windowLayouts,
-                                             ORIENTATION orientation)
+
+void WindowCoordinatorPane::revalidateLayout()
 {
+    auto windowLayouts = m_windowCoordinator->createCentralWidgets();
+    auto orientation   = m_windowCoordinator->getOrientation();
+
     m_windowCount = windowLayouts.size();
     m_orientation = orientation;
 
@@ -149,17 +158,17 @@ void WindowCoordinatorPane::revalidateLayout(QVector<QLayout*> windowLayouts,
     clearSplitter();
 
     if(m_windowCount == 1){
-        m_vBox->addLayout(windowLayouts[0]);
+        m_vBox->addWidget(windowLayouts[0]);
     }else if(m_windowCount == 2){
         QSplitter* splitter;
-        if(m_orientation == Orientation::ORIENTATION::HORIZONTAL){
+        if(orientation == Orientation::ORIENTATION::HORIZONTAL){
             splitter = createSplitter(Qt::Vertical);
         }else{
             splitter = createSplitter(Qt::Horizontal);
 
         }
-        addLayoutToSplitter(splitter, windowLayouts[0]);
-        addLayoutToSplitter(splitter, windowLayouts[1]);
+        addWidgetToSplitter(splitter, windowLayouts[0]);
+        addWidgetToSplitter(splitter, windowLayouts[1]);
 
         m_splitter.push_back(splitter);
 
@@ -170,17 +179,17 @@ void WindowCoordinatorPane::revalidateLayout(QVector<QLayout*> windowLayouts,
         QSplitter* hSplitter = createSplitter(Qt::Vertical);
         QSplitter* vSplitter = createSplitter(Qt::Horizontal);
         if(orientation == Orientation::ORIENTATION::VERTICAL){
-            addLayoutToSplitter(hSplitter, windowLayouts[1]);
-            addLayoutToSplitter(hSplitter, windowLayouts[2]);
+            addWidgetToSplitter(hSplitter, windowLayouts[1]);
+            addWidgetToSplitter(hSplitter, windowLayouts[2]);
 
-            addLayoutToSplitter(vSplitter, windowLayouts[0]);
+            addWidgetToSplitter(vSplitter, windowLayouts[0]);
             addWidgetToSplitter(vSplitter, hSplitter);
             m_vBox->addWidget(vSplitter);
         }else{
-            addLayoutToSplitter(vSplitter, windowLayouts[1]);
-            addLayoutToSplitter(vSplitter, windowLayouts[2]);
+            addWidgetToSplitter(vSplitter, windowLayouts[1]);
+            addWidgetToSplitter(vSplitter, windowLayouts[2]);
 
-            addLayoutToSplitter(hSplitter, windowLayouts[0]);
+            addWidgetToSplitter(hSplitter, windowLayouts[0]);
             addWidgetToSplitter(hSplitter, vSplitter);
             m_vBox->addWidget(hSplitter);
         }
@@ -195,11 +204,11 @@ void WindowCoordinatorPane::revalidateLayout(QVector<QLayout*> windowLayouts,
         QSplitter* hSplitter1 = createSplitter(Qt::Vertical);
         QSplitter* hSplitter2 = createSplitter(Qt::Vertical);
 
-        addLayoutToSplitter(hSplitter1, windowLayouts[0]);
-        addLayoutToSplitter(hSplitter1, windowLayouts[1]);
+        addWidgetToSplitter(hSplitter1, windowLayouts[0]);
+        addWidgetToSplitter(hSplitter1, windowLayouts[1]);
 
-        addLayoutToSplitter(hSplitter2, windowLayouts[2]);
-        addLayoutToSplitter(hSplitter2, windowLayouts[3]);
+        addWidgetToSplitter(hSplitter2, windowLayouts[2]);
+        addWidgetToSplitter(hSplitter2, windowLayouts[3]);
 
         addWidgetToSplitter(vSplitter, hSplitter1);
         addWidgetToSplitter(vSplitter, hSplitter2);

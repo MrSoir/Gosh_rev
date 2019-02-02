@@ -68,6 +68,19 @@ DirManagerInfo::DirManagerInfo(DirManagerInfo* dmi)
 {
 }
 
+DirManagerInfo::DirManagerInfo()
+    : absPath(""),
+      fileName(""),
+      isHidden(false),
+      isElapsed(false),
+      isLoaded(false),
+      lastModified(QDateTime()),
+      order(Order()),
+      subDirs_sorted(std::vector<DirManagerInfo*>()),
+      files_sorted(std::vector<std::string>())
+{
+}
+
 //-------------------------
 
 DirManagerInfo &DirManagerInfo::operator=(const DirManagerInfo &dmf)

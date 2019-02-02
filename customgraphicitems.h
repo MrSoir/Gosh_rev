@@ -15,12 +15,11 @@
 namespace GraphicItemsBD
 {
     enum ORIENTATION{
-        VERTICAL = 1,
+        VERTICAL,
         HORIZONTAL
     };
 
-    class GraphicsItemBD : public QGraphicsItem
-    {
+    class GraphicsItemBD : public QGraphicsItem{
     public:
         explicit GraphicsItemBD(const QSize& size = QSize(0,0),
                        const QPoint& pos = QPoint(0,0),
@@ -31,7 +30,7 @@ namespace GraphicItemsBD
         virtual void setPosition(QPoint position);
         virtual QRectF boundingRect() const override;
 
-        void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
+        virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
     protected:
         QSize m_size;
         QPoint m_pos;
@@ -39,8 +38,7 @@ namespace GraphicItemsBD
         bool revalidate = true;
     };
 
-    class ButtonBD : public GraphicsItemBD
-    {
+    class ButtonBD : public GraphicsItemBD{
     public:
         explicit ButtonBD(const QSize& size,
                  const QPoint& pos,
@@ -60,6 +58,8 @@ namespace GraphicItemsBD
         virtual void hoverEnterEvent(QGraphicsSceneHoverEvent *event) override;
         virtual void hoverLeaveEvent(QGraphicsSceneHoverEvent *event) override;
         virtual void hoverMoveEvent(QGraphicsSceneHoverEvent * event) override;
+//    signals:
+//        void clicked();
     private:
         QColor m_gradCol1;
         QColor m_gradCol2;
@@ -72,8 +72,7 @@ namespace GraphicItemsBD
         qint64 lastTmePrsd = QDateTime::currentMSecsSinceEpoch();
     };
 
-    class TextRect : public ButtonBD
-    {
+    class TextRect : public ButtonBD{
     public:
         explicit TextRect(QString str,
                  const QSize& size,
@@ -100,8 +99,7 @@ namespace GraphicItemsBD
         QFont m_font;
     };
 
-    class PixmapRect : public ButtonBD
-    {
+    class PixmapRect : public ButtonBD{
     public:
         explicit PixmapRect(QPixmap pixmap,
                  const QSize& size,
@@ -120,8 +118,7 @@ namespace GraphicItemsBD
         QPixmap m_pixmap;
     };
 
-    class CustomShapeRect : public ButtonBD
-    {
+    class CustomShapeRect : public ButtonBD{
     public:
         explicit CustomShapeRect(std::function<void(QPainter*, const QRectF&)> paintFunction,
                  const QSize& size,
@@ -140,8 +137,7 @@ namespace GraphicItemsBD
         std::function<void(QPainter*, const QRectF&)> m_paintFunction;
     };
 
-    class IconAndLabelItem : public GraphicsItemBD
-    {
+    class IconAndLabelItem : public GraphicsItemBD{
     public:
         explicit IconAndLabelItem(const QString& pixmapPath,
                                   bool loadAsFilIcon,

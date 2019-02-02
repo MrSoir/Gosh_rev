@@ -15,6 +15,8 @@
 
 #include "searchable.h"
 
+#define int_bd long long
+
 class FileSearcher : public QObject
 {
     Q_OBJECT
@@ -30,7 +32,7 @@ signals:
     void searchResultsChanged();
 public slots:
     void entriesChanged(std::unordered_map<std::string, std::string>* fileName_paths,
-                        std::unordered_map<std::string, unsigned long long>* path_ord);
+                        std::unordered_map<std::string, int_bd>* path_ord);
     void search(std::string key_word);
     void clearSearch();
 
@@ -50,16 +52,16 @@ private:
 
     std::string m_key_word; // string that is searched for
     std::unordered_set<std::string> m_matched_paths; // all paths, which's fileNames contain the m_key_word
-    std::unordered_map<unsigned long long, std::string> m_ord_matchedPaths;
+    std::unordered_map<int_bd, std::string> m_ord_matchedPaths;
 
 //    std::unordered_set<std::string> m_paths; // all paths
     std::unordered_map<std::string, std::string>* m_fileName_path; // map: fileName -> path
-    std::unordered_map<std::string, unsigned long long>* m_path_ord;
+    std::unordered_map<std::string, int_bd>* m_path_ord;
 
     bool m_enabled;
-    long long m_focused_match_id;
+    int_bd  m_focused_match_id;
     std::string m_focused_path;
-    unsigned long long m_matchCount;
+    int_bd m_matchCount;
 };
 
 #endif // FILESEARCHER_H
