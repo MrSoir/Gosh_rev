@@ -312,7 +312,7 @@ bool FiBDViewer::containsFiles() const
 
 bool FiBDViewer::isEmpty() const
 {
-    return m_filesCount > 0 || m_subDirCount > 0;
+    return !(m_filesCount > 0 || m_subDirCount > 0);
 }
 
 bool FiBDViewer::isReversedSortedBy(Order ord) const

@@ -167,13 +167,17 @@ QPainterPath TabRect::getBoundingPath() const
     QRectF rect = boundingRect();
     QPainterPath path;
 
-    path.moveTo(rect.left(), rect.bottom());
+    path.moveTo(rect.left() +m_cornerWidth, rect.bottom());
+
     path.quadTo(rect.left(), rect.center().y(),
-                rect.left()+m_cornerWidth, rect.top());
+                rect.left() +m_cornerWidth, rect.top());
+
     path.lineTo(rect.right()-m_cornerWidth, rect.top());
+
     path.quadTo(rect.right(), rect.center().y(),
-                rect.right(), rect.bottom());
-    path.lineTo(rect.left(), rect.bottom());
+                rect.right()-m_cornerWidth, rect.bottom());
+
+    path.lineTo(rect.left() +m_cornerWidth, rect.bottom());
     path.closeSubpath();
 
 //    path.moveTo(rect.left(), rect.bottom());

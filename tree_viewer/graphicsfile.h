@@ -24,6 +24,8 @@
 #include <QDrag>
 #include <QClipboard>
 #include <QUrl>
+#include <QFutureWatcher>
+#include <QtConcurrent/QtConcurrent>
 
 #include <functional>
 #include <memory>
@@ -75,6 +77,7 @@ public:
 
     void setInitDraggingFunction(std::function<void(QString)> func);
     void setDropFunction(std::function<void(QString)> func);
+
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event);
     void mouseDoubleClickEvent(QGraphicsSceneMouseEvent * event);
@@ -100,6 +103,8 @@ private:
     void openContent();
 
     bool elapseRectPressed(QPointF mouP);
+
+    //--------------------
 
     const FiBDViewer m_fiv;
 

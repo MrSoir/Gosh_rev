@@ -1136,4 +1136,3 @@ QFileInfo StaticFunctions::getCommonParentDir(const QVector<QFileInfo>& entries)
     }
     return QFileInfo(); // QFileInfo().absoluteFilePath() == "" | QFileInfo().exists() == false !!! rueckgabewert der funktion ueberpruefen!!!
 }
-

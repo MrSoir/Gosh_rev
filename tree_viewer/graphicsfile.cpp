@@ -277,6 +277,7 @@ void GraphicsFile::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
                   m_pos.y()+ static_cast<int>((d_height-icnRctHght)*0.5),
                   static_cast<int>(d_height*fctr),
                   static_cast<int>(d_height*fctr));
+
     QPixmap iconPixmap = StaticFunctions::getFilePixmap(m_fiv.path(), iconRct.size());
     painter->drawPixmap(iconRct, iconPixmap);//icon.pixmap(iconRct.size()));
 
@@ -339,16 +340,16 @@ void GraphicsFile::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
 
                 Order curOrder;
                 if(i==0){
-                    str = QString("Name:");
+                    str = QString("Name");
                     curOrder.ordered_by = ORDERED_BY::NAME;
                 }else if (i==1){
-                    str = QString("Size:");
+                    str = QString("Size");
                     curOrder.ordered_by = ORDERED_BY::SIZE;
                 }else if (i==2){
-                    str = QString("Type:");
+                    str = QString("Type");
                     curOrder.ordered_by = ORDERED_BY::TYPE;
                 }else if (i==3){
-                    str = QString("Date:");
+                    str = QString("Date");
                     curOrder.ordered_by = ORDERED_BY::MOD_DATE;
                 }
 
@@ -516,6 +517,7 @@ void GraphicsFile::setDropFunction(std::function<void(QString)> func)
     m_dropFunc = func;
 }
 
+
 void GraphicsFile::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
 //    QGraphicsItem::mousePressEvent(event);
@@ -602,6 +604,7 @@ void GraphicsFile::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
                     && m_caller->containsFunction(QString("elapse"))){
                     auto isEmpty = m_caller->getFunction(QString("isEmpty"));
                     auto isLoaded = m_caller->getFunction(QString("isLoaded"));
+                    qDebug() << "isEmpty: " << isEmpty() << " isLoaded: " << isLoaded();
                     if( !(isLoaded() && isEmpty()) ){
                         auto doElapsing = m_caller->getFunction(QString("elapse"));
                         doElapsing();

@@ -15,7 +15,7 @@ DirManagerInfo::DirManagerInfo(std::string absPath,
       lastModified(lastModified),
       order(order),
       subDirs_sorted(std::vector<DirManagerInfo*>()),
-      files_sorted(std::vector<std::string>())
+      files_sorted(std::vector<std::pair<std::string,std::string>>())
 {
 }
 
@@ -28,16 +28,17 @@ DirManagerInfo::DirManagerInfo(FileInfoBD* fi)
       lastModified(fi->getFileInfo().lastModified()),
       order(fi->getOrder()),
       subDirs_sorted(std::vector<DirManagerInfo*>()),
-      files_sorted(std::vector<std::string>())
+      files_sorted(std::vector<std::pair<std::string,std::string>>())
 {
     for(auto* sub_dir: fi->getSortedSubFolders())
     {
         subDirs_sorted.push_back( new DirManagerInfo(sub_dir) );
     }
 
+
     for(const auto& file_path: fi->getSortedFiles())
     {
-        files_sorted.push_back(file_path);
+        files_sorted.push_back( std::make_pair(file_path, fi->getFileName(file_path)) );
     }
 }
 
@@ -77,7 +78,7 @@ DirManagerInfo::DirManagerInfo()
       lastModified(QDateTime()),
       order(Order()),
       subDirs_sorted(std::vector<DirManagerInfo*>()),
-      files_sorted(std::vector<std::string>())
+      files_sorted(std::vector<std::pair<std::string,std::string>>())
 {
 }
 

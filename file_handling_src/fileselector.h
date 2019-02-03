@@ -2,6 +2,8 @@
 #define FILESELECTOR_H
 
 #include <QObject>
+#include <QDebug>
+
 #include <string>
 #include <unordered_set>
 #include <unordered_map>
@@ -41,6 +43,11 @@ signals:
 
 public slots:
     void entriesChanged();
+    void entriesChanged(std::unordered_set<std::string>* paths,
+                        std::unordered_map<int_bd, std::string>* ord_paths,
+                        std::unordered_map<std::string, int_bd>* paths_ord,
+                        std::unordered_map<std::string, std::string>* fileName_paths,
+                        std::unordered_set<std::string>* folder_paths);
 
     void select_QString(QString path, bool cntrl_prsd, bool shift_prsd);
     void select(std::string path, bool cntrl_prsd, bool shift_prsd);
@@ -54,6 +61,11 @@ public slots:
 
     void close();
 private:
+    void printSelection() const;
+
+    void clearContainers();
+    void clearSelectionVars();
+
     std::unordered_set<std::string> m_selected_paths;
     std::unordered_set<std::string> m_selected_folders_paths;
 
@@ -63,8 +75,9 @@ private:
     std::unordered_map<std::string, std::string>* m_fileName_paths;
     std::unordered_set<std::string>* m_folder_paths;
 
-    int_bd m_slctd_id;
-    std::string m_latestSelctdPath;
+    int_bd m_focused_ord;
+    std::string m_focusedPath;
+
     std::string m_slct_key_word;
 };
 

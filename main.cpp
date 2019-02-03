@@ -5,6 +5,7 @@
 #include <QDir>
 #include <QString>
 #include <QVector>
+#include <QSize>
 
 #include <string>
 #include <vector>
@@ -15,6 +16,10 @@
 
 #include "file_handling_src/fibdviewer.h"
 #include "file_handling_src/dirmanagerinfo.h"
+#include "file_handling_src/dirdeepsearchworker.h"
+
+#include "orderby.h"
+#include "staticfunctions_files.h"
 
 Q_DECLARE_METATYPE(QThread::Priority);
 
@@ -33,6 +38,12 @@ Q_DECLARE_METATYPE(std::vector<DirManagerInfo>);
 Q_DECLARE_METATYPE(QDir);
 Q_DECLARE_METATYPE(std::vector<QDir>);
 Q_DECLARE_METATYPE(QVector<QDir>);
+
+Q_DECLARE_METATYPE(Order);
+
+Q_DECLARE_METATYPE(DeepSearchResult);
+Q_DECLARE_METATYPE(std::vector<DeepSearchResult>);
+
 
 void setStyles(QApplication& app)
 {
@@ -70,6 +81,14 @@ int main(int argc, char *argv[])
     qRegisterMetaType<QDir>();
     qRegisterMetaType<std::vector<QDir>>();
     qRegisterMetaType<QVector<QDir>>();
+
+    qRegisterMetaType<Order>();
+
+    qRegisterMetaType<DeepSearchResult>();
+    qRegisterMetaType<std::vector<DeepSearchResult>>();
+
+//    QPixmap pm = STATIC_FUNCTIONS::getPixmapFromPDF(QString("/home/hippo/Documents/stones.pdf"), QSize(50,50));
+//    qDebug() << "pixmap-size: " << pm.size();
 
     setStyles(a);
 

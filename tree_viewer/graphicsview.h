@@ -77,6 +77,7 @@ class GraphicsView : public QGraphicsView
     Q_OBJECT
 public:
     explicit GraphicsView(FileManagerInfo* fmi,
+                          std::unordered_map<int_bd, FiBDViewer> entriesToRender,
                           int hBarValue = 0,
                           int vBarValue = 0,
                           int zoomFactor = 9,
@@ -168,6 +169,7 @@ signals:
 public slots:
     void receiveFileViewers(std::unordered_map<int_bd, FiBDViewer> new_files);
     void receiveFileManagerMetaData(FileManagerInfo* fmi);
+    void receiveFileManagerData(std::unordered_map<int_bd, FiBDViewer> new_files, FileManagerInfo* fmi);
 
     void requestFocus();
 
@@ -200,6 +202,9 @@ protected:
      void enterEvent(QEvent *event);
      void leaveEvent(QEvent* event);
 private:
+     void setFileManager_MetaData(FileManagerInfo* fmi);
+     void revalFileManagerMetaData();
+
     void paintTopRectangle(const QPointF& center,
                            const QSize& size);
 
@@ -275,7 +280,7 @@ private:
     int_bd m_curDispFI = 0;
     int_bd m_fileCount = 0;
     int_bd m_fileMaxCount = 500;
-    int_bd m_filePuffer = 200;
+    int_bd m_filePuffer = 20;
 
     QGraphicsItemGroup* m_graphicsGroup = new QGraphicsItemGroup();
 

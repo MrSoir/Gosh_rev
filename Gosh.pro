@@ -102,7 +102,8 @@ SOURCES += \
         tab_coordiantor/tabselectorpane.cpp \
         customgraphicitems.cpp \
         tab_coordiantor/tabrect.cpp \
-    widgetcreator.cpp
+    widgetcreator.cpp \
+    file_handling_src/image_retriever.cpp
 
 HEADERS += \
          mainwindow.h \
@@ -185,7 +186,8 @@ HEADERS += \
         tab_coordiantor/tabselectorpane.h \
         customgraphicitems.h \
         tab_coordiantor/tabrect.h \
-        widgetcreator.h
+        widgetcreator.h \
+    file_handling_src/image_retriever.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

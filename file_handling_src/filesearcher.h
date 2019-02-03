@@ -21,7 +21,7 @@ class FileSearcher : public QObject
 {
     Q_OBJECT
 public:
-    explicit FileSearcher(std::unordered_map<std::string, std::string>* fileName_paths,
+    explicit FileSearcher(std::unordered_map<std::string, std::string>* path_fileName,
                           std::unordered_map<std::string, int_bd>* path_ord,
                           QObject *parent = nullptr);
     ~FileSearcher();
@@ -44,6 +44,8 @@ signals:
     void searchResultsChanged();
 public slots:
     void entriesChanged();
+    void entriesChanged(std::unordered_map<std::string, std::string>* path_fileName,
+                        std::unordered_map<std::string, int_bd>* path_ord);
 
     void search_QString(QString key_word);
     void search(std::string key_word);
@@ -61,12 +63,14 @@ private:
 
     void resetCurMatchVars();
 
+    void printMatches() const;
+
     std::string m_key_word; // string that is searched for
     std::unordered_set<std::string> m_matched_paths; // all paths, which's fileNames contain the m_key_word
     std::unordered_map<int_bd, std::string> m_ord_matchedPaths;
 
 //    std::unordered_set<std::string> m_paths; // all paths
-    std::unordered_map<std::string, std::string>* m_fileName_path; // map: fileName -> path
+    std::unordered_map<std::string, std::string>* m_path_fileName; // map: fileName -> path
     std::unordered_map<std::string, int_bd>* m_path_ord;
 
     bool m_inSearchMode;

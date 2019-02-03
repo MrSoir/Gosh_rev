@@ -52,7 +52,7 @@ public:
     Order order;
 
     std::vector<DirManagerInfo*> subDirs_sorted;
-    std::vector<std::string> files_sorted;
+    std::vector<std::pair<std::string,std::string>> files_sorted; // path -> fileName
 };
 
 #endif // DIRMANAGERINFO_H

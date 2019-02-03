@@ -16,8 +16,8 @@ FileSelector::FileSelector(std::unordered_set<std::string>* paths,
       m_fileName_paths(fileName_paths),
       m_folder_paths(folder_paths),
 
-      m_slctd_id(-1),
-      m_latestSelctdPath(std::string("")),
+      m_focused_ord(-1),
+      m_focusedPath(std::string("")),
       m_slct_key_word(std::string(""))
 {
 }
@@ -29,8 +29,8 @@ FileSelector::~FileSelector()
     m_ord_paths = nullptr;
     m_paths_ord = nullptr;
     m_fileName_paths = nullptr;
-    m_slctd_id = -1;
-    m_latestSelctdPath = "";
+    m_focused_ord = -1;
+    m_focusedPath = "";
     m_slct_key_word = "";
 }
 
@@ -59,7 +59,7 @@ const std::unordered_set<std::string>& FileSelector::getSelectedEntries() const
 
 std::string FileSelector::getLastSelectedEntry() const
 {
-    return m_latestSelctdPath;
+    return m_focusedPath;
 //    if(m_slctd_id > -1 && m_ord_paths &&
 //            m_ord_paths->find(m_slctd_id) != m_ord_paths->end())
 //    {
@@ -89,26 +89,33 @@ void FileSelector::entriesChanged()
 {
     auto oldMatchCount = m_selected_paths.size();
 
-    if(m_paths_ord && !m_latestSelctdPath.empty() )
+    // schauen, ob in unter den neuen entries der alte m_focusedPath enthalten ist
+    if(m_paths_ord && !m_focusedPath.empty() )
     {
-        auto srch = (*m_paths_ord).find(m_latestSelctdPath);
-        if(srch != m_paths_ord->end())
+        auto it = (*m_paths_ord).find(m_focusedPath);
+        if(it != m_paths_ord->end())
         {
-            m_slctd_id = static_cast<int_bd>(srch->second);
+            m_focused_ord = it->second;
         }else{
-            m_slctd_id = -1;
-            m_latestSelctdPath = "";
+            clearSelectionVars();
         }
     }else{
-        m_slctd_id = -1;
-        m_latestSelctdPath = "";
+        clearSelectionVars();
     }
 
     for(auto it=m_selected_paths.begin(); it != m_selected_paths.end(); )
     {
-        if( m_paths->find(*it) != m_paths->end() )
+        std::string path = *it;
+
+        if( m_paths->find(path) == m_paths->end() )
         {
             it = m_selected_paths.erase(it);
+
+            auto folder_it = m_selected_folders_paths.find( path );
+            if(folder_it != m_selected_folders_paths.end())
+            {
+                m_selected_folders_paths.erase(folder_it);
+            }
         }else{
             ++it;
         }
@@ -120,6 +127,21 @@ void FileSelector::entriesChanged()
     }
 }
 
+void FileSelector::entriesChanged(std::unordered_set<std::string>* paths,
+                                  std::unordered_map<int_bd, std::string>* ord_paths,
+                                  std::unordered_map<std::string, int_bd>* paths_ord,
+                                  std::unordered_map<std::string, std::string>* fileName_paths,
+                                  std::unordered_set<std::string>* folder_paths)
+{
+    m_paths = paths;
+    m_ord_paths = ord_paths;
+    m_paths_ord = paths_ord;
+    m_fileName_paths = fileName_paths;
+    m_folder_paths = folder_paths;
+
+    entriesChanged();
+}
+
 void FileSelector::select_QString(QString path, bool cntrl_prsd, bool shift_prsd)
 {
     select(path.toStdString(), cntrl_prsd, shift_prsd);
@@ -129,37 +151,46 @@ void FileSelector::select(std::string path, bool cntrl_prsd, bool shift_prsd)
 {
     if(shift_prsd)
     {
-        if(m_paths_ord)
+        if(m_paths_ord &&
+                ((*m_paths_ord).find(path) != (*m_paths_ord).end()))
         {
-            auto id = (*m_paths_ord)[path];
-            auto lastId = m_slctd_id == -1 ? id : static_cast<int_bd>(m_slctd_id);
-            auto lower = id < lastId ? id : lastId;
-            auto upper = id > lastId ? id : lastId;
+            auto ord = (*m_paths_ord)[path];
+            auto lastId = m_focused_ord == -1 ? ord : m_focused_ord;
+            auto lower = ord < lastId ? ord : lastId;
+            auto upper = ord > lastId ? ord : lastId;
             for(auto i = lower; i <= upper; ++i)
             {
                 const auto& cur_path = (*m_ord_paths)[i];
 
-                m_selected_paths.emplace( cur_path );
+                m_selected_paths.insert( cur_path );
 
                 if(m_folder_paths->find(cur_path) != m_folder_paths->end())
-                    m_selected_folders_paths.emplace(cur_path);
+                    m_selected_folders_paths.insert(cur_path);
             }
-            m_slctd_id = static_cast<int_bd>(id);
+
+            m_focused_ord = ord;
+            m_focusedPath = path;
+
+        }else{
+            clearSelectionVars();
         }
     }else{
         if( !cntrl_prsd )
         {
-            m_selected_paths.clear();
-            m_selected_folders_paths.clear();
+            clearContainers();
         }
-        m_selected_paths.emplace(path);
-        m_slctd_id = static_cast<int_bd>((*m_paths_ord)[path]);
+        if((*m_paths_ord).find(path) != (*m_paths_ord).end())
+        {
+            m_selected_paths.insert(path);
+            m_focused_ord = (*m_paths_ord)[path];
+            m_focusedPath = path;
 
-        if(m_folder_paths->find(path) != m_folder_paths->end())
-            m_selected_folders_paths.emplace(path);
+            if(m_folder_paths->find(path) != m_folder_paths->end())
+                m_selected_folders_paths.emplace(path);
+        }else{
+            clearSelectionVars();
+        }
     }
-
-    m_latestSelctdPath = path;
 
     emit selectionChanged();
 }
@@ -168,9 +199,23 @@ void FileSelector::selectEntireContent()
 {
     for(auto& pth: *m_paths)
         m_selected_paths.emplace(pth);
+
     for(auto& pth: *m_folder_paths)
         m_selected_folders_paths.emplace(pth);
-    m_slctd_id = m_slctd_id == -1 ? 1 : m_slctd_id;
+
+    if(m_ord_paths->find(m_focused_ord) != m_ord_paths->end())
+    {
+        m_focusedPath = (*m_ord_paths)[m_focused_ord];
+    }
+    else if( (m_ord_paths->find(0) != m_ord_paths->end()) )
+    {
+        m_focused_ord = 0;
+        m_focusedPath = (*m_ord_paths)[0];
+    }
+    else
+    {
+        clearSelectionVars();
+    }
 
     emit selectionChanged();
 }
@@ -179,8 +224,7 @@ void FileSelector::clearSelection()
 {
     m_selected_paths.clear();
     m_selected_folders_paths.clear();
-    m_slctd_id = -1;
-    m_latestSelctdPath = "";
+    clearSelectionVars();
     m_slct_key_word = "";
 
     emit selectionChanged();
@@ -190,41 +234,67 @@ void FileSelector::selectNext(bool cntrl_prsd, bool shift_prsd)
 {
     if( !(cntrl_prsd || shift_prsd) )
     {
-        m_selected_paths.clear();
+        clearContainers();
     }
 
     if( m_ord_paths )
     {
-        if( ++m_slctd_id > static_cast<int>(m_paths->size()) )
+        if( ++m_focused_ord >= static_cast<int_bd>(m_paths->size()) )
         {
-            m_slctd_id = 0;
+            m_focused_ord = 0;
         }
-        std::string nextPath = (*m_ord_paths)[static_cast<int_bd>(m_slctd_id)];
-        m_latestSelctdPath = nextPath;
-        m_selected_paths.emplace( nextPath );
+        auto it = m_ord_paths->find(m_focused_ord);
+        if(it != m_ord_paths->end())
+        {
+            auto path = it->second;
+
+            m_focused_ord = it->first;
+            m_focusedPath = path;
+
+            m_selected_paths.insert(path);
+
+            if(m_folder_paths->find(path) != m_folder_paths->end())
+                m_selected_folders_paths.emplace(path);
+
+        }else{
+            clearSelectionVars();
+        }
     }
+
     emit selectionChanged();
-    emit focusPath(m_latestSelctdPath);
+    emit focusPath(m_focusedPath);
 }
 void FileSelector::selectPrevious(bool cntrl_prsd, bool shift_prsd)
 {
     if( !(cntrl_prsd || shift_prsd) )
     {
-        m_selected_paths.clear();
+        clearContainers();
     }
 
     if( m_ord_paths )
     {
-        if( --m_slctd_id < 0 )
+        if( --m_focused_ord < 0 )
         {
-            m_slctd_id = 0;
+            m_focused_ord = static_cast<int_bd>(m_paths->size()) - 1;
         }
-        std::string prevPath = (*m_ord_paths)[static_cast<int_bd>(m_slctd_id)];
-        m_latestSelctdPath = prevPath;
-        m_selected_paths.emplace( prevPath );
+        auto it = m_ord_paths->find(m_focused_ord);
+        if(it != m_ord_paths->end())
+        {
+            auto path = it->second;
+
+            m_focused_ord = it->first;
+            m_focusedPath = path;
+
+            m_selected_paths.insert(path);
+
+            if(m_folder_paths->find(path) != m_folder_paths->end())
+                m_selected_folders_paths.emplace(path);
+        }else{
+            clearSelectionVars();
+        }
     }
     emit selectionChanged();
-    emit focusPath(m_latestSelctdPath);
+    emit focusPath(m_focusedPath);
 }
 
 void FileSelector::selectKeyWord(std::string key)
@@ -237,11 +307,11 @@ void FileSelector::selectKeyWord(std::string key)
             {
                 m_selected_paths.clear();
                 m_selected_paths.emplace(it->second);
-                m_latestSelctdPath = it->second;
-                m_slctd_id = static_cast<int_bd>((*m_paths_ord)[it->second]);
+                m_focusedPath = it->second;
+                m_focused_ord = (*m_paths_ord)[it->second];
 
                 emit selectionChanged();
-                emit focusPath(m_latestSelctdPath);
+                emit focusPath(m_focusedPath);
 
                 return;
             }
@@ -252,6 +322,27 @@ void FileSelector::selectKeyWord(std::string key)
 void FileSelector::close()
 {
     delete this;
+}
+
+void FileSelector::printSelection() const
+{
+    qDebug() << "selected paths:";
+    for(const auto& path: m_selected_paths)
+    {
+        qDebug() << "   " << QString::fromStdString(path);
+    }
+}
+
+void FileSelector::clearContainers()
+{
+    m_selected_paths.clear();
+    m_selected_folders_paths.clear();
+}
+
+void FileSelector::clearSelectionVars()
+{
+    m_focused_ord = -1;
+    m_focusedPath = "";
 }
 
 //------------------------------------------------------------_

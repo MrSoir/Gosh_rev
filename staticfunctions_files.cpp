@@ -98,8 +98,8 @@ Process* STATIC_FUNCTIONS::execPythonScript(const QString &scriptPath, const QVe
     if(waitForFinished)
     {
         p->waitForFinished(-1);
-        QString p_stdout = p->readAll();
-        qDebug() << p_stdout;
+//        QString p_stdout = p->readAll();
+//        qDebug() << p_stdout;
         return nullptr;
     }else
         return p;
@@ -112,6 +112,75 @@ Process* STATIC_FUNCTIONS::execPythonScript(const string &scriptPath, const std:
         q_args.push_back(QString::fromStdString(arg));
 
     return execPythonScript(QString::fromStdString(scriptPath), q_args, waitForFinished);
+}
+
+Process *STATIC_FUNCTIONS::execCommand(const QString &program, const QVector<QString> &args, bool waitForFinished)
+{
+    Process* p = new Process();
+    QStringList params;
+
+    for(const auto& arg: args)
+        params << arg;
+
+    QString s(program);
+    for(const auto& arg: args)
+        s = s.append("  " + arg);
+    qDebug() << s;
+
+    p->start(program, params);
+    if(waitForFinished)
+    {
+        p->waitForFinished(-1);
+//        QString p_stdout = p->readAll();
+//        qDebug() << p_stdout;
+        return nullptr;
+    }else
+        return p;
+}
+Process* STATIC_FUNCTIONS::execCommand(const std::string& program, const std::vector<std::string>& args, bool waitForFinished)
+{
+    QVector<QString> q_args;
+    for(const auto& arg: args)
+        q_args.push_back(QString::fromStdString(arg));
+
+    return execCommand(QString::fromStdString(program), q_args, waitForFinished);
+}
+
+//--------------------------------------------------------------------------------------------------
+
+QPixmap STATIC_FUNCTIONS::getPixmapFromPDF(const QString& path, QSize imageSize)
+{
+    //    convert -density 150 input.pdf -quality 90 output.png
+    QString tmpDirPth = getTempResourcesDir();
+    QString tmpTarFilePath = getUniqueRandomFilePathInDir(tmpDirPth, ".png");
+
+    qDebug() << "tmpDirPth: " << tmpDirPth;
+    qDebug() << "tmpTarFilePath: " << tmpTarFilePath;
+
+    QString program("convert");
+
+    QVector<QString> args;
+    args.push_back("-density");
+    args.push_back("10");
+    args.push_back(path);
+    args.push_back("-quality");
+    args.push_back("10");
+    args.push_back(tmpTarFilePath);
+
+    execCommand(program, args, true);
+
+    QFileInfo fi(tmpTarFilePath);
+    if(fi.exists())
+    {
+        return QPixmap(tmpTarFilePath).scaled(imageSize);
+    }
+
+    return QPixmap();
+}
+
+QPixmap STATIC_FUNCTIONS::getPixmapFromPDF(const string &path, QSize imageSize)
+{
+    return getPixmapFromPDF(QString::fromStdString(path), imageSize);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -172,6 +241,60 @@ QString STATIC_FUNCTIONS::getUniqueFolderPath(const QString &absFolderPath)
 
     return path;
 }
+
+QString STATIC_FUNCTIONS::getUniqueFilePathInDir(const QString &dir,
+                                                 const QString& fileExtension)
+{
+    return getUniqueFilePathInDir_hlpr(dir, "new_file", fileExtension);
+}
+QString STATIC_FUNCTIONS::getUniqueRandomFilePathInDir(const QString& dir,
+                                     const QString& fileExtension)
+{
+    qDebug() << genRandomFileBaseName();
+    return getUniqueFilePathInDir_hlpr(dir, genRandomFileBaseName(), fileExtension);
+}
+
+QString STATIC_FUNCTIONS::getUniqueFolderPathInDir(const QString &dir)
+{
+    return getUniqueFolderPathInDir_hlpr(dir, "new_folder");
+}
+
+QString STATIC_FUNCTIONS::getUniqueRandomFolderPathInDir(const QString &dir)
+{
+    return getUniqueFolderPathInDir_hlpr(dir, genRandomFileBaseName());
+}
+
+
+QString STATIC_FUNCTIONS::getUniqueFilePathInDir_hlpr(const QString &dir,
+                                                      const QString& fileBaseName,
+                                                      const QString& fileExtension)
+{
+    QString fileExtWithDot = fileExtension;
+
+    if( !fileExtWithDot.startsWith(".") )
+        fileExtWithDot = fileExtWithDot.prepend(".");
+
+    QString firstShot = dir + QDir::separator() + fileBaseName + fileExtension;
+    return getUniqueFilePath(firstShot);
+}
+
+QString STATIC_FUNCTIONS::getUniqueFolderPathInDir_hlpr(const QString &dir, const QString &dirName)
+{
+    QString firstShot = dir + QDir::separator() + dirName;
+    return getUniqueFolderPath(firstShot);
+}
+
+QString STATIC_FUNCTIONS::genRandomFileBaseName()
+{
+    QString s;
+    for(int i=0; i < 20; ++i)
+    {
+        int r = rand() % 26 + 65;
+        s.append( static_cast<char>(r) );
+    }
+    return s;
+}
+
 
 //--------------------------------------------------------------------------------------------------
 
@@ -308,3 +431,66 @@ OS STATIC_FUNCTIONS::LOCAL_OS()
         return OS::UNKNOWN;
 }
 
+//----------------------------------------------------------------------------------
+
+bool STATIC_FUNCTIONS::isSupportedImage(const QFileInfo &fi)
+{
+    QString lowerFileName = fi.fileName().toLower();
+
+    QMimeType mime_type = MIME_DATA_BASE.mimeTypeForFile(fi);
+    auto supported_image_mimes = QImageReader::supportedImageFormats();
+    for(const auto& bs: supported_image_mimes)
+    {
+        QString ss(bs.toLower());
+        if(lowerFileName.endsWith(ss)){
+            return true;
+        }
+    }
+    return false;
+}
+
+bool STATIC_FUNCTIONS::isSupportedImage(const string& path)
+{
+    return isSupportedImage(QFileInfo(QString::fromStdString(path)));
+}
+
+bool STATIC_FUNCTIONS::isSupportedImage(const QString& path)
+{
+    return isSupportedImage(QFileInfo(path));
+}
+
+//----------------------------------------------------------------------------------
+
+bool STATIC_FUNCTIONS::isPDF(const string& path)
+{
+    return isPDF(QFileInfo(QString::fromStdString(path)));
+}
+
+bool STATIC_FUNCTIONS::isPDF(const QString& path)
+{
+    return isPDF(QFileInfo(path));
+}
+
+bool STATIC_FUNCTIONS::isPDF(const QFileInfo& fi)
+{
+    return fi.fileName().toLower().endsWith("pdf");
+}
+
+QString STATIC_FUNCTIONS::getResourceDir()
+{
+    QDir dir;
+    return QDir(QString("%1%2%3").arg(dir.absolutePath())
+                                 .arg(QDir::separator())
+                                 .arg("resources")).absolutePath();
+}
+
+QString STATIC_FUNCTIONS::getTempResourcesDir()
+{
+
+    QDir dir;
+    return QDir(QString("%1%2%3%4%5").arg(dir.absolutePath())
+                                     .arg(QDir::separator())
+                                     .arg("resources")
+                                     .arg(QDir::separator())
+                                     .arg("tmp")).absolutePath();
+}

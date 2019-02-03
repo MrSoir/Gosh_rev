@@ -291,7 +291,7 @@ void TabSelectorPane::createTab(int x, int id)
         m_scene->addItem( tabRect );
 }
 
-TabRect* TabSelectorPane::createTabRect(QPoint pos, const int id, QString tabLabel) const
+TabRect* TabSelectorPane::createTabRect(QPoint pos, const int id, QString tabLabel)
 {
     QFont font = StaticFunctions::getGoshFont(8);
 
@@ -311,8 +311,8 @@ TabRect* TabSelectorPane::createTabRect(QPoint pos, const int id, QString tabLab
                                    txtCol1,
                                    txtCol2);
 
-    tabRect->setCallbackFunctions([=](){/*emit tabClicked(id);*/},
-                                  [=](){/*emit tabCloseClicked(id);*/}
+    tabRect->setCallbackFunctions([=](){emit tabClicked(id);},
+                                  [=](){emit tabCloseClicked(id);}
                                  );
     return tabRect;
 }

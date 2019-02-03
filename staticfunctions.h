@@ -40,9 +40,11 @@
 using namespace std;
 using namespace Orientation;
 
-static QMimeDatabase m_mimeDataBase;
-
 namespace StaticFunctions {
+
+    static QMimeDatabase m_mimeDataBase;
+
+    bool isSupportedImage(const QFileInfo& fi);
 
     bool controlPressed();
     bool shiftPressed();

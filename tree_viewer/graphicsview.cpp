@@ -2,6 +2,7 @@
 
 
 GraphicsView::GraphicsView(FileManagerInfo* fmi,
+                           std::unordered_map<int_bd, FiBDViewer> entriesToRender,
                            int hBarValue,
                            int vBarValue,
                            int zoomFactor,
@@ -12,9 +13,14 @@ GraphicsView::GraphicsView(FileManagerInfo* fmi,
       m_isLoading(false),
       m_loadingId(0),
       m_animationTimer(new QTimer(this)),
-      m_fileMangrInfo(fmi)
+      m_fileMangrInfo(fmi),
+      m_entriesToRender(entriesToRender)
 {
-    qDebug() << "GraphicsView-Constructor";
+    qDebug() << "GraphicsView-Constructor - entriesToRender: " << entriesToRender.size()
+             << "   vBarValue: " << vBarValue
+             << "   hBarValue: " << hBarValue;
+
+    revalFileManagerMetaData();
 
     revalidateRowHeight();
 
@@ -61,10 +67,10 @@ GraphicsView::GraphicsView(FileManagerInfo* fmi,
     connect(this->verticalScrollBar(),   &QScrollBar::valueChanged,  this, &GraphicsView::vScrollValueChanged);
     connect(this->horizontalScrollBar(), &QScrollBar::valueChanged,  this, &GraphicsView::hScrollValueChanged);
 
+    rePaintCanvas();
+
     setHBarValue(hBarValue);
     setVBarValue(vBarValue);
-
-    rePaintCanvas();
 }
 
 GraphicsView::~GraphicsView()
@@ -369,6 +375,23 @@ void GraphicsView::leaveEvent(QEvent *event)
     Q_UNUSED(event);
 }
 
+void GraphicsView::setFileManager_MetaData(FileManagerInfo* fmi)
+{
+    if(m_fileMangrInfo)
+        delete m_fileMangrInfo;
+
+    m_fileMangrInfo = fmi;
+    revalFileManagerMetaData();
+
+    qDebug() << "m_firstDispFI: " << m_firstDispFI;
+    qDebug() << "m_lastDispFI: " << m_lastDispFI;
+}
+void GraphicsView::revalFileManagerMetaData()
+{
+    m_fileCount = m_fileMangrInfo->displayedFileCount();
+    revalFirstAndLastDisplayedFI();
+}
+
 
 void GraphicsView::updateGraphicsView()
 {
@@ -387,6 +410,7 @@ int GraphicsView::getHScrollBarValue()
 
 void GraphicsView::receiveFileViewers(std::unordered_map<int_bd, FiBDViewer> new_files)
 {
+    qDebug() << "GraphicsView::receiveFileViewers -  new_files:" << new_files.size();
     m_entriesToRender = new_files;
     revalidate();
 }
@@ -394,15 +418,19 @@ void GraphicsView::receiveFileViewers(std::unordered_map<int_bd, FiBDViewer> new
 void GraphicsView::receiveFileManagerMetaData(FileManagerInfo* fmi)
 {
     qDebug() << "GraphicsView::receiveFileManagerMetaData";
-    if(m_fileMangrInfo)
-        delete m_fileMangrInfo;
 
-    m_fileMangrInfo = fmi;
-    m_fileCount = fmi->displayedFileCount();
-    revalFirstAndLastDisplayedFI();
-    qDebug() << "m_firstDispFI: " << m_firstDispFI;
-    qDebug() << "m_lastDispFI: " << m_lastDispFI;
+    setFileManager_MetaData(fmi);
 
+    revalidate();
+}
+
+void GraphicsView::receiveFileManagerData(std::unordered_map<long long, FiBDViewer> new_files,
+                                          FileManagerInfo *fmi)
+{
+    qDebug() << "GraphicsView::receiveFileManagerData";
+
+    m_entriesToRender = new_files;
+    setFileManager_MetaData(fmi);
     revalidate();
 }
 
@@ -569,10 +597,10 @@ void GraphicsView::closeMenuBar()
 
 void GraphicsView::addElapseBar()
 {
-    ElapseMenuBD* elapseMenu = new ElapseMenuBD(m_fileMangrInfo->maxDepth()+1,
-                                               m_colOffs*2,
-                                               QSize(this->viewport()->width(),m_elapseBarHeight),
-                                               QPoint(0,0)
+    ElapseMenuBD* elapseMenu = new ElapseMenuBD(static_cast<int>(m_fileMangrInfo->maxDepth()),
+                                                m_colOffs*2,
+                                                QSize(this->viewport()->width(),m_elapseBarHeight),
+                                                QPoint(0,0)
                                              );
     elapseMenu->setBackroundColor(m_elapseCol1, m_elapseCol2);
     elapseMenu->setPosition(QPoint(this->horizontalScrollBar()->value(), this->verticalScrollBar()->value()));

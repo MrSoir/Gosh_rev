@@ -56,6 +56,7 @@ void TabCoordinator::addTab()
 
 void TabCoordinator::setTab(int id)
 {
+    qDebug() << "TabCoordinator::setTab: " << id;
     if(m_windows.size() > id)
     {
         emit revalidateTabCoordinatorPane();

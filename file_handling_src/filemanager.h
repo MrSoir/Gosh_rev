@@ -45,6 +45,8 @@
 
 #include "widgetcreator.h"
 
+#define INIT_ZOOM_FACTOR 9
+
 #define int_bd long long
 
 class FileManager : public QObject,
@@ -110,6 +112,7 @@ signals:
 
     void revalidateViewer_Entries(std::unordered_map<int_bd, FiBDViewer> entries); // -> GrahpicsView::receiveFileViewers
     void revalidateViewer_MetaData( FileManagerInfo* fmi ); // GraphicsView::receiveFileManagerMetaData
+    void revalidateViewer_EntireData(std::unordered_map<int_bd, FiBDViewer> entries, FileManagerInfo* fmi);
 
 
     // signals for DirManager:
@@ -175,14 +178,6 @@ public slots:
     void setIncludeHiddenFiles(bool inclHdnFls); // showHiddenFilesSGNL
 
     void openSelectedFoldersInTab(); // requestOpenFoldersInTab
-
-//    void searchForKeyWord(QString keyword, bool deepsearch); // searchForKeyWord
-
-//    void selectEntireContent(); // selectEntireContent
-//    void clearSelection(); // clearSelection
-//    void selectButtonUp(bool cntrlPrsd, bool shiftPrsd); // selectButtonUp
-//    void selectButtonDown(bool cntrlPrsd, bool shiftPrsd); // selectButtonDown
-//    void selectEntry(QString entry, bool contrlPrsd, bool shiftPrsd); // selectContent
 
     void sortDir(QString dir, Order order); // sortDir
     void sortDirs(std::vector<QString> dirs, Order order);
@@ -253,6 +248,7 @@ private:
 
     void revalidateViewer_entries_hlpr();
     void revalidateViewer_metaData_hlpr();
+    void revalidateViewer_EntireData_hlpr();
     std::unordered_map<int_bd, FiBDViewer> generateViewerData();
 
     void clearEntryContainers();
@@ -268,13 +264,16 @@ private:
     std::chrono::milliseconds getCurrentTime() const;
 
     void replaceTree(DirManagerInfo* tree);
-    void replaceTree_hlpr(DirManagerInfo* entry,
+    void revalidateTree();
+    void revalidateTree_hlpr(DirManagerInfo* entry,
                           DirManagerInfo* firstNonCollapsedFold,
                           bool isCollapsed,
                           int_bd* cntr,
                           int_bd* cntr_clpsd,
                           int depthId,
                           int* maxDepthId);
+
+    void printEntries();
 
 //    --------------------------------
 
@@ -301,8 +300,8 @@ private:
     std::unordered_map<std::string, int> m_path_depthId_colpsd;
     std::unordered_map<int, std::unordered_set<std::string>> m_depth_folders_colpsd; // FileManager: depthID of folder -> folder (wird fuer collapseFoldersOfDepthId benoetigt)
 
-    std::unordered_map<std::string, std::string> m_fileNames; // FileSearcher: path to fileName
-    std::unordered_map<std::string, std::string> m_fileNames_colpsd; // FileSearcher: path to fileName
+    std::unordered_map<std::string, std::string> m_path_fileNames; // FileSearcher: path to fileName
+    std::unordered_map<std::string, std::string> m_path_fileNames_colpsd; // FileSearcher: path to fileName
 
     FileQueue* m_tasks_queue;
 
@@ -312,7 +311,6 @@ private:
     int_bd m_lastDispFile;
 
     bool m_showHiddenFiles;
-    bool m_inSearchMode;
 
     std::chrono::milliseconds m_lastKeyPressed;
     std::string m_keysPressed;

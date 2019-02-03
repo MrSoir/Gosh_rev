@@ -9,11 +9,15 @@
 #include <QDebug>
 #include <QObject>
 #include <QSysInfo>
+#include <QMimeDatabase>
+#include <QMimeData>
+#include <QMimeType>
 
 #include <vector>
 #include <string>
 #include <unordered_set>
 #include <functional>
+#include <stdlib.h> // rand
 
 #include "pathmanipulation.h"
 #include "staticfunctions.h"
@@ -38,6 +42,15 @@ enum OS
 
 namespace STATIC_FUNCTIONS
 {
+    static QMimeDatabase MIME_DATA_BASE;
+
+//----------------------------------------------------------------------------------
+
+    QString getResourceDir();
+    QString getTempResourcesDir();
+
+//----------------------------------------------------------------------------------
+
     unsigned long long evaluateFileCount(const std::vector<std::string>& paths);
 
     // askUserForNoneExistingFilePath -> name ist irrefuehrend: path wird gegeben -> falls path existiert, wird lediglich vom user ein anderer fileName gefragt.
@@ -53,10 +66,29 @@ namespace STATIC_FUNCTIONS
     Process* execPythonScript(const QString& scriptPath, const QVector<QString>& args, bool waitForFinished = true);
     Process* execPythonScript(const std::string& scriptPath, const std::vector<std::string>& args, bool waitForFinished = true);
 
+    Process* execCommand(const QString& program, const QVector<QString>& args, bool waitForFinished = true);
+    Process* execCommand(const std::string& program, const std::vector<std::string>& args, bool waitForFinished = true);
+
+//----------------------------------------------------------------------------------
+
+    QPixmap getPixmapFromPDF(const QString& path, QSize imageSize);
+    QPixmap getPixmapFromPDF(const std::string& path, QSize imageSize);
+
 //----------------------------------------------------------------------------------
 
     QString getUniqueFilePath(const QString& absFilePath);
+    QString getUniqueFilePathInDir(const QString& dir, const QString& fileExtension);
+    QString getUniqueRandomFilePathInDir(const QString& dir, const QString& fileExtension);
     QString getUniqueFolderPath(const QString& absFolderPath);
+    QString getUniqueFolderPathInDir(const QString& dir);
+    QString getUniqueRandomFolderPathInDir(const QString& dir);
+
+    //-----
+
+    QString getUniqueFilePathInDir_hlpr(const QString& dir, const QString& fileBaseName, const QString& fileExtension);
+    QString getUniqueFolderPathInDir_hlpr(const QString& dir, const QString& dirName);
+
+    QString genRandomFileBaseName();
 
 //----------------------------------------------------------------------------------
 
@@ -89,6 +121,19 @@ namespace STATIC_FUNCTIONS
 
         delete_func(oa);
     }
+
+//----------------------------------------------------------------------------------
+
+    bool isSupportedImage(const std::string& path);
+    bool isSupportedImage(const QString& path);
+    bool isSupportedImage(const QFileInfo& fi);
+
+//----------------------------------------------------------------------------------
+
+    bool isPDF(const std::string& path);
+    bool isPDF(const QString& path);
+    bool isPDF(const QFileInfo& fi);
+
 }
 
 #endif // SATATICFUNCTIONS_FILES_H

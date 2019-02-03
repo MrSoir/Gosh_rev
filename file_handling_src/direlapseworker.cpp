@@ -10,6 +10,7 @@ DirElapseWorker::DirElapseWorker(std::vector<FileInfoBD*> dirsToElapse,
       m_useSubThreads(!collapse),
       m_runningThreads(0)
 {
+    qDebug() << "DirElapseWorker - collapse: " << collapse;
     connectSignals();
     STATIC_FUNCTIONS::removeSubDirsIfParentDirIsInContainer(m_dirsToElapse);
 }

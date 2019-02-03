@@ -1,18 +1,18 @@
 #include "filesearcher.h"
 
-FileSearcher::FileSearcher(std::unordered_map<std::string, std::string>* fileName_paths,
-                           std::unordered_map<std::string, long long>* path_ord,
+FileSearcher::FileSearcher(std::unordered_map<std::string, std::string>* path_fileName,
+                           std::unordered_map<std::string, int_bd>* path_ord,
                            QObject *parent)
     : QObject(parent),
       m_key_word(std::string()),
       m_matched_paths(std::unordered_set<std::string>()),
       m_ord_matchedPaths(std::unordered_map<int_bd, std::string>()),
 
-      m_fileName_path(fileName_paths),
+      m_path_fileName(path_fileName),
       m_path_ord(path_ord),
 
       m_inSearchMode(false),
-      m_focused_match_id(-1),
+      m_focused_match_id(0),
       m_focused_path(""),
       m_matchCount(0)
 {
@@ -20,13 +20,13 @@ FileSearcher::FileSearcher(std::unordered_map<std::string, std::string>* fileNam
 
 FileSearcher::~FileSearcher()
 {
-    m_fileName_path = nullptr; // aufgabe von FileManager dieses zu deleten
+    m_path_fileName = nullptr; // aufgabe von FileManager dieses zu deleten
     m_path_ord = nullptr; // aufgabe von FileManager dieses zu deleten
 
     m_matched_paths.clear();
     m_ord_matchedPaths.clear();
     m_key_word = "";
-    m_focused_match_id = -1;
+    m_focused_match_id = 0;
     m_focused_path = "";
     m_matchCount = 0;
 }
@@ -82,6 +82,15 @@ void FileSearcher::entriesChanged()
         findMatches();
 }
 
+void FileSearcher::entriesChanged(std::unordered_map<std::string, std::string>* path_fileName,
+                                  std::unordered_map<std::string, int_bd>* path_ord)
+{
+    m_path_fileName = path_fileName;
+    m_path_ord = path_ord;
+
+    entriesChanged();
+}
+
 void FileSearcher::search_QString(QString key_word)
 {
     search(key_word.toStdString());
@@ -95,6 +104,7 @@ void FileSearcher::search(std::string key_word)
     {
         // nichts machen
     }else{
+        m_key_word = key_word;
         findMatches();
     }
 }
@@ -140,16 +150,18 @@ void FileSearcher::focusNextMatch()
 {
     if(m_matchCount <= 0)
     {
-        m_focused_path = "";
+        resetCurMatchVars();
         return;
     }
 
     int_bd oldId = m_focused_match_id;
 
-    if(static_cast<int_bd>(++m_focused_match_id) >= m_matchCount)
+    if(++m_focused_match_id >= m_matchCount)
         m_focused_match_id = 0;
 
-    m_focused_path = m_focused_match_id > -1 ? m_ord_matchedPaths[static_cast<int_bd>(m_focused_match_id)] : "";
+    m_focused_path = m_ord_matchedPaths.find(m_focused_match_id) != m_ord_matchedPaths.end()
+                        ? m_ord_matchedPaths[m_focused_match_id]
+                        : "";
 
     if(oldId != m_focused_match_id)
         emit searchResultsChanged();
@@ -158,7 +170,7 @@ void FileSearcher::focusPreviousMatch()
 {
     if(m_matchCount <= 0)
     {
-        m_focused_path = "";
+        resetCurMatchVars();
         return;
     }
 
@@ -166,10 +178,12 @@ void FileSearcher::focusPreviousMatch()
 
     if(--m_focused_match_id < 0)
     {
-        m_focused_match_id = static_cast<int_bd>(m_matchCount) - 1;
+        m_focused_match_id = m_matchCount - 1;
     }
 
-    m_focused_path = m_ord_matchedPaths[static_cast<int_bd>(m_focused_match_id)];
+    m_focused_path = m_ord_matchedPaths.find(m_focused_match_id) != m_ord_matchedPaths.end()
+                        ? m_ord_matchedPaths[m_focused_match_id]
+                        : "";
 
     if(oldId != m_focused_match_id)
         emit searchResultsChanged();
@@ -199,23 +213,25 @@ void FileSearcher::findMatches()
     m_matched_paths.clear();
     m_ord_matchedPaths.clear();
 
-    m_focused_match_id = -1;
-    m_focused_path = "";
+    resetCurMatchVars();
 
-    if(m_fileName_path)
+    if(m_path_fileName)
     {
         int_bd cntr = 0;
-        for(auto it=m_fileName_path->begin(); it != m_fileName_path->end(); ++it)
+        for(auto it=m_path_fileName->begin(); it != m_path_fileName->end(); ++it)
         {
-            const std::string& entry_name = it->first;
+            const std::string& entry_name = it->second;
+            const std::string& entry_path = it->first;
             if(StringOps::inStringIgnoreCase(entry_name, m_key_word))
             {
-                m_matched_paths.insert( it->second );
-                m_ord_matchedPaths[cntr++] = it->second;
+                m_matched_paths.insert( entry_path );
+                m_ord_matchedPaths[cntr++] = entry_path;
             }
         }
         resetCurMatchVars();
     }
+
+    printMatches();
 
     emit searchResultsChanged();
 }
@@ -223,8 +239,15 @@ void FileSearcher::findMatches()
 void FileSearcher::resetCurMatchVars()
 {
     m_matchCount = static_cast<int_bd>(m_matched_paths.size());
-    m_focused_match_id = m_matchCount <= 0 ? -1 : 0;
+    m_focused_match_id =  0;
     m_focused_path     = m_matchCount <= 0 ? "" : m_ord_matchedPaths[static_cast<int_bd>(m_focused_match_id)];
+}
+
+void FileSearcher::printMatches() const
+{
+    qDebug() << "Search-Matches: - inSearchMode: " << m_inSearchMode;
+    for(const auto& path: m_matched_paths)
+        qDebug() << "   " << QString::fromStdString(path);
 }
 
 

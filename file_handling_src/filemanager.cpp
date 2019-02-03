@@ -17,25 +17,24 @@ FileManager::FileManager(std::string root_path,
       m_lastDispFile(0),
 
       m_showHiddenFiles(showHiddenFiles),
-      m_inSearchMode(false),
 
       m_lastKeyPressed(0),
       m_keysPressed(""),
 
-      m_zoomFactor(0),
+      m_zoomFactor(INIT_ZOOM_FACTOR),
 
       m_graphicsViewVBarValueBackup(0),
       m_graphicsViewHBarValueBackup(0),
 
       m_dirStack(new DirectoryStack()),
 
-      m_searcher(new FileSearcher(&m_fileNames_colpsd,
+      m_searcher(new FileSearcher(&m_path_fileNames_colpsd,
                                   &m_entries_order_colpsd,
                                   this)),
       m_selector(new FileSelector(&m_paths_colpsd,
                                   &m_order_entries_colpsd,
                                   &m_entries_order_colpsd,
-                                  &m_fileNames_colpsd,
+                                  &m_path_fileNames_colpsd,
                                   &m_folder_paths_colpsd,
                                   this))
 {
@@ -69,10 +68,10 @@ QLayout* FileManager::genPane()
     QDir rootDir(QString::fromStdString(m_root_path));
 
     GraphicsView* folderViewer = new GraphicsView(new FileManagerInfo(*this),
+                                                  generateViewerData(),
                                                   m_graphicsViewVBarValueBackup,
                                                   m_graphicsViewHBarValueBackup,
                                                   m_zoomFactor);
-    folderViewer->receiveFileViewers( generateViewerData() );
 
     QGridLayout* mainGrid = new QGridLayout();
     DirectorySelectionPane* toolBar = new DirectorySelectionPane(rootDir);
@@ -146,12 +145,14 @@ void FileManager::close()
 
 void FileManager::selectionChanged()
 {
-    revalidateViewer_metaData_hlpr();
+    revalidateViewer_EntireData_hlpr();
+//    revalidateViewer_metaData_hlpr();
 }
 
 void FileManager::searchResultsChanged()
 {
-    revalidateViewer_metaData_hlpr();
+    revalidateViewer_EntireData_hlpr();
+//    revalidateViewer_metaData_hlpr();
 }
 
 void FileManager::elapseFolder(std::string path)
@@ -187,8 +188,9 @@ void FileManager::elapseAllFoldersOfDepthId(int id)
     if(m_depth_folders_colpsd.find(id) != m_depth_folders_colpsd.end() &&
             m_tasks_queue)
     {
+//        m_depthId_elapsed[static_cast<std::size_t>(id)] = !m_depthId_elapsed[static_cast<std::size_t>(id)];
+        bool collapse = m_depthId_elapsed[static_cast<std::size_t>(id)];
         m_depthId_elapsed[static_cast<std::size_t>(id)] = !m_depthId_elapsed[static_cast<std::size_t>(id)];
-        bool collapse = !m_depthId_elapsed[static_cast<std::size_t>(id)];
 
         auto& fis = m_depth_folders_colpsd[id];
         if(collapse)
@@ -197,6 +199,7 @@ void FileManager::elapseAllFoldersOfDepthId(int id)
         }else{
             emit elapse_dm(std::vector<std::string>(fis.begin(), fis.end()));
         }
+    }else{
     }
 }
 void FileManager::elapseSelectedFoldersRecursively()
@@ -375,8 +378,13 @@ void FileManager::openSelectedContent()
     {
         const auto& sel_entries = m_selector->getSelectedEntries();
         std::vector<std::string> entries_vec(sel_entries.begin(), sel_entries.end());
-        OpenFiles* openFilesWorker = new OpenFiles(entries_vec);
-        emit addQueueTask(openFilesWorker);
+        if(entries_vec.size() == 1 && QFileInfo(QString::fromStdString(entries_vec[0])).isDir())
+        {
+            setRoot(entries_vec[0]);
+        }else{
+            OpenFiles* openFilesWorker = new OpenFiles(entries_vec);
+            emit addQueueTask(openFilesWorker);
+        }
     }
 }
 void FileManager::openSelectedContentWith()
@@ -650,11 +658,11 @@ void FileManager::deepSearch(QString key_word)
 void FileManager::dirChanged_dm(DirManagerInfo* changedDir)
 {
     m_tree->replaceContents(changedDir);
+    revalidateTree();
 }
 
 void FileManager::treeChanged_dm(DirManagerInfo* entireTree)
 {
-    qDebug() << "FileManager::treeChanged_dm";
     replaceTree(entireTree);
 }
 
@@ -672,8 +680,6 @@ void FileManager::setRoot_hlpr(string rootPath, bool addToDirStack)
 
     if(addToDirStack)
         m_dirStack->addPath(rootPath);
-
-    qDebug() << "emitting rootDirChanged";
 
     emit rootDirChanged(rootPath);
 }
@@ -806,12 +812,13 @@ void FileManager::connectViewer(GraphicsView* viewer)
     if(viewer) // if, da m_viewer zu test-zwecken noch auf nullptr gesetzt ist. im eigentlichen programm dann eig nicht mehr notwendig darauf zu testen im konstruktor!
     {
         // FileManager -> GraphicsView:
-        connect(this, &FileManager::startWaitingLoop,           viewer, &GraphicsView::startWaitingAnimation);
-        connect(this, &FileManager::exitWaitingLoop,            viewer, &GraphicsView::killWaitingAnimation);
-        connect(this, &FileManager::focusGraphicsView,          viewer, &GraphicsView::focusId);
-        connect(this, &FileManager::requestFocusSGNL,           viewer, &GraphicsView::requestFocus);
-        connect(this, &FileManager::revalidateViewer_Entries,   viewer, &GraphicsView::receiveFileViewers);
-        connect(this, &FileManager::revalidateViewer_MetaData,  viewer, &GraphicsView::receiveFileManagerMetaData);
+        connect(this, &FileManager::startWaitingLoop,            viewer, &GraphicsView::startWaitingAnimation);
+        connect(this, &FileManager::exitWaitingLoop,             viewer, &GraphicsView::killWaitingAnimation);
+        connect(this, &FileManager::focusGraphicsView,           viewer, &GraphicsView::focusId);
+        connect(this, &FileManager::requestFocusSGNL,            viewer, &GraphicsView::requestFocus);
+        connect(this, &FileManager::revalidateViewer_Entries,    viewer, &GraphicsView::receiveFileViewers);
+        connect(this, &FileManager::revalidateViewer_MetaData,   viewer, &GraphicsView::receiveFileManagerMetaData);
+        connect(this, &FileManager::revalidateViewer_EntireData, viewer, &GraphicsView::receiveFileManagerData);
 
         // GraphicsView -> FileSearcher:
         connect(viewer, &GraphicsView::nextSearchResultSGNL, m_searcher, &FileSearcher::focusNextMatch);
@@ -876,12 +883,14 @@ void FileManager::disconnectViewer(GraphicsView* viewer)
     if(viewer) // if, da m_viewer zu test-zwecken noch auf nullptr gesetzt ist. im eigentlichen programm dann eig nicht mehr notwendig darauf zu testen im konstruktor!
     {
         // FileManager -> GraphicsView:
-        disconnect(this, &FileManager::startWaitingLoop, viewer, &GraphicsView::startWaitingAnimation);
-        disconnect(this, &FileManager::exitWaitingLoop,  viewer, &GraphicsView::killWaitingAnimation);
-        disconnect(this, &FileManager::focusGraphicsView,  viewer, &GraphicsView::focusId);
-        disconnect(this, &FileManager::requestFocusSGNL,  viewer, &GraphicsView::requestFocus);
-        disconnect(this, &FileManager::revalidateViewer_Entries,  viewer, &GraphicsView::receiveFileViewers);
-        disconnect(this, &FileManager::revalidateViewer_MetaData, viewer, &GraphicsView::receiveFileManagerMetaData);
+        disconnect(this, &FileManager::startWaitingLoop,            viewer, &GraphicsView::startWaitingAnimation);
+        disconnect(this, &FileManager::exitWaitingLoop,             viewer, &GraphicsView::killWaitingAnimation);
+        disconnect(this, &FileManager::focusGraphicsView,           viewer, &GraphicsView::focusId);
+        disconnect(this, &FileManager::requestFocusSGNL,            viewer, &GraphicsView::requestFocus);
+        disconnect(this, &FileManager::revalidateViewer_Entries,    viewer, &GraphicsView::receiveFileViewers);
+        disconnect(this, &FileManager::revalidateViewer_MetaData,   viewer, &GraphicsView::receiveFileManagerMetaData);
+        disconnect(this, &FileManager::revalidateViewer_EntireData, viewer, &GraphicsView::receiveFileManagerData);
+
 
         // GraphicsView -> FileSearcher:
         disconnect(viewer, &GraphicsView::nextSearchResultSGNL, m_searcher, &FileSearcher::focusNextMatch);
@@ -1054,7 +1063,12 @@ void FileManager::revalidateViewer_metaData_hlpr()
     emit revalidateViewer_MetaData( new FileManagerInfo(*this) );
 }
 
-std::unordered_map<long long, FiBDViewer> FileManager::generateViewerData()
+void FileManager::revalidateViewer_EntireData_hlpr()
+{
+    emit revalidateViewer_EntireData( generateViewerData(), new FileManagerInfo(*this) );
+}
+
+std::unordered_map<int_bd, FiBDViewer> FileManager::generateViewerData()
 {
     std::unordered_map<int_bd, FiBDViewer> entries;
     for(auto i=m_frstDispFile; i <= m_lastDispFile; ++i)
@@ -1112,10 +1126,12 @@ void FileManager::clearEntryContainers()
     m_path_depthId.clear();
     m_path_depthId_colpsd.clear();
 
-    m_fileNames.clear();
-    m_fileNames_colpsd.clear();
+    m_path_fileNames.clear();
+    m_path_fileNames_colpsd.clear();
 
     m_depth_folders_colpsd.clear();
+
+//    m_depthId_elapsed.clear();
 }
 
 void FileManager::copyCutToClipboard_hlpr(bool deleteSourceAfterCopying)
@@ -1225,6 +1241,31 @@ void FileManager::focusPath(string absPath)
     }
 }
 
+QString getPaddingString(int cnt)
+{
+    QString s("");
+    for(int i=0; i < cnt; ++i)
+    {
+        s = s.append("  ");
+    }
+    return s;
+}
+
+void FileManager::printEntries()
+{
+    for(std::size_t i=0; i < m_paths_colpsd.size(); ++i)
+    {
+        auto path = m_order_entries_colpsd[static_cast<int_bd>(i)];
+        auto order = m_entries_order[path];
+        int depth = m_path_depthId[path];
+        QString padding = getPaddingString(depth);
+        qDebug() << QString("%1: %2%3   -> order: %4").arg(i)
+                                     .arg(padding)
+                                     .arg(QString::fromStdString(path))
+                                     .arg(order);
+    }
+}
+
 void FileManager::replaceTree(DirManagerInfo* tree)
 {
     if(m_tree)
@@ -1232,16 +1273,26 @@ void FileManager::replaceTree(DirManagerInfo* tree)
 
     m_tree = tree;
 
+    revalidateTree();
+}
+
+void FileManager::revalidateTree()
+{
     clearEntryContainers();
 
     int_bd* cntr = new int_bd(0);
     int_bd* cntr_colpsd= new int_bd(0);
     int* maxDepthId = new int(0);
 
-    replaceTree_hlpr(tree, tree, false, cntr, cntr_colpsd, 0, maxDepthId);
+    revalidateTree_hlpr(m_tree, m_tree, false, cntr, cntr_colpsd, 0, maxDepthId);
 
-    while(m_depthId_elapsed.size() < static_cast<std::size_t>((*maxDepthId) + 1))
-        m_depthId_elapsed.push_back(false);
+    while(m_depthId_elapsed.size() <= static_cast<std::size_t>((*maxDepthId)))
+        m_depthId_elapsed.push_back( m_depthId_elapsed.size() == 0 ? m_tree->isElapsed : false );
+//    while(m_depthId_elapsed.size() > static_cast<std::size_t>((*maxDepthId)) &&
+//          m_depthId_elapsed.size() > 0)
+//        m_depthId_elapsed.pop_back();
+
+    qDebug() <<"\nm_depthId_elapsed.size: " << m_depthId_elapsed.size() << "\n";
 
     if(m_selector)
     {
@@ -1256,11 +1307,12 @@ void FileManager::replaceTree(DirManagerInfo* tree)
     delete cntr_colpsd;
     delete maxDepthId;
 
-    revalidateViewer_entries_hlpr();
-    revalidateViewer_metaData_hlpr();
+//    printEntries();
+
+    revalidateViewer_EntireData_hlpr();
 }
 
-void FileManager::replaceTree_hlpr(DirManagerInfo* entry,
+void FileManager::revalidateTree_hlpr(DirManagerInfo* entry,
                                    DirManagerInfo* firstNonCollapsedFold,
                                    bool isCollapsed,
                                    int_bd* cntr,
@@ -1275,8 +1327,6 @@ void FileManager::replaceTree_hlpr(DirManagerInfo* entry,
     {
         std::string path = entry->absPath;
 
-//        FileData* fd = new FileData(entry);
-
         m_folders[path] = entry;
 
         m_paths.emplace(path);
@@ -1286,7 +1336,7 @@ void FileManager::replaceTree_hlpr(DirManagerInfo* entry,
         m_entries_order[path] = *cntr;
         m_order_entries[*cntr] = path;
 
-        m_fileNames[path] = entry->fileName;
+        m_path_fileNames[path] = entry->fileName;
 
         m_path_depthId[path] = depthId;
 
@@ -1301,9 +1351,9 @@ void FileManager::replaceTree_hlpr(DirManagerInfo* entry,
 
             m_paths_colpsd.emplace(path);
             m_folder_paths_colpsd.emplace(path);
-            m_entries_order_colpsd[path] = *cntr;
+            m_entries_order_colpsd[path] = *cntr_clpsd;
             m_order_entries_colpsd[*cntr_clpsd] = path;
-            m_fileNames_colpsd[path] = entry->fileName;
+            m_path_fileNames_colpsd[path] = entry->fileName;
 
             m_path_depthId_colpsd[path] = depthId;
 
@@ -1319,24 +1369,33 @@ void FileManager::replaceTree_hlpr(DirManagerInfo* entry,
         {
             DirManagerInfo* fncf = isCollapsed ? firstNonCollapsedFold : sub_dir;
 
-            replaceTree_hlpr(sub_dir, fncf, subs_collapsed, cntr, cntr_clpsd, depthId, maxDepthId);
+            revalidateTree_hlpr(sub_dir, fncf, subs_collapsed, cntr, cntr_clpsd, depthId + 1, maxDepthId);
         }
 
-        for(const auto& file_path: entry->files_sorted)
+        for(const auto& filePath_fileName: entry->files_sorted)
         {
-            std::string filePath = file_path;
+            const auto& file_path = filePath_fileName.first;
+            const auto& file_name = filePath_fileName.second;
 
-            m_path_depthId[filePath] = depthId + 1;
+            m_paths.insert(file_path);
 
-            m_entries_order[filePath] = *cntr;
-            m_order_entries[*cntr] = filePath;
+            m_path_depthId[file_path] = depthId + 1;
+
+            m_entries_order[file_path] = *cntr;
+            m_order_entries[*cntr] = file_path;
+
+            m_path_fileNames[file_path] = file_name;
 
             if(!subs_collapsed)
             {
-                m_entries_order_colpsd[filePath] = *cntr_clpsd;
-                m_order_entries_colpsd[*cntr_clpsd] = filePath;
+                m_paths_colpsd.insert(file_path);
 
-                m_path_depthId_colpsd[filePath] = depthId + 1;
+                m_entries_order_colpsd[file_path] = *cntr_clpsd;
+                m_order_entries_colpsd[*cntr_clpsd] = file_path;
+
+                m_path_depthId_colpsd[file_path] = depthId + 1;
+
+                m_path_fileNames_colpsd[file_path] = file_name;
 
                 ++(*cntr_clpsd);
             }
@@ -1395,7 +1454,7 @@ bool FileManager::includeHiddenFiles() const
 
 bool FileManager::inSearchMode() const
 {
-    return m_inSearchMode;
+    return m_searcher->inSearchMode();
 }
 
 bool FileManager::foldersSelected() const

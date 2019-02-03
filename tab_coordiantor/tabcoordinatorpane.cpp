@@ -104,13 +104,13 @@ void TabCoordinatorPane::deleteMainLayout()
 void TabCoordinatorPane::setTabBar()
 {
     m_tabPane = new TabSelectorPane( m_curActiveTabId, m_tabLabels, m_tabPaneScrollOffsetX );
-    connect(m_tabPane, &TabSelectorPane::addClicked, this, &TabCoordinatorPane::tabAddClicked, Qt::QueuedConnection);
-    connect(m_tabPane, &TabSelectorPane::tabClicked, this, &TabCoordinatorPane::tabClicked, Qt::QueuedConnection);
-    connect(m_tabPane, &TabSelectorPane::tabCloseClicked, this, &TabCoordinatorPane::tabCloseClicked, Qt::QueuedConnection);
+    connect(m_tabPane, &TabSelectorPane::addClicked, this, &TabCoordinatorPane::tabAddClicked);//, Qt::QueuedConnection);
+    connect(m_tabPane, &TabSelectorPane::tabClicked, this, &TabCoordinatorPane::tabClicked);//, Qt::QueuedConnection);
+    connect(m_tabPane, &TabSelectorPane::tabCloseClicked, this, &TabCoordinatorPane::tabCloseClicked);//, Qt::QueuedConnection);
 
-    connect(this, &TabCoordinatorPane::updateTabLabelsSGNL, m_tabPane, &TabSelectorPane::setTabs, Qt::QueuedConnection);
-    connect(this, &TabCoordinatorPane::activeTabIdChangedSGNL, m_tabPane, &TabSelectorPane::setActiveTabId, Qt::QueuedConnection);
-    connect(this, &TabCoordinatorPane::revalidateTabSelectorPane, m_tabPane, &TabSelectorPane::revalidate, Qt::QueuedConnection);
+    connect(this, &TabCoordinatorPane::updateTabLabelsSGNL, m_tabPane, &TabSelectorPane::setTabs);//, Qt::QueuedConnection);
+    connect(this, &TabCoordinatorPane::activeTabIdChangedSGNL, m_tabPane, &TabSelectorPane::setActiveTabId);//, Qt::QueuedConnection);
+    connect(this, &TabCoordinatorPane::revalidateTabSelectorPane, m_tabPane, &TabSelectorPane::revalidate);//, Qt::QueuedConnection);
 
     m_mainLayout->addWidget(m_tabPane);
 }

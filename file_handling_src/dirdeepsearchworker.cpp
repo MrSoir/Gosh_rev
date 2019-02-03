@@ -69,14 +69,12 @@ void DirDeepSearchWorker::search(FileInfoBD* dir)
     }
 
     const std::vector<std::string>& filePaths = dir->getSortedFiles();
-    const std::vector<std::string>& fileNames = dir->getSortedFileNames();
-    for(unsigned long i=0; i < filePaths.size() && i < fileNames.size(); ++i)
+    for(const auto& filePath: filePaths)
     {
         if(m_cancelled)
             break;
 
-        const auto& filePath = filePaths[i];
-        const auto& fileName = fileNames[i];
+        const auto& fileName = dir->getFileName(filePath);
 
         if(StringOps::inStringIgnoreCase(fileName, m_keyword))
         {
@@ -230,14 +228,12 @@ void DirDeepSearchHelper::search(FileInfoBD *dir)
         }
 
         const std::vector<std::string>& filePaths = dir->getSortedFiles();
-        const std::vector<std::string>& fileNames = dir->getSortedFileNames();
-        for(unsigned long i=0; i < filePaths.size() && i < fileNames.size(); ++i)
+        for(const auto& filePath: filePaths)
         {
             if(m_cancelled)
                 return;
 
-            const auto& filePath = filePaths[i];
-            const auto& fileName = fileNames[i];
+            const auto& fileName = dir->getFileName(filePath);
 
             if(StringOps::inStringIgnoreCase(fileName, m_keyword))
             {

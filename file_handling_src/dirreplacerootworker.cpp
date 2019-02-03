@@ -49,6 +49,10 @@ void DirReplaceRootWorker::run()
 
         STATIC_FUNCTIONS::pointerResetter<FileInfoBD>(m_current_rootDir, new_root, deleteFunc);
     }
+
+    if( !m_current_rootDir->isElapsed() )
+        m_current_rootDir->elapse();
+
     emit finished(revalidateDirStructureAfterWorkerHasFinished());
 }
 

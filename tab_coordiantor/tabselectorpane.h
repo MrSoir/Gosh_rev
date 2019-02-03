@@ -70,11 +70,10 @@ private:
     int determineUsedPaneWidth();
 
     void createTab(int x, int id);
-    TabRect* createTabRect(QPoint pos, const int id, QString tabLabel) const;
+    TabRect* createTabRect(QPoint pos, const int id, QString tabLabel);
 
     QVector<QDir> m_tabLabels;
 
-//    int m_tabWidth = 400;
     int m_tabWidth = 180;
     int m_tabHeight = 20;
     int m_tabInsets = -8;
@@ -89,13 +88,13 @@ private:
 //    ----------------------------------------------------
 //    QColor m_activeCol1 = QColor(255,255,255, 255);
 //    QColor m_activeCol2 = QColor(200,255,200, 255);
-    QColor m_activeCol1 = QColor(0,0,0, 255);
-    QColor m_activeCol2 = QColor(0,0,0, 255);
+    QColor m_activeCol1 = QColor(200,250,200, 255);
+    QColor m_activeCol2 = QColor(200,250,200, 255);
 //    ----------------------------------------------------
-    QColor m_textCol1 = QColor(255,255,255, 255);
+    QColor m_textCol1 = QColor(0,0,0, 255);
     QColor m_textCol2 = QColor(0,0,0, 255);
-    QColor m_textColActiv1 = QColor(255,255,255, 255);
-    QColor m_textColActiv2 = QColor(255,150,150, 255);
+    QColor m_textColActiv1 = QColor(0,0,0, 255);
+    QColor m_textColActiv2 = QColor(0,0,0, 255);
 
 
     int m_paneHeight = 20;

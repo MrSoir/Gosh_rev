@@ -150,7 +150,9 @@ public:
     void iterateOverFolders(std::function<void(const FileInfoBD* const)> f) const;
 
     const std::vector<std::string>& getSortedFiles() const;
-    const std::vector<std::string>& getSortedFileNames() const;
+    std::string getFileName(const std::string& filePath) const;
+    const std::unordered_map<std::string, std::string>& getFileNames() const;
+//    const std::vector<std::string>& getSortedFileNames() const;
     const std::vector<std::string>& getSortedFolders() const;
     const std::vector<std::string>& getSortedEntries() const;
     std::unordered_set<FileInfoBD*>& getSubFolders();
@@ -248,15 +250,14 @@ private:
     std::unordered_set<std::string> m_hidden_files;
     std::unordered_set<std::string> m_hidden_folds;
     std::vector<std::string> m_sortedFilePaths_incl_hidden; // inclusive hidden files
-    std::vector<std::string> m_sortedFileNames_incl_hidden; // inclusive hidden files
     std::vector<std::string> m_sortedFoldPaths_incl_hidden; // inclusive hidden files
     std::vector<std::string> m_entryPaths_incl_hidden; // inclusive hidden entries
     std::vector<std::string> m_sortedFilePaths_no_hidden; // without hidden files
-    std::vector<std::string> m_sortedFileNames_no_hidden; // inclusive hidden files
     std::vector<std::string> m_sortedFoldPaths_no_hidden; // without hidden folders
     std::vector<std::string> m_entryPaths_no_hidden; // without hidden entries
     std::vector<FileInfoBD*> m_sorted_subFolders_incl_hidden;
     std::vector<FileInfoBD*> m_sorted_subFolders_no_hidden;
+    std::unordered_map<std::string, std::string> m_filePath_fileName; // inclusive hidden files
 
 //    unsigned long m_filesCount;
 //    unsigned long m_subFoldsCount;
