@@ -20,7 +20,7 @@ public:
     explicit FileSelector(std::unordered_set<std::string>* paths,
                           std::unordered_map<int_bd, std::string>* ord_paths,
                           std::unordered_map<std::string, int_bd>* paths_ord,
-                          std::unordered_map<std::string, std::string>* fileName_paths,
+                          std::unordered_map<std::string, std::string>* path_fileNames,
                           std::unordered_set<std::string>* folder_paths,
                           QObject* parent = nullptr);
     ~FileSelector();
@@ -46,7 +46,7 @@ public slots:
     void entriesChanged(std::unordered_set<std::string>* paths,
                         std::unordered_map<int_bd, std::string>* ord_paths,
                         std::unordered_map<std::string, int_bd>* paths_ord,
-                        std::unordered_map<std::string, std::string>* fileName_paths,
+                        std::unordered_map<std::string, std::string>* pathFileNames,
                         std::unordered_set<std::string>* folder_paths);
 
     void select_QString(QString path, bool cntrl_prsd, bool shift_prsd);
@@ -72,7 +72,7 @@ private:
     std::unordered_set<std::string>* m_paths;
     std::unordered_map<int_bd, std::string>* m_ord_paths;
     std::unordered_map<std::string, int_bd>* m_paths_ord;
-    std::unordered_map<std::string, std::string>* m_fileName_paths;
+    std::unordered_map<std::string, std::string>* m_path_fileNames;
     std::unordered_set<std::string>* m_folder_paths;
 
     int_bd m_focused_ord;

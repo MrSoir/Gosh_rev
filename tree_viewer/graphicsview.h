@@ -279,8 +279,8 @@ private:
     int_bd m_lastDispFI = 0;
     int_bd m_curDispFI = 0;
     int_bd m_fileCount = 0;
-    int_bd m_fileMaxCount = 500;
-    int_bd m_filePuffer = 20;
+    int_bd m_minDisplayedEntries = 30;
+    int_bd m_filePuffer = 10;
 
     QGraphicsItemGroup* m_graphicsGroup = new QGraphicsItemGroup();
 

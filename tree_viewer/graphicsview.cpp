@@ -16,10 +16,6 @@ GraphicsView::GraphicsView(FileManagerInfo* fmi,
       m_fileMangrInfo(fmi),
       m_entriesToRender(entriesToRender)
 {
-    qDebug() << "GraphicsView-Constructor - entriesToRender: " << entriesToRender.size()
-             << "   vBarValue: " << vBarValue
-             << "   hBarValue: " << hBarValue;
-
     revalFileManagerMetaData();
 
     revalidateRowHeight();
@@ -99,11 +95,13 @@ void GraphicsView::revalidate(){
 
 int_bd GraphicsView::getFirstToDispFi(){
     double yOffs = getViewportYOffset();
+    double d_rowHeight =  static_cast<double>(m_rowHeight);
+    double row_offset = yOffs / d_rowHeight;
 
-
-    int_bd firstToDispFi = static_cast<int_bd>((yOffs / static_cast<double>(m_rowHeight))) -m_filePuffer;
+    int_bd firstToDispFi = static_cast<int_bd>(row_offset) - m_filePuffer;
     if(firstToDispFi < 0)
         firstToDispFi = 0;
+
     return firstToDispFi;
 }
 int_bd GraphicsView::getLastToDispFi(){
@@ -112,9 +110,12 @@ int_bd GraphicsView::getLastToDispFi(){
     double d_rowHeight = static_cast<double>(m_rowHeight);
     double d_filePuffer = static_cast<double>(m_filePuffer);
 
-    int_bd lastToDispFi = static_cast<int_bd>(frstToDisp + (vwPrtHght / d_rowHeight) + d_filePuffer*2.0);
+    double entries_InViewport = (vwPrtHght / d_rowHeight);
+
+    int_bd lastToDispFi = static_cast<int_bd>(frstToDisp + entries_InViewport + d_filePuffer);
     if(lastToDispFi >= m_fileCount)
         lastToDispFi = m_fileCount-1;
+
     return lastToDispFi;
 }
 bool GraphicsView::viewPortOutOfDisplayedRange(){
@@ -383,8 +384,8 @@ void GraphicsView::setFileManager_MetaData(FileManagerInfo* fmi)
     m_fileMangrInfo = fmi;
     revalFileManagerMetaData();
 
-    qDebug() << "m_firstDispFI: " << m_firstDispFI;
-    qDebug() << "m_lastDispFI: " << m_lastDispFI;
+//    qDebug() << "m_firstDispFI: " << m_firstDispFI;
+//    qDebug() << "m_lastDispFI: " << m_lastDispFI;
 }
 void GraphicsView::revalFileManagerMetaData()
 {
@@ -410,14 +411,14 @@ int GraphicsView::getHScrollBarValue()
 
 void GraphicsView::receiveFileViewers(std::unordered_map<int_bd, FiBDViewer> new_files)
 {
-    qDebug() << "GraphicsView::receiveFileViewers -  new_files:" << new_files.size();
+//    qDebug() << "GraphicsView::receiveFileViewers -  new_files:" << new_files.size();
     m_entriesToRender = new_files;
     revalidate();
 }
 
 void GraphicsView::receiveFileManagerMetaData(FileManagerInfo* fmi)
 {
-    qDebug() << "GraphicsView::receiveFileManagerMetaData";
+//    qDebug() << "GraphicsView::receiveFileManagerMetaData";
 
     setFileManager_MetaData(fmi);
 
@@ -427,7 +428,7 @@ void GraphicsView::receiveFileManagerMetaData(FileManagerInfo* fmi)
 void GraphicsView::receiveFileManagerData(std::unordered_map<long long, FiBDViewer> new_files,
                                           FileManagerInfo *fmi)
 {
-    qDebug() << "GraphicsView::receiveFileManagerData";
+//    qDebug() << "GraphicsView::receiveFileManagerData";
 
     m_entriesToRender = new_files;
     setFileManager_MetaData(fmi);
@@ -1484,7 +1485,7 @@ void GraphicsView::revalFirstAndLastDisplayedFI(bool revalIfStillInBounds)
     auto old_firstDispFI = m_firstDispFI;
     auto old_lastDispFI = m_lastDispFI;
 
-    if(m_fileCount < m_fileMaxCount){
+    if(m_fileCount < m_minDisplayedEntries){
         m_firstDispFI = 0;
         m_lastDispFI = m_fileCount-1;
         m_curDispFI = m_fileCount-1;

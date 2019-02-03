@@ -3,7 +3,7 @@
 FileSelector::FileSelector(std::unordered_set<std::string>* paths,
                            std::unordered_map<long long, std::string>* ord_paths,
                            std::unordered_map<std::string, long long>* paths_ord,
-                           std::unordered_map<std::string, std::string>* fileName_paths,
+                           std::unordered_map<std::string, std::string>* path_fileNames,
                            std::unordered_set<std::string>* folder_paths,
                            QObject *parent)
     : QObject(parent),
@@ -13,7 +13,7 @@ FileSelector::FileSelector(std::unordered_set<std::string>* paths,
       m_paths(paths),
       m_ord_paths(ord_paths),
       m_paths_ord(paths_ord),
-      m_fileName_paths(fileName_paths),
+      m_path_fileNames(path_fileNames),
       m_folder_paths(folder_paths),
 
       m_focused_ord(-1),
@@ -28,7 +28,7 @@ FileSelector::~FileSelector()
     m_paths = nullptr;
     m_ord_paths = nullptr;
     m_paths_ord = nullptr;
-    m_fileName_paths = nullptr;
+    m_path_fileNames = nullptr;
     m_focused_ord = -1;
     m_focusedPath = "";
     m_slct_key_word = "";
@@ -130,13 +130,13 @@ void FileSelector::entriesChanged()
 void FileSelector::entriesChanged(std::unordered_set<std::string>* paths,
                                   std::unordered_map<int_bd, std::string>* ord_paths,
                                   std::unordered_map<std::string, int_bd>* paths_ord,
-                                  std::unordered_map<std::string, std::string>* fileName_paths,
+                                  std::unordered_map<std::string, std::string>* pathFileNames,
                                   std::unordered_set<std::string>* folder_paths)
 {
     m_paths = paths;
     m_ord_paths = ord_paths;
     m_paths_ord = paths_ord;
-    m_fileName_paths = fileName_paths;
+    m_path_fileNames = pathFileNames;
     m_folder_paths = folder_paths;
 
     entriesChanged();
@@ -301,19 +301,41 @@ void FileSelector::selectKeyWord(std::string key)
 {
     if( m_slct_key_word != key )
     {
-        for(auto it = m_fileName_paths->begin(); it != m_fileName_paths->end(); ++it )
+        m_slct_key_word = key;
+
+        // etwas herb, aber mittels folgendem code wird sichergestellt, dass auch IN_ORDER!!! durchsucht
+        // wird -> macht das iterieren ueber die paths auch nicht wirklich langsamer,
+        // da mit den assoziativ-containern das ganze schoen effizient durchlaufen/abgefragt wird:
+        for(std::size_t i=0; i < m_ord_paths->size(); ++i)
         {
-            if( StringOps::startsWithIgnoreCase(it->first, key))
+            auto ord = static_cast<int_bd>(i);
+            auto order_it = m_ord_paths->find(ord);
+            if(order_it != m_ord_paths->end())
             {
-                m_selected_paths.clear();
-                m_selected_paths.emplace(it->second);
-                m_focusedPath = it->second;
-                m_focused_ord = (*m_paths_ord)[it->second];
+                auto filePath = order_it->second;
+                auto fileName_it = m_path_fileNames->find(filePath);
+                if(fileName_it != m_path_fileNames->end())
+                {
+                    auto fileName = fileName_it->second;
 
-                emit selectionChanged();
-                emit focusPath(m_focusedPath);
+                    if( StringOps::startsWithIgnoreCase(fileName, key))
+                    {
+                        clearContainers();
 
-                return;
+                        m_selected_paths.emplace(filePath);
+
+                        if(m_folder_paths->find(filePath) != m_folder_paths->end())
+                            m_selected_folders_paths.emplace(filePath);
+
+                        m_focusedPath = filePath;
+                        m_focused_ord = (*m_paths_ord)[filePath];
+
+                        emit selectionChanged();
+                        emit focusPath(m_focusedPath);
+
+                        return;
+                    }
+                }
             }
         }
     }

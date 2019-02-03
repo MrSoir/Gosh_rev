@@ -588,19 +588,13 @@ void FileManager::keyPressed(std::string s)
     m_keysPressed.append(s);
     m_keysPressed = StringOps::toLower(m_keysPressed);
 
+    qDebug() << "FileManager::keyPressed - " << QString::fromStdString(m_keysPressed);
 
     if(m_selector)
     {
         std::string old_last_sel = m_selector->getLastSelectedEntry();
 
         m_selector->selectKeyWord(m_keysPressed);
-
-//        std::string new_last_sel = m_selector->getLastSelectedEntry();
-//        if( (old_last_sel.empty() && !new_last_sel.empty()) ||
-//            (old_last_sel != new_last_sel))
-//        {
-//            focusPath(new_last_sel);
-//        }
     }
 }
 
