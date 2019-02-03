@@ -188,9 +188,8 @@ void FileManager::elapseAllFoldersOfDepthId(int id)
     if(m_depth_folders_colpsd.find(id) != m_depth_folders_colpsd.end() &&
             m_tasks_queue)
     {
-//        m_depthId_elapsed[static_cast<std::size_t>(id)] = !m_depthId_elapsed[static_cast<std::size_t>(id)];
         bool collapse = m_depthId_elapsed[static_cast<std::size_t>(id)];
-        m_depthId_elapsed[static_cast<std::size_t>(id)] = !m_depthId_elapsed[static_cast<std::size_t>(id)];
+        m_depthId_elapsed[static_cast<std::size_t>(id)] = !collapse;
 
         auto& fis = m_depth_folders_colpsd[id];
         if(collapse)
@@ -1287,10 +1286,14 @@ void FileManager::revalidateTree()
     revalidateTree_hlpr(m_tree, m_tree, false, cntr, cntr_colpsd, 0, maxDepthId);
 
     while(m_depthId_elapsed.size() <= static_cast<std::size_t>((*maxDepthId)))
+    {
         m_depthId_elapsed.push_back( m_depthId_elapsed.size() == 0 ? m_tree->isElapsed : false );
-//    while(m_depthId_elapsed.size() > static_cast<std::size_t>((*maxDepthId)) &&
-//          m_depthId_elapsed.size() > 0)
-//        m_depthId_elapsed.pop_back();
+    }
+    while( (m_depthId_elapsed.size() > (static_cast<std::size_t>((*maxDepthId)) +  1)) &&
+           (m_depthId_elapsed.size() > 0) )
+    {
+        m_depthId_elapsed.pop_back();
+    }
 
     qDebug() <<"\nm_depthId_elapsed.size: " << m_depthId_elapsed.size() << "\n";
 
