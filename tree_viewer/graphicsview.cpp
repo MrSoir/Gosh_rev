@@ -8,6 +8,8 @@ GraphicsView::GraphicsView(FileManagerInfo* fmi,
                            int zoomFactor,
                            QWidget* parent)
     : QGraphicsView(parent),
+//      WidgetCloser(),
+
       m_scene(new QGraphicsScene()),
       m_fontSize(zoomFactor),
       m_isLoading(false),
@@ -16,6 +18,8 @@ GraphicsView::GraphicsView(FileManagerInfo* fmi,
       m_fileMangrInfo(fmi),
       m_entriesToRender(entriesToRender)
 {
+//    qDebug() << "GraphicsView::Constructor";
+
     revalFileManagerMetaData();
 
     revalidateRowHeight();
@@ -88,6 +92,11 @@ GraphicsView::~GraphicsView()
 
     delete m_upperRect;
 }
+
+//void GraphicsView::closeWidget()
+//{
+//    WidgetCloser::m_closed = true;
+//}
 
 void GraphicsView::revalidate(){
     rePaintCanvas();
@@ -1024,6 +1033,9 @@ void GraphicsView::addSearchMenu(){
 
 void GraphicsView::rePaintCanvas()
 {
+//    if(WidgetCloser::m_closed)
+//        return;
+
 //    qDebug() << "repainting canvas";
 
     // darauf achten, dass, wenn inSearchMode()==true,

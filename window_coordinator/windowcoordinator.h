@@ -27,6 +27,7 @@
 
 #include "widgetcreator.h"
 
+
 class WindowCoordinator : public QObject,
                           public WidgetCreator
 {
@@ -34,6 +35,7 @@ class WindowCoordinator : public QObject,
 public:
     explicit WindowCoordinator(QVector<QDir> initPaths = QVector<QDir>(),
                                QObject *parent = nullptr);
+
     virtual ~WindowCoordinator() override;
 
     QDir getCurrentFocusedDir() const;
@@ -45,14 +47,17 @@ public:
 
 signals:
     void revalidateWCPane();
-    void openFoldersInNewTab(QVector<QDir>);
+    void openFoldersInTab_SGNL(QVector<QDir>);
     void labelChanged(QDir);
 
     void includeHiddenFiles_SGNL(bool includeHiddenFiles_SGNL);
 
+
 //    void orientationChanged(Orientation::ORIENTATION);
 public slots:
     void close();
+
+    void openFoldersInTab_SLOT(std::vector<std::string> paths);
 
     void removeWindow(int id = -1);
     void addWindow();

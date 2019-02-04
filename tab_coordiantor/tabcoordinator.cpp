@@ -4,6 +4,8 @@ TabCoordinator::TabCoordinator(QObject *parent)
     : QObject(parent),
       WidgetCreator()
 {
+    connect(this, &TabCoordinator::closeWidgets, WIDGET_CLOSER_COORDINATOR, &WidgetCloserCoordinator::closeWidgets);
+
     addTab();
 }
 
@@ -19,10 +21,7 @@ TabCoordinator::~TabCoordinator()
 QWidget* TabCoordinator::createWidget()
 {
     QVector<QDir> labels = generateLabels();
-    for(const auto& label: labels)
-    {
-        qDebug() << "label: " << label.absolutePath();
-    }
+
     TabCoordinatorPane* tabCoordinatorPane = new TabCoordinatorPane(this, m_curWindowId, labels);
 
     connectTCPane(tabCoordinatorPane);
@@ -56,7 +55,6 @@ void TabCoordinator::addTab()
 
 void TabCoordinator::setTab(int id)
 {
-    qDebug() << "TabCoordinator::setTab: " << id;
     if(m_windows.size() > id)
     {
         emit revalidateTabCoordinatorPane();
@@ -67,7 +65,10 @@ void TabCoordinator::setTab(int id)
         m_currentlyDisplWindow = m_windows[id];
         m_curWindowId = id;
 
+        connectWindow(m_currentlyDisplWindow);
+
         revalidateLabels();
+
         emit activeTabIdChanged(m_curWindowId);
     }
 }
@@ -80,6 +81,8 @@ void TabCoordinator::removeTab(int id)
         qDebug() << "TabCoordinator::removeTab: id: " << id << "    m_windows.size: " << m_windows.size();
         return;
     }
+
+    emit closeWidgets();
 
     if(id > -1 && id < m_windows.size())
     {
@@ -119,14 +122,12 @@ void TabCoordinator::openFoldersInNewTab(QVector<QDir> foldersToOpen)
 }
 
 
-
 void TabCoordinator::addTabHelper(QVector<QDir> initPaths)
 {
     WindowCoordinator* window = new WindowCoordinator(initPaths);
     m_windows.push_back(window);
-    connectWindow(window);
 
-    setTab( m_windows.size()-1 );
+    setTab( m_windows.size() - 1 );
 }
 
 void TabCoordinator::closeActiveTab()
@@ -137,16 +138,22 @@ void TabCoordinator::closeActiveTab()
     }
 }
 
-void TabCoordinator::connectWindow(WindowCoordinator *window)
+void TabCoordinator::connectWindow(WindowCoordinator* window)
 {
-    connect(window, &WindowCoordinator::openFoldersInNewTab, this, &TabCoordinator::openFoldersInNewTab);
-    connect(window, &WindowCoordinator::labelChanged,        this, &TabCoordinator::revalidateLabels);
+    if(window){
+        connect(window, &WindowCoordinator::openFoldersInTab_SGNL, this, &TabCoordinator::openFoldersInNewTab);
+        connect(window, &WindowCoordinator::labelChanged,          this, &TabCoordinator::revalidateLabels);
+    }else
+        qDebug() << "TabCoordinator::connectWindow - window is NULLPTR!!!";
 }
 
 void TabCoordinator::disconnectWindow(WindowCoordinator *window)
 {
-    disconnect(window, &WindowCoordinator::openFoldersInNewTab, this, &TabCoordinator::openFoldersInNewTab);
-    disconnect(window, &WindowCoordinator::labelChanged,        this, &TabCoordinator::revalidateLabels);
+    if(window){
+        disconnect(window, &WindowCoordinator::openFoldersInTab_SGNL, this, &TabCoordinator::openFoldersInNewTab);
+        disconnect(window, &WindowCoordinator::labelChanged,        this, &TabCoordinator::revalidateLabels);
+    }else
+        qDebug() << "TabCoordinator::DISconnectWindow - window is NULLPTR!!!";
 }
 void TabCoordinator::deleteWindow(WindowCoordinator* window)
 {
@@ -157,17 +164,18 @@ void TabCoordinator::deleteWindow(WindowCoordinator* window)
 
 void TabCoordinator::connectTCPane(TabCoordinatorPane* tcPane)
 {
-    connect(tcPane, &TabCoordinatorPane::tabClicked,    this, &TabCoordinator::setTab);
+    connect(tcPane, &TabCoordinatorPane::tabClicked,      this, &TabCoordinator::setTab);
     connect(tcPane, &TabCoordinatorPane::tabCloseClicked, this, &TabCoordinator::removeTab);
     connect(tcPane, &TabCoordinatorPane::tabAddClicked,   this, &TabCoordinator::addTab);
 
+    connect(this, &TabCoordinator::closeWidgets,                 tcPane, &TabCoordinatorPane::clearLayout);
     connect(this, &TabCoordinator::revalidateTabCoordinatorPane, tcPane, &TabCoordinatorPane::revalidate);
     connect(this, &TabCoordinator::labelsChanged,                tcPane, &TabCoordinatorPane::updateTabLabels);
     connect(this, &TabCoordinator::activeTabIdChanged,           tcPane, &TabCoordinatorPane::activeTabIdChanged);
 }
 void TabCoordinator::disconnectTCPane(TabCoordinatorPane* tcPane)
 {
-    disconnect(tcPane, &TabCoordinatorPane::tabClicked,    this, &TabCoordinator::setTab);
+    disconnect(tcPane, &TabCoordinatorPane::tabClicked,      this, &TabCoordinator::setTab);
     disconnect(tcPane, &TabCoordinatorPane::tabCloseClicked, this, &TabCoordinator::removeTab);
     disconnect(tcPane, &TabCoordinatorPane::tabAddClicked,   this, &TabCoordinator::addTab);
 

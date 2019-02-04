@@ -48,6 +48,8 @@
 #include "file_handling_src/fibdviewer.h"
 #include "orderby.h"
 
+#include "widgetcloser.h"
+
 #define int_bd long long
 
 //using namespace ORDERED_BY;
@@ -72,7 +74,8 @@ namespace FILE_ACTION {
 }
 
 
-class GraphicsView : public QGraphicsView
+class GraphicsView : public QGraphicsView/*,
+                     public WidgetCloser*/
 {
     Q_OBJECT
 public:
@@ -82,7 +85,9 @@ public:
                           int vBarValue = 0,
                           int zoomFactor = 9,
                           QWidget* parent = nullptr);
-    ~GraphicsView();
+    virtual ~GraphicsView() override;
+
+//    virtual void closeWidget() override;
 
 //    void setRoot(std::weak_ptr<FileInfoBD> fi);
 

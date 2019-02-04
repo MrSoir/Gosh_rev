@@ -30,11 +30,14 @@
 #include "helpdialog.h"
 #include "infodialog.h"
 
+#include "widgetcloser.h"
+
 class WindowCoordinator;
 
 using namespace Orientation;
 
-class WindowCoordinatorPane : public QWidget
+class WindowCoordinatorPane : //public QWidget,
+                              public WidgetCloser
 {
     Q_OBJECT
 public:
@@ -65,6 +68,8 @@ public slots:
     void showRemoveWindowDialog();
     void showInfoDialog();
     void showHelpDialog();
+
+    void widgetClosed();
 protected:
     void paintEvent(QPaintEvent *event) override;
 

@@ -26,6 +26,7 @@
 #include "window_coordinator/windowcoordinator.h"
 
 #include "widgetcreator.h"
+#include "widgetcloser.h"
 
 class TabCoordinator : public QObject,
                        public WidgetCreator
@@ -44,6 +45,7 @@ signals:
     void labelsChanged(QVector<QDir> labels);
     void activeTabIdChanged(int id);
 
+    void closeWidgets();
 public slots:
     void setFullScreen();
 

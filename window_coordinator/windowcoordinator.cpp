@@ -18,18 +18,36 @@ WindowCoordinator::WindowCoordinator(QVector<QDir> initPaths,
         for(int i=0; i < initPaths.size() && i < m_maxWindows; ++i)
             addWindowHelper( initPaths[i] );
     }
-    else
+    else{
         addWindow();
+//        addWindow();
+    }
 }
 
 void WindowCoordinator::close()
 {
-    for(auto* window: m_windows)
+    while(m_windows.size() > 0)
     {
+        auto* window = m_windows[0];
+        m_windows.pop_back();
+
         disconnectFileManager(window);
         window->close();
     }
-    m_windows.clear();
+}
+
+void WindowCoordinator::openFoldersInTab_SLOT(std::vector<std::string> paths)
+{
+    QVector<QDir> dirs;
+    for(const auto& path: paths)
+    {
+        QDir dir(QString::fromStdString(path));
+        if(dir.exists())
+        {
+            dirs.push_back(dir);
+        }
+    }
+    emit openFoldersInTab_SGNL(dirs);
 }
 
 
@@ -137,6 +155,7 @@ void WindowCoordinator::connectFileManager(FileManager* fm)
 {
     connect(fm, &FileManager::includeHiddenFiles_SGNL,   this, &WindowCoordinator::includeHiddenFiles);
     connect(fm, &FileManager::excludeHiddenFiles_SGNL,   this, &WindowCoordinator::excludeHiddenFiles);
+    connect(fm, &FileManager::openFoldersInTab_SGNL,     this, &WindowCoordinator::openFoldersInTab_SLOT);
 
     connect(fm, &FileManager::requestFocusSGNL,         this, &WindowCoordinator::emitLabelChanged);
 

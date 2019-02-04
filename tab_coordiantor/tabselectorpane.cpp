@@ -38,9 +38,8 @@ void TabSelectorPane::resizeEvent(QResizeEvent *event)
 
 void TabSelectorPane::setActiveTabId(int id)
 {
-    qDebug() << "in TabSelectorPane::setActiveTabId: " << id;
-//    if(id == m_curActiveTabId)
-//        return;
+    if(id == m_curActiveTabId)
+        return;
 
     m_curActiveTabId = id;
 

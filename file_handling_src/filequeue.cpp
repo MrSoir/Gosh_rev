@@ -10,10 +10,11 @@ FileQueue::FileQueue()
 FileQueue::~FileQueue()
 {
     emit cancelled();
-    while(auto task = m_tasks.front())
+    while(m_tasks.size() > 0)
     {
-        delete task;
+        auto task = m_tasks.front();
         m_tasks.pop();
+        delete task;
     }
 }
 

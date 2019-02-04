@@ -2,6 +2,8 @@
 #define FILEQUEUE_H
 
 #include <QObject>
+#include <QDebug>
+
 #include <queue>
 #include <functional>
 

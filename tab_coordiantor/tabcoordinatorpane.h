@@ -52,6 +52,9 @@ signals:
     void revalidateTabSelectorPane();
 
 public slots:
+    void clearLayout();
+    void revalidateWidgets();
+
     void revalidate();
     void updateTabLabels(QVector<QDir> tabLabels);
     void activeTabIdChanged(int id);
@@ -63,10 +66,12 @@ private:
 
     void revalidateMainWidget();
 
-    void clearLayout();
     void deleteMainLayout();
 
     void setTabBar();
+
+    void connectTabBar();
+    void disconnectTabBar();
 
 //    --------------------------------------
 

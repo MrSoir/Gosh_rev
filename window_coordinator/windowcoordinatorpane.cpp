@@ -7,22 +7,35 @@ WindowCoordinatorPane::WindowCoordinatorPane(WindowCoordinator* wc,
                                              int windowCount,
                                              Orientation::ORIENTATION orientation,
                                              QWidget *parent)
-    : QWidget(parent),
+    : //QWidget(parent),
+      WidgetCloser(parent),
+
       m_windowCoordinator(wc),
       m_splitterRatios(splitterRatios),
       m_orientation(orientation),
       m_windowCount(windowCount),
       m_removeDialogSize(QSize(0,0))
 {
+    connect(this, &WindowCoordinatorPane::widgetClosed_SGNL, this, &WindowCoordinatorPane::widgetClosed);
+
     revalidateLayout();
 }
 
 WindowCoordinatorPane::~WindowCoordinatorPane()
 {
+    qDebug() << "~WindowCoordinatorPane";
     clearSplitter();
 
     m_toolBar = nullptr;
     m_vBox = nullptr;
+
+    deleteMainLayout();
+}
+
+void WindowCoordinatorPane::widgetClosed()
+{
+    WidgetCloser::m_closed = true;
+    m_windowCoordinator = nullptr;
 
     deleteMainLayout();
 }
@@ -138,14 +151,15 @@ void addLayoutToSplitter(QSplitter* splitter, QLayout* widget){
 }
 void addWidgetToSplitter(QSplitter* splitter, QWidget* widget){
     splitter->addWidget(widget);
-//    QVBoxLayout* vBox = new QVBoxLayout();
-//    vBox->addWidget(widget);
-//    vBox->setContentsMargins(3,3,3,3);
-//    addLayoutToSplitter(splitter, vBox);
 }
 
 void WindowCoordinatorPane::revalidateLayout()
 {
+    if(WidgetCloser::m_closed)
+        return;
+
+    if(!m_windowCoordinator)
+        return;
     auto windowLayouts = m_windowCoordinator->createCentralWidgets();
     auto orientation   = m_windowCoordinator->getOrientation();
 
@@ -246,7 +260,7 @@ void WindowCoordinatorPane::resetMainLayout()
 {
     deleteMainLayout();
 
-    m_vBox = new QVBoxLayout();
+    m_vBox = new QVBoxLayout;
     this->setLayout(m_vBox);
     m_vBox->setContentsMargins(2, 2, 2, 2);
     m_vBox->setSpacing(0);

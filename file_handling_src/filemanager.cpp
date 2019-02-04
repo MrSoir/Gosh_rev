@@ -45,6 +45,7 @@ FileManager::FileManager(std::string root_path,
 
 FileManager::~FileManager()
 {
+    qDebug() << "~FileManager";
     disconnectSiganls();
 
     delete m_searcher; m_searcher = nullptr;
@@ -587,8 +588,6 @@ void FileManager::keyPressed(std::string s)
 
     m_keysPressed.append(s);
     m_keysPressed = StringOps::toLower(m_keysPressed);
-
-    qDebug() << "FileManager::keyPressed - " << QString::fromStdString(m_keysPressed);
 
     if(m_selector)
     {
@@ -1288,8 +1287,6 @@ void FileManager::revalidateTree()
     {
         m_depthId_elapsed.pop_back();
     }
-
-    qDebug() <<"\nm_depthId_elapsed.size: " << m_depthId_elapsed.size() << "\n";
 
     if(m_selector)
     {

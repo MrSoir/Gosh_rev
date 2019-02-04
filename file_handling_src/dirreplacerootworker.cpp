@@ -6,7 +6,6 @@ DirReplaceRootWorker::DirReplaceRootWorker(string root_path,
       m_new_root_path(root_path),
       m_current_rootDir(current_rootDir)
 {
-    qDebug() << "DirReplaceRootWorker::Constructor";
     connect(this, &DirReplaceRootWorker::runTask, this, &DirReplaceRootWorker::run);
 }
 
@@ -26,7 +25,6 @@ bool DirReplaceRootWorker::revalidateDirStructureAfterWorkerHasFinished() const
 
 void DirReplaceRootWorker::run()
 {
-    qDebug() << "DirReplaceRootWorker::run";
     bool isSubDir = STATIC_FUNCTIONS::isSubDirectory(m_new_root_path, m_current_rootDir->absPath());
 
     auto deleteFunc = [](FileInfoBD* fi){fi->closeAbsParent();}; // da 'delete fi;' nach hinten los gehn wuerde...

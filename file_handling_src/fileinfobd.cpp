@@ -304,7 +304,7 @@ FileInfoBD* FileInfoBD::operator=(FileInfoBD* fi)
 
 FileInfoBD::~FileInfoBD()
 {
-    qDebug() << "~FileInfoBD: " << m_fileInfo.absoluteFilePath();
+//    qDebug() << "~FileInfoBD: " << m_fileInfo.absoluteFilePath();
     unregisterThis();
 }
 

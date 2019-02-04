@@ -24,6 +24,11 @@ TabCoordinatorPane::~TabCoordinatorPane()
     deleteMainLayout();
 }
 
+void TabCoordinatorPane::revalidateWidgets()
+{
+    revalidate();
+}
+
 void TabCoordinatorPane::revalidate()
 {
     revalidateMainWidget();
@@ -93,24 +98,50 @@ void TabCoordinatorPane::clearLayout()
 
 void TabCoordinatorPane::deleteMainLayout()
 {
+    disconnectTabBar();
+
     if(this->layout())
         StaticFunctions::clearLayout_and_DeleteContainingWidgets(this->layout(), true);
 
-    QLayout* oldLayout = this->layout();
-    delete oldLayout;
+    auto* oldLayout = this->layout();
+    if(oldLayout)
+        delete oldLayout;
 }
 
 
 void TabCoordinatorPane::setTabBar()
 {
     m_tabPane = new TabSelectorPane( m_curActiveTabId, m_tabLabels, m_tabPaneScrollOffsetX );
-    connect(m_tabPane, &TabSelectorPane::addClicked, this, &TabCoordinatorPane::tabAddClicked);//, Qt::QueuedConnection);
-    connect(m_tabPane, &TabSelectorPane::tabClicked, this, &TabCoordinatorPane::tabClicked);//, Qt::QueuedConnection);
-    connect(m_tabPane, &TabSelectorPane::tabCloseClicked, this, &TabCoordinatorPane::tabCloseClicked);//, Qt::QueuedConnection);
 
-    connect(this, &TabCoordinatorPane::updateTabLabelsSGNL, m_tabPane, &TabSelectorPane::setTabs);//, Qt::QueuedConnection);
-    connect(this, &TabCoordinatorPane::activeTabIdChangedSGNL, m_tabPane, &TabSelectorPane::setActiveTabId);//, Qt::QueuedConnection);
-    connect(this, &TabCoordinatorPane::revalidateTabSelectorPane, m_tabPane, &TabSelectorPane::revalidate);//, Qt::QueuedConnection);
+    connectTabBar();
 
     m_mainLayout->addWidget(m_tabPane);
+}
+
+void TabCoordinatorPane::connectTabBar()
+{
+    if(m_tabPane)
+    {
+        connect(m_tabPane, &TabSelectorPane::addClicked, this, &TabCoordinatorPane::tabAddClicked);
+        connect(m_tabPane, &TabSelectorPane::tabClicked, this, &TabCoordinatorPane::tabClicked);
+        connect(m_tabPane, &TabSelectorPane::tabCloseClicked, this, &TabCoordinatorPane::tabCloseClicked);
+
+        connect(this, &TabCoordinatorPane::updateTabLabelsSGNL, m_tabPane, &TabSelectorPane::setTabs);
+        connect(this, &TabCoordinatorPane::activeTabIdChangedSGNL, m_tabPane, &TabSelectorPane::setActiveTabId);
+        connect(this, &TabCoordinatorPane::revalidateTabSelectorPane, m_tabPane, &TabSelectorPane::revalidate);
+    }
+}
+
+void TabCoordinatorPane::disconnectTabBar()
+{
+    if(m_tabPane)
+    {
+        disconnect(m_tabPane, &TabSelectorPane::addClicked, this, &TabCoordinatorPane::tabAddClicked);
+        disconnect(m_tabPane, &TabSelectorPane::tabClicked, this, &TabCoordinatorPane::tabClicked);
+        disconnect(m_tabPane, &TabSelectorPane::tabCloseClicked, this, &TabCoordinatorPane::tabCloseClicked);
+
+        disconnect(this, &TabCoordinatorPane::updateTabLabelsSGNL, m_tabPane, &TabSelectorPane::setTabs);
+        disconnect(this, &TabCoordinatorPane::activeTabIdChangedSGNL, m_tabPane, &TabSelectorPane::setActiveTabId);
+        disconnect(this, &TabCoordinatorPane::revalidateTabSelectorPane, m_tabPane, &TabSelectorPane::revalidate);
+    }
 }
