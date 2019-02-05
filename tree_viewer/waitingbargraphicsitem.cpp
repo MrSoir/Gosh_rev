@@ -29,8 +29,7 @@ WaitingBarGraphicsItem::~WaitingBarGraphicsItem()
 
 void WaitingBarGraphicsItem::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget)
 {
-    Q_UNUSED(widget)
-    Q_UNUSED(option)
+    GraphicItemsBD::GraphicsItemBD::paint(painter, option, widget);
 
     QRectF rct = boundingRect();
     QRect i_rct = rct.toRect();

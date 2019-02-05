@@ -52,7 +52,9 @@ public slots:
     void select_QString(QString path, bool cntrl_prsd, bool shift_prsd);
     void select(std::string path, bool cntrl_prsd, bool shift_prsd);
     void selectEntireContent();
+
     void clearSelection();
+    void clearSelectionWithoutSignaling();
 
     void selectNext(bool cntrl_prsd, bool shift_prsd);
     void selectPrevious(bool cntrl_prsd, bool shift_prsd);

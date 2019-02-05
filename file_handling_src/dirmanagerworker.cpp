@@ -26,10 +26,10 @@ void DirManagerWorker::cancel()
 
 void DirManagerWorker::start()
 {
-    qDebug() << " DirManagerWorker::start():"
-                "\n   this.thread:  " << this->thread()->objectName()
-             << "\n   activeThread: " << QThread::currentThread()->objectName()
-             << "\n   m_thread:     " << m_thread->objectName();
+//    qDebug() << " DirManagerWorker::start():"
+//                "\n   this.thread:  " << this->thread()->objectName()
+//             << "\n   activeThread: " << QThread::currentThread()->objectName()
+//             << "\n   m_thread:     " << m_thread->objectName();
 
     workBeforeLaunchThread();
 
@@ -46,5 +46,6 @@ void DirManagerWorker::start()
 
 void DirManagerWorker::workBeforeLaunchThread()
 {
-    // in general - do nothin!
+    // in general - do nothing! - in here, the subclasses like DirElapseWorker will move the relevant QObjects,
+    // like 'FileInfoBD* m_dir_to_elapse' to this thread, that will be launched right after this function call
 }

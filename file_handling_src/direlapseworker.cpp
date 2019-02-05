@@ -49,7 +49,6 @@ bool DirElapseWorker::revalidateDirStructureAfterWorkerHasFinished() const
 
 void DirElapseWorker::run()
 {
-    qDebug() << "DirElapseWorker::run";
     for(auto* dir: m_dirsToElapse)
     {
         if(m_collapse)
@@ -64,7 +63,7 @@ void DirElapseWorker::run()
             DirElapseWorkerHelper* helper = new DirElapseWorkerHelper(dir,
                                                                       m_recursive,
                                                                       this->thread());
-            dir->moveToThread(thread);
+            dir->moveToThread_rec(thread);
             helper->moveToThread(thread);
 
             connect(helper, &DirElapseWorkerHelper::finished, this, &DirElapseWorker::workerFinished, Qt::QueuedConnection);
@@ -94,7 +93,7 @@ void DirElapseWorker::moveDirsToCallerThread()
 
     for(auto* dir: m_dirsToElapse)
     {
-        dir->moveAbsParentToThread(m_threadToMoveObjectsTo);
+        dir->moveToThread_rec(m_threadToMoveObjectsTo);
     }
 }
 
@@ -114,7 +113,7 @@ void DirElapseWorker::workBeforeLaunchThread()
 {
     for(auto* dir: m_dirsToElapse)
     {
-        dir->moveAbsParentToThread(m_thread);
+        dir->moveToThread_rec(m_thread);
     }
 }
 
@@ -162,7 +161,7 @@ DirElapseWorkerHelper::DirElapseWorkerHelper(FileInfoBD* dir,
 
 DirElapseWorkerHelper::~DirElapseWorkerHelper()
 {
-    qDebug() << "~DirElapseWorkerHelper";
+//    qDebug() << "~DirElapseWorkerHelper";
 }
 
 void DirElapseWorkerHelper::run()
@@ -170,7 +169,7 @@ void DirElapseWorkerHelper::run()
     elapseHelper(m_dir);
 
     if(m_threadToMoveObjectsTo)
-        m_dir->moveToThread(m_threadToMoveObjectsTo);
+        m_dir->moveToThread_rec(m_threadToMoveObjectsTo);
 
     emit finished(m_dir);
 }

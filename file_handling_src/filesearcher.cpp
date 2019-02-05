@@ -194,6 +194,19 @@ void FileSearcher::exitSearchMode()
     m_inSearchMode = false;
 }
 
+void FileSearcher::clearSearch()
+{
+    clearSearchWithoutSignaling();
+
+    emit searchResultsChanged();
+}
+
+void FileSearcher::clearSearchWithoutSignaling()
+{
+    m_inSearchMode = false;
+    clearContainers();
+}
+
 bool FileSearcher::inSearchMode()
 {
     return m_inSearchMode;
@@ -241,6 +254,14 @@ void FileSearcher::resetCurMatchVars()
     m_matchCount = static_cast<int_bd>(m_matched_paths.size());
     m_focused_match_id =  0;
     m_focused_path     = m_matchCount <= 0 ? "" : m_ord_matchedPaths[static_cast<int_bd>(m_focused_match_id)];
+}
+
+void FileSearcher::clearContainers()
+{
+    m_matched_paths.clear();
+    m_ord_matchedPaths.clear();
+    m_key_word = "";
+    resetCurMatchVars();
 }
 
 void FileSearcher::printMatches() const

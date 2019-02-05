@@ -56,12 +56,16 @@ public slots:
     void focusPreviousMatch();
 
     void exitSearchMode();
+    void clearSearch();
+    void clearSearchWithoutSignaling();
 
     void close();
 private:
     void findMatches();
 
     void resetCurMatchVars();
+
+    void clearContainers();
 
     void printMatches() const;
 

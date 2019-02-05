@@ -222,12 +222,17 @@ void FileSelector::selectEntireContent()
 
 void FileSelector::clearSelection()
 {
+    clearSelectionWithoutSignaling();
+
+    emit selectionChanged();
+}
+
+void FileSelector::clearSelectionWithoutSignaling()
+{
     m_selected_paths.clear();
     m_selected_folders_paths.clear();
     clearSelectionVars();
     m_slct_key_word = "";
-
-    emit selectionChanged();
 }
 
 void FileSelector::selectNext(bool cntrl_prsd, bool shift_prsd)

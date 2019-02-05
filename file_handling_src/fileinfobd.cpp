@@ -300,13 +300,25 @@ FileInfoBD::~FileInfoBD()
     unregisterThis();
 }
 
+//-----------------------------------------------------
+
+
 void FileInfoBD::moveAbsParentToThread(QThread *thread)
 {
     if(m_parent)
     {
         m_parent->moveAbsParentToThread(thread);
     }else{
-        this->moveToThread(thread);
+        this->moveToThread_rec(thread);
+    }
+}
+
+void FileInfoBD::moveToThread_rec(QThread *thread)
+{
+    this->moveToThread(thread);
+    for(auto* sub_dir: m_sub_folds)
+    {
+        sub_dir->moveToThread_rec(thread);
     }
 }
 
@@ -783,6 +795,9 @@ void FileInfoBD::replaceSub_fold(std::string subFoldPath, FileInfoBD* subFoldToR
             m_path_to_subFold[sub_fold_path] = subFoldToRepl;
             subFoldToRepl->m_parent = this;
 
+//            subFoldToRepl->setParent(this);
+//            subFoldToRepl->setSubFoldersParent_rec();
+
             old_sub_fold->close_hlpr();
             delete old_sub_fold;
         }
@@ -963,6 +978,7 @@ void FileInfoBD::checkIfSortingIsStillValid()
         sortFolder(m_order);
     }
 }
+
 template<typename T, typename K>
 std::function<bool(T,T)> FileInfoBD::genSortingFunction(std::function<K(T)> characteristicGetter) const
 {
@@ -1037,6 +1053,8 @@ void FileInfoBD::revalFolderContent()
         m_sub_fold_paths.insert( new_subFoldPath );
     }
 
+//    setSubFoldersParent_rec();
+
     doSorting();
 
     if(deletedDirs.size() > 0)
@@ -1105,29 +1123,29 @@ void FileInfoBD::clearContainers(bool clearSubFolderContainers)
     m_filePath_fileName.clear();
 }
 
-void FileInfoBD::removeSubFolder(FileInfoBD *dirToDelete)
-{
-    std::string dir_path = dirToDelete->absPath();
-    std::string dir_name = dirToDelete->fileName();
+//void FileInfoBD::removeSubFolder(FileInfoBD* dirToDelete)
+//{
+//    std::string dir_path = dirToDelete->absPath();
+//    std::string dir_name = dirToDelete->fileName();
 
-    if(m_sub_folds.find(dirToDelete) != m_sub_folds.end())
-    {
-        m_sub_folds.erase(m_sub_folds.find(dirToDelete));
-    }
-    if(m_sub_fold_paths.find(dir_path) != m_sub_fold_paths.end())
-    {
-        m_sub_fold_paths.erase(m_sub_fold_paths.find(dir_path));
-    }
-    if(m_path_to_subFold.find(dir_name) != m_path_to_subFold.end())
-    {
-        m_path_to_subFold.erase(dir_name);
-    }
-    if(m_hidden_folds.find(dir_path) != m_hidden_folds.end())
-    {
-        m_hidden_folds.erase(m_hidden_folds.find(dir_path));
-    }
-    doSorting();
-}
+//    if(m_sub_folds.find(dirToDelete) != m_sub_folds.end())
+//    {
+//        m_sub_folds.erase(m_sub_folds.find(dirToDelete));
+//    }
+//    if(m_sub_fold_paths.find(dir_path) != m_sub_fold_paths.end())
+//    {
+//        m_sub_fold_paths.erase(m_sub_fold_paths.find(dir_path));
+//    }
+//    if(m_path_to_subFold.find(dir_name) != m_path_to_subFold.end())
+//    {
+//        m_path_to_subFold.erase(dir_name);
+//    }
+//    if(m_hidden_folds.find(dir_path) != m_hidden_folds.end())
+//    {
+//        m_hidden_folds.erase(m_hidden_folds.find(dir_path));
+//    }
+//    doSorting();
+//}
 
 void FileInfoBD::registerThis()
 {
@@ -1142,7 +1160,17 @@ void FileInfoBD::unregisterThis()
 //    if(FIBD_COLLECTOR)
 //    {
 //        FIBD_COLLECTOR->fiBD_destroyed_slot(this);
-//    }
+    //    }
+}
+
+
+void FileInfoBD::setSubFoldersParent_rec()
+{
+    for(auto* sub_fold: m_sub_folds)
+    {
+        sub_fold->setParent(this);
+        sub_fold->setSubFoldersParent_rec();
+    }
 }
 
 

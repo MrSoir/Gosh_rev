@@ -33,9 +33,11 @@ protected:
 private:
     // falls path ein sub-folder vom dir ist, dann sucht findSubDirInDir diesen sub-folder rekursiv
     FileInfoBD* findSubDirInDir(FileInfoBD* dir, std::string path);
+    FileInfoBD* findParentFromDir(FileInfoBD* dir, std::string path);
 
     std::string m_new_root_path;
     FileInfoBD* m_current_rootDir;
+
     QThread* m_threadToMoveObjectsTo;
 };
 

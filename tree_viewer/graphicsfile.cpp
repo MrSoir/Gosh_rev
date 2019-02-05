@@ -151,8 +151,11 @@ QString convertBytesToFormattedString(unsigned long long int bytes){
     return QString("%1 %2").arg(numbString).arg(typeStr);
 }
 void GraphicsFile::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) {
-    Q_UNUSED(widget)
     Q_UNUSED(option)
+    if( !painter->isActive() )
+    {
+        painter->begin(widget);
+    }
 
     if(m_isCurrentlyRepainting.fetch_add(0) > 0)
     {

@@ -57,7 +57,12 @@ void WindowCoordinatorPane::clearSplitter()
 void WindowCoordinatorPane::paintEvent(QPaintEvent *event)
 {
     Q_UNUSED(event)
+
     QPainter* painter = new QPainter();
+
+    if(!painter->isActive())
+        painter->begin(this);
+
     painter->setBrush(QColor(255,255,255));
     painter->drawRect(QRect(0,0, this->width(), this->height()));
     QWidget::paintEvent(event);

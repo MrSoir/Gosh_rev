@@ -17,7 +17,8 @@ class DirIncludeHiddenFilesWorker : public DirManagerWorker
 {
 public:
     explicit DirIncludeHiddenFilesWorker(FileInfoBD* root_dir,
-                                         bool include);
+                                         bool include,
+                                         QThread* threadToMoveObjectsTo);
     virtual ~DirIncludeHiddenFilesWorker() override;
 
     virtual bool blockOtherThreads() const override;
@@ -25,10 +26,14 @@ public:
 signals:
 public slots:
     void run();
+protected:
+    virtual void workBeforeLaunchThread() override;
 private:
 
     FileInfoBD* m_root_dir;
     bool m_include;
+
+    QThread* m_threadToMoveObjectsTo;
 };
 
 #endif // DIRINCLUDEHIDDENFILESWORKER_H

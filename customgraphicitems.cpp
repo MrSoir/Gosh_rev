@@ -33,9 +33,12 @@ void GraphicItemsBD::GraphicsItemBD::paint(QPainter* painter,
                                            const QStyleOptionGraphicsItem* option,
                                            QWidget* widget)
 {
-    Q_UNUSED(painter)
     Q_UNUSED(option)
-    Q_UNUSED(widget)
+    if(!painter->isActive())
+    {
+        qDebug() << "\nGraphicsItemBD::paint - painter is NOT active -> activating painter!!!\n";
+        painter->begin(widget);
+    }
 }
 
 
@@ -75,12 +78,7 @@ void GraphicItemsBD::ButtonBD::setCallFunction(std::function<void()> callFunc){
 }
 
 void GraphicItemsBD::ButtonBD::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget){
-    Q_UNUSED(widget)
-    Q_UNUSED(option)
-
     GraphicItemsBD::GraphicsItemBD::paint(painter, option, widget);
-
-//    qDebug() << "paint-ButtonBD";
 
     // gaaanz wichtig: erstmal painter an boundingRect clippen!!!:
     QRectF rct = boundingRect();
@@ -168,10 +166,7 @@ void GraphicItemsBD::TextRect::revalidateSize(float paddingX, float paddingY)
 }
 
 void GraphicItemsBD::TextRect::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget){
-    Q_UNUSED(widget)
-    Q_UNUSED(option)
-
-//    qDebug() << "paint-TextRect";
+    GraphicItemsBD::ButtonBD::paint(painter, option, widget);
 
     ButtonBD::paint(painter, option, widget);
 
@@ -210,8 +205,8 @@ void GraphicItemsBD::PixmapRect::setPixmap(QPixmap pixmap)
 }
 
 void GraphicItemsBD::PixmapRect::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget){
-    Q_UNUSED(widget)
-    Q_UNUSED(option)
+    GraphicItemsBD::ButtonBD::paint(painter, option, widget);
+
 
 //    qDebug() << "paint-PixmapRect";
 
@@ -248,8 +243,8 @@ void GraphicItemsBD::CustomShapeRect::setPaintFunction(std::function<void (QPain
 
 void GraphicItemsBD::CustomShapeRect::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
 {
-    Q_UNUSED(option);
-    Q_UNUSED(widget);
+    GraphicItemsBD::ButtonBD::paint(painter, option, widget);
+
 
     ButtonBD::paint(painter, option, widget);
 
@@ -277,12 +272,11 @@ GraphicItemsBD::IconAndLabelItem::~IconAndLabelItem()
     m_onClicked = nullptr;
 }
 
-void GraphicItemsBD::IconAndLabelItem::paint(QPainter *painter,
+void GraphicItemsBD::IconAndLabelItem::paint(QPainter* painter,
                                              const QStyleOptionGraphicsItem *option,
                                              QWidget *widget)
 {
-    Q_UNUSED(option)
-    Q_UNUSED(widget)
+    GraphicItemsBD::GraphicsItemBD::paint(painter, option, widget);
 
     QRectF rct = boundingRect();
 

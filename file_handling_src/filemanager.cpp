@@ -675,6 +675,9 @@ void FileManager::setRoot_hlpr(string rootPath, bool addToDirStack)
     if(addToDirStack)
         m_dirStack->addPath(rootPath);
 
+    m_selector->clearSelectionWithoutSignaling();
+    m_searcher->clearSearchWithoutSignaling();
+
     emit rootDirChanged(rootPath);
 }
 

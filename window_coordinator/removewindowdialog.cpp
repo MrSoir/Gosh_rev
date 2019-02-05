@@ -66,7 +66,7 @@ void RemoveWindowDialog::setSize(const QSize &size)
 void RemoveWindowDialog::setPosition(const QPoint &position)
 {
     this->move(position.x(), position.y());
-    repaint();
+    update();
 }
 
 void RemoveWindowDialog::paintEvent(QPaintEvent *event)
@@ -254,7 +254,7 @@ void RemoveWindowDialog::mousePressEvent(QMouseEvent *event){
     }
     lastTmePrsd = curTime;
     isPressed = true;
-    repaint();
+    update();
     //        update();
 }
 
@@ -269,7 +269,7 @@ void RemoveWindowDialog::mouseMoveEvent(QMouseEvent *event){
         }
     }
 //        update();
-    repaint();
+    update();
     return QWidget::mouseMoveEvent(event);
 }
 

@@ -19,7 +19,7 @@ public:
     explicit DirElapseWorker(std::vector<FileInfoBD*> dirsToElapse,
                              bool recursive,
                              bool collapse,
-                             QThread *threadToMoveObjectsTo);
+                             QThread* threadToMoveObjectsTo);
     explicit DirElapseWorker(FileInfoBD* dirToElapse,
                              bool recursive,
                              bool collapse,

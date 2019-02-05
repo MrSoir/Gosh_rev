@@ -112,8 +112,7 @@ void MenuBar::setCaller(std::shared_ptr<DynamicFunctionCaller<QString, std::func
 }
 
 void MenuBar::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget){
-    Q_UNUSED(widget)
-    Q_UNUSED(option)
+    GraphicItemsBD::GraphicsItemBD::paint(painter, option, widget);
 
     // gaaanz wichtig: erstmal painter an boundingRect clippen!!!:
     QRectF rct = boundingRect();

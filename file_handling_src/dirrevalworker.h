@@ -16,8 +16,10 @@ class DirRevalWorker : public DirManagerWorker
 {
     Q_OBJECT
 public:
-    explicit DirRevalWorker(FileInfoBD* fi);
-    explicit DirRevalWorker(std::vector<FileInfoBD*> fis);
+    explicit DirRevalWorker(FileInfoBD* fi,
+                            QThread* threadToMoveObjectsTo);
+    explicit DirRevalWorker(std::vector<FileInfoBD*> fis,
+                            QThread* threadToMoveObjectsTo);
 
     virtual ~DirRevalWorker() override;
 
@@ -26,9 +28,12 @@ public:
 signals:
 public slots:
     void run();
+protected:
+    virtual void workBeforeLaunchThread() override;
 private:
-
     std::vector<FileInfoBD*> m_fis;
+
+    QThread* m_threadToMoveObjectsTo;
 };
 
 #endif // DIRREVALWORKER_H

@@ -269,6 +269,8 @@ QRectF StaticFunctions::qRect_to_qRectF(const QRect& rct){
                   (static_cast<int>(rct.height())));
 }
 void StaticFunctions::paintCrossRect(QPainter *painter, const QRectF& rct){
+    if( !painter->isActive() )
+        qDebug() << "StaticFunctions::paintCrossRect - painter is not active!!!";
     float offsX = ((float)rct.width()) * 0.1;
     float offsY = ((float)rct.height()) * 0.1;
 
@@ -293,6 +295,8 @@ void StaticFunctions::paintCrossRect(QPainter *painter, const QRect& rct){
 }
 
 void StaticFunctions::paintArrowUpDown(QPainter *painter, const QRectF& rct, bool up){
+    if( !painter->isActive() )
+        qDebug() << "StaticFunctions::paintArrowUpDown - painter is not active!!!";
     float offsX = ((float)rct.width()) * 0.2;
     float offsY = ((float)rct.height()) * 0.2;
     QRectF wndwRct = QRect(rct.left()+offsX,
@@ -318,13 +322,14 @@ void StaticFunctions::paintArrowUpDown(QPainter *painter, const QRectF& rct, boo
 }
 void StaticFunctions::paintArrowUp(QPainter *painter, const QRectF& rct){
     paintArrowUpDown(painter, rct, true);
-
 }
 void StaticFunctions::paintArrowDown(QPainter *painter, const QRectF& rct){
     paintArrowUpDown(painter, rct, false);
 }
 
 void StaticFunctions::paintRect(QPainter *painter, const QRectF& rct){
+    if( !painter->isActive() )
+        qDebug() << "StaticFunctions::paintRect 1 - painter is not active!!!";
     QLinearGradient gradient = QLinearGradient(rct.topLeft(), rct.bottomRight());
     gradient.setColorAt(0, QColor(255,255,255, 255));
     gradient.setColorAt(1, QColor(220,220,220, 255));
@@ -340,6 +345,8 @@ void StaticFunctions::paintRect(QPainter *painter, const QRectF& rct,
                const QColor& gradCol1, const QColor& gradCol2,
                const QColor& penColor,
                int bordWidth){
+    if( !painter->isActive() )
+        qDebug() << "StaticFunctions::paintRect 2 - painter is not active!!!";
     if(gradCol2 == nullptr){
         painter->setBrush(gradCol1);
     }else{
@@ -358,6 +365,8 @@ void StaticFunctions::paintTextRect(QPainter *painter, const QString& str,
                    const QFont font,
                    const QColor& borderCol,
                    int bordWidth){
+    if( !painter->isActive() )
+        qDebug() << "StaticFunctions::paintTextRect - painter is not active!!!";
     paintRect(painter, rct, gradCol1, gradCol2,borderCol, bordWidth);
     painter->setFont(font);
     QFontMetrics fm(painter->font());
@@ -374,6 +383,8 @@ void StaticFunctions::paintPixmapRect(QPainter *painter, const QPixmap& pixmap,
                    const QColor& gradCol1, const QColor& gradCol2,
                    const QColor& borderCol,
                    int bordWidth){
+    if( !painter->isActive() )
+        qDebug() << "StaticFunctions::paintPixmapRect - painter is not active!!!";
     paintRect(painter, frameRct, gradCol1, gradCol2, borderCol, bordWidth);
     QRectF pixmpRct( (frameRct.center()-QPointF(pixmap.width()*0.5, pixmap.height()*0.5)),
                      QSizeF(pixmap.width(), pixmap.height()) );
@@ -384,6 +395,8 @@ void StaticFunctions::paintPixmapTranspRect(QPainter* painter, const QPixmap& pi
                            const QRectF& frameRct,
                            float padding)
 {
+    if( !painter->isActive() )
+        qDebug() << "StaticFunctions::paintPixmapTranspRect - painter is not active!!!";
     QRectF tarRect(frameRct.left()  + padding, frameRct.top()    + padding,
                    frameRct.width() - padding, frameRct.height() - padding);
     painter->drawPixmap(tarRect, pixmap, pixmap.rect());
@@ -391,6 +404,9 @@ void StaticFunctions::paintPixmapTranspRect(QPainter* painter, const QPixmap& pi
 
 
 void StaticFunctions::paintLoupe(QPainter *painter, const QRectF& rct, SHAPE shape){
+    if( !painter->isActive() )
+        qDebug() << "StaticFunctions::paintLoupe - painter is not active!!!";
+
     qreal edge = rct.width(); // edge==Kante -> rct muss quadratisch sein!
     qreal radFctr = 1./3.;
     qreal centFctr = 4./10.;
@@ -444,6 +460,8 @@ void StaticFunctions::paintLoupe(QPainter *painter, const QRectF& rct, SHAPE sha
 }
 
 void StaticFunctions::paintPixmap(QPainter *painter, const QRectF& target, QString imgPath){
+    if( !painter->isActive() )
+        qDebug() << "StaticFunctions::paintPixmap 2 - painter is not active!!!";
     QPixmap pixmap(imgPath);
     QSize source = pixmap.size();
 

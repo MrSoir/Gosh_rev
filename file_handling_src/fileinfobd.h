@@ -88,11 +88,13 @@ public:
     FileInfoBD* operator=(FileInfoBD* fi);
 
 
-    ~FileInfoBD();
+    virtual ~FileInfoBD() override;
 
+    //-----------------------------------------------------
     //-----------------------------------------------------
 
     void moveAbsParentToThread(QThread* thread);
+    void moveToThread_rec(QThread* thread);
 
     //-----------------------------------------------------
 
@@ -183,6 +185,7 @@ signals:
     void requestClosing(std::vector<FiBDDeletor*> dirsToDelete);
 
     void closingFinished();
+
 public slots:
     void elapse();
     void elapse_rec();
@@ -230,10 +233,12 @@ private:
     void clearSubFolderContainers();
     void clearContainers(bool clearSubFolderContainers = false);
 
-    void removeSubFolder(FileInfoBD* dirToDelete);
+//    void removeSubFolder(FileInfoBD* dirToDelete);
 
     void registerThis();
     void unregisterThis();
+
+    void setSubFoldersParent_rec();
 
     void close_hlpr();
 

@@ -15,16 +15,24 @@ DirManager::DirManager(const std::string& root_path,
       m_closed(false),
       m_thread(new QThread)
 {
+    // m_root muss zuerst elapsed werden, erst danach darf ert via createThread der thread erstellt werden,
+    // da sonst die sub_folders von m_root im anderen thread erstellt werden
+    // -> dann kann aber nicht mehr sub_folder.setParent(m_root) mehr aufgerufen werden
+    // das ist aber wiederum wichtig, denn wenn QObject.moveToThread(QThread) aufgerufen wird,
+    // dann werden die member-variablen des QObject's nur auch zum thread gewechselt, wenn als
+    // parent der member-variablen das QOjbect gesetzt ist!!!
+
+    m_root->elapse();
+
     createThread();
 
     connectSignals();
 
-    m_root->elapse();
-
     revalidateDirStructure();
 }
 
-DirManager::DirManager(FileInfoBD* root_dir, QObject *parent)
+DirManager::DirManager(FileInfoBD* root_dir,
+                       QObject *parent)
     : QObject(parent),
       m_root(root_dir),
       m_root_path(root_dir->absPath()),
@@ -34,11 +42,17 @@ DirManager::DirManager(FileInfoBD* root_dir, QObject *parent)
       m_watcher(new DirFileSystemWatcher()),
       m_closed(false)
 {
+    // m_root muss zuerst elapsed werden, erst danach darf ert via createThread der thread erstellt werden,
+    // da sonst die sub_folders von m_root im anderen thread erstellt werden
+    // -> dann kann aber nicht mehr sub_folder.setParent(m_root) mehr aufgerufen werden
+    // das ist aber wiederum wichtig, denn wenn QObject.moveToThread(QThread) aufgerufen wird,
+    // dann werden die member-variablen des QObject's nur auch zum thread gewechselt, wenn als
+    // parent der member-variablen das QOjbect gesetzt ist!!!
+    m_root->elapse();
+
     createThread();
 
     connectSignals();
-
-    m_root->elapse();
 
     revalidateDirStructure();
 }
@@ -172,7 +186,7 @@ void DirManager::includeHiddenFiles()
     if(m_closed)
         return;
 
-    DirIncludeHiddenFilesWorker* worker = new DirIncludeHiddenFilesWorker(m_root, true);
+    DirIncludeHiddenFilesWorker* worker = new DirIncludeHiddenFilesWorker(m_root, true, m_thread);
     emit addWorker(worker);
 }
 
@@ -181,7 +195,7 @@ void DirManager::excludeHiddenFiles()
     if(m_closed)
         return;
 
-    DirIncludeHiddenFilesWorker* worker = new DirIncludeHiddenFilesWorker(m_root, false);
+    DirIncludeHiddenFilesWorker* worker = new DirIncludeHiddenFilesWorker(m_root, false, m_thread);
     emit addWorker(worker);
 }
 
@@ -193,7 +207,7 @@ void DirManager::sortDir(Order order, string path)
     if(m_path_to_dir.find(path) != m_path_to_dir.end())
     {
         FileInfoBD* fi = m_path_to_dir[path];
-        DirSortWorker* worker = new DirSortWorker(order, fi);
+        DirSortWorker* worker = new DirSortWorker(order, fi, false, m_thread);
         emit addWorker(worker);
     }
 }
@@ -212,7 +226,7 @@ void DirManager::sortDirs(Order order, std::vector<string> paths)
         }
     }
 
-    DirSortWorker* worker = new DirSortWorker(order, fis);
+    DirSortWorker* worker = new DirSortWorker(order, fis, false, m_thread);
     emit addWorker(worker);
 }
 
@@ -221,7 +235,7 @@ void DirManager::sortAllDirs(Order order)
     if(m_closed)
         return;
 
-    DirSortWorker* worker = new DirSortWorker(order, m_root, true);
+    DirSortWorker* worker = new DirSortWorker(order, m_root, true, m_thread);
     emit addWorker(worker);
 }
 
@@ -278,7 +292,7 @@ void DirManager::dirChanged_slot(std::string dir_path)
     {
         FileInfoBD* dir = m_path_to_dir[dir_path];
 
-        DirRevalWorker* worker = new DirRevalWorker(dir);
+        DirRevalWorker* worker = new DirRevalWorker(dir, m_thread);
         emit addWorker(worker);
     }
 }
@@ -287,8 +301,6 @@ void DirManager::rootDirChanged(string root_path)
 {
     if(m_closed)
         return;
-
-    qDebug() << "DirManager::rootDirChanged: activeThread == m_thread: " << (QThread::currentThread() == m_thread);
 
     emit cancelQueueWorkers();
 
@@ -299,7 +311,6 @@ void DirManager::rootDirChanged(string root_path)
 
 void DirManager::replaceRoot(FileInfoBD* newRoot, bool deleteOldRoot)
 {
-    qDebug() << "DirManager::replaceRoot";
     FileInfoBD* old_root = m_root;
     m_root = newRoot;
     if(deleteOldRoot)
@@ -383,8 +394,6 @@ DirManagerInfo* DirManager::genTreeFromRoot() const
 
 void DirManager::createThread()
 {
-    qDebug() << "DirManager::createThread";
-
     moveMembersToThread();
 
     m_thread->setObjectName(QString("DIR_MANAGER_THREAD-%1").arg(STATIC_FUNCTIONS::genRandomNumberString()));
@@ -393,7 +402,6 @@ void DirManager::createThread()
     connect(m_thread, &QThread::finished, m_thread, &QThread::deleteLater);
 
     m_thread->start();
-    qDebug() << "DirManager::createThread - finished";
 }
 void DirManager::moveMembersToThread()
 {

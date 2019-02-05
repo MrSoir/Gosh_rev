@@ -19,10 +19,12 @@ class DirSortWorker : public DirManagerWorker
 public:
     explicit DirSortWorker(Order order,
                            FileInfoBD* fi,
-                           bool sort_recursive = false);
+                           bool sort_recursive,
+                           QThread* threadToMoveObjectsTo);
     explicit DirSortWorker(Order order,
                            std::vector<FileInfoBD*> fis,
-                           bool sort_recursive = false);
+                           bool sort_recursive,
+                           QThread* threadToMoveObjectsTo);
 
     virtual ~DirSortWorker() override;
 
@@ -31,11 +33,14 @@ public:
 signals:
 public slots:
     void run();
+protected:
+    virtual void workBeforeLaunchThread() override;
 private:
-
     Order m_order;
     std::vector<FileInfoBD*> m_fis;
     bool m_sort_recursive;
+
+    QThread* m_threadToMoveObjectsTo;
 };
 
 #endif // DIRSORTWORKER_H

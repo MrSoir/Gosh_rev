@@ -53,7 +53,7 @@ void DirDeepSearchWorker::workerFinished(std::vector<DeepSearchResult> results, 
 
 void DirDeepSearchWorker::workBeforeLaunchThread()
 {
-    m_root_dir->moveAbsParentToThread(m_thread);
+    m_root_dir->moveToThread_rec(m_thread);
 }
 
 void DirDeepSearchWorker::connectSignals()
@@ -108,7 +108,7 @@ void DirDeepSearchWorker::search(FileInfoBD* dir)
                                                                   sub_dir,
                                                                   m_includeHiddenFiles,
                                                                   this->thread());
-            sub_dir->moveToThread(thread);
+            sub_dir->moveToThread_rec(thread);
             helper->moveToThread(thread);
 
             connect(helper, &DirDeepSearchHelper::finished, this, &DirDeepSearchWorker::workerFinished, Qt::QueuedConnection);
@@ -154,7 +154,7 @@ void DirDeepSearchWorker::elapseMatchingFolders()
     }
 
     if(m_threadToMoveObjectsTo)
-        m_root_dir->moveAbsParentToThread(m_threadToMoveObjectsTo);
+        m_root_dir->moveToThread_rec(m_threadToMoveObjectsTo);
 
     emit deepSearchFinished(matching_paths, m_keyword);
     emit finished(revalidateDirStructureAfterWorkerHasFinished());
@@ -219,8 +219,9 @@ void DirDeepSearchHelper::run()
 {
     search(m_dir);
 
-    if(m_threadToMoveObjectsTo)
-        m_dir->moveToThread(m_threadToMoveObjectsTo);
+    if(m_threadToMoveObjectsTo){
+        m_dir->moveToThread_rec(m_threadToMoveObjectsTo);
+    }
 
     emit finished(m_matches,
                   m_dir);

@@ -2,7 +2,7 @@
 
 DirFileSystemWatcher::DirFileSystemWatcher(QObject* parent)
     : QObject(parent),
-      m_watcher(new QFileSystemWatcher()),
+      m_watcher(new QFileSystemWatcher(this)),
       m_dirs_watched(std::vector<std::string>())
 {
     connectSignals();
