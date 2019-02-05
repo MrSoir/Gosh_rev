@@ -27,9 +27,11 @@ class DirDeepSearchWorker : public DirManagerWorker
 {
     Q_OBJECT
 public:
-    DirDeepSearchWorker(std::string keyword,
+    explicit DirDeepSearchWorker(std::string keyword,
                         FileInfoBD* root_dir,
-                        bool includeHiddenFiles);
+                        bool includeHiddenFiles,
+                        QThread* threadToMoveObjectsTo);
+
     virtual ~DirDeepSearchWorker() override;
 
     virtual bool blockOtherThreads() const override;
@@ -42,6 +44,10 @@ public slots:
     void run();
     void workerFinished(std::vector<DeepSearchResult> results,
                         FileInfoBD* dir);
+
+protected:
+    virtual void workBeforeLaunchThread() override;
+
 private:
     void connectSignals();
 
@@ -58,6 +64,8 @@ private:
     bool m_includeHiddenFiles;
     std::vector<DeepSearchResult> m_matches;
     int m_runningThreads;
+
+    QThread* m_threadToMoveObjectsTo;
 };
 
 //----------------------------------------------------------------------------------------
@@ -69,7 +77,8 @@ class DirDeepSearchHelper: public QObject
 public:
     explicit DirDeepSearchHelper(std::string keyword,
                                  FileInfoBD* dir,
-                                 bool includeHiddenFiles);
+                                 bool includeHiddenFiles,
+                                 QThread* threadToMoveObjectsTo);
     virtual ~DirDeepSearchHelper() override;
 
 signals:
@@ -88,6 +97,8 @@ private:
     bool m_includeHiddenFiles;
     std::vector<DeepSearchResult> m_matches;
     bool m_cancelled;
+
+    QThread* m_threadToMoveObjectsTo;
 };
 
 #endif // DIRDEEPSEARCHWORKER_H

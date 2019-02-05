@@ -1,4 +1,5 @@
 #include "filemanager.h"
+#include "threadtestworker.h"
 
 FileManager::FileManager(std::string root_path,
                          bool showHiddenFiles)
@@ -625,6 +626,7 @@ void FileManager::openTerminal()
     {
         std::string last_sel = m_selector->getLastSelectedEntry();
         QString sel_dir = PATH::getDirFromPath(last_sel);
+        qDebug() << "openTerminal: sel_dir: " << sel_dir;
         STATIC_FUNCTIONS::openTerminal(sel_dir);
     }
 }
@@ -862,6 +864,7 @@ void FileManager::connectViewer(GraphicsView* viewer)
         connect(viewer, &GraphicsView::zoomFactorChanged, this, &FileManager::zoomFactorChanged);
         connect(viewer, &GraphicsView::requestFileViewerRevalidation, this, &FileManager::requestFileViewerRevalidation);
         connect(viewer, &GraphicsView::zoomFactorChanged,  this, &FileManager::setZoomFactor);
+        connect(viewer, &GraphicsView::openTerminalSGNL, this, &FileManager::openTerminal);
         connect(viewer->verticalScrollBar(),   &QScrollBar::valueChanged,  this, &FileManager::saveGraphicsViewVBarValue);
         connect(viewer->horizontalScrollBar(), &QScrollBar::valueChanged,  this, &FileManager::saveGraphicsViewHBarValue);
         connect(viewer, &GraphicsView::requestCloseCurrentTab, this, &FileManager::closeCurrentTab); // signal -> signal!!!
@@ -883,7 +886,6 @@ void FileManager::disconnectViewer(GraphicsView* viewer)
         disconnect(this, &FileManager::revalidateViewer_MetaData,   viewer, &GraphicsView::receiveFileManagerMetaData);
         disconnect(this, &FileManager::revalidateViewer_EntireData, viewer, &GraphicsView::receiveFileManagerData);
 
-
         // GraphicsView -> FileSearcher:
         disconnect(viewer, &GraphicsView::nextSearchResultSGNL, m_searcher, &FileSearcher::focusNextMatch);
         disconnect(viewer, &GraphicsView::prevSearchResultSGNL, m_searcher, &FileSearcher::focusPreviousMatch);
@@ -892,13 +894,14 @@ void FileManager::disconnectViewer(GraphicsView* viewer)
 
         // GraphicsView -> FilesSelector:
         disconnect(viewer, &GraphicsView::selectEntireContent, m_selector, &FileSelector::selectEntireContent);
-        disconnect(viewer, &GraphicsView::clearSelection, m_selector, &FileSelector::clearSelection);
-        disconnect(viewer, &GraphicsView::selectButtonUp, m_selector, &FileSelector::selectPrevious);
-        disconnect(viewer, &GraphicsView::selectButtonDown, m_selector, &FileSelector::selectNext);
+        disconnect(viewer, &GraphicsView::clearSelection,      m_selector, &FileSelector::clearSelection);
+        disconnect(viewer, &GraphicsView::selectButtonUp,      m_selector, &FileSelector::selectPrevious);
+        disconnect(viewer, &GraphicsView::selectButtonDown,    m_selector, &FileSelector::selectNext);
         disconnect(viewer, &GraphicsView::selectContent,       m_selector, &FileSelector::select_QString);
 
         // GraphicsView -> FileManager:
         disconnect(viewer, &GraphicsView::setRootFolder, this, &FileManager::setRoot_QDir);
+        disconnect(viewer, &GraphicsView::deepSearch, this, &FileManager::deepSearch);
         disconnect(viewer, &GraphicsView::elapseAllFoldersOfDepthId, this, &FileManager::elapseAllFoldersOfDepthId);
         disconnect(viewer, &GraphicsView::elapseSelectedFoldersRecursively, this, &FileManager::elapseSelectedFoldersRecursively);
         disconnect(viewer, &GraphicsView::elapseSelectedFolders, this, &FileManager::elapseSelectedFolders);
@@ -933,12 +936,13 @@ void FileManager::disconnectViewer(GraphicsView* viewer)
         disconnect(viewer, &GraphicsView::zoomFactorChanged, this, &FileManager::zoomFactorChanged);
         disconnect(viewer, &GraphicsView::requestFileViewerRevalidation, this, &FileManager::requestFileViewerRevalidation);
         disconnect(viewer, &GraphicsView::zoomFactorChanged,  this, &FileManager::setZoomFactor);
+        disconnect(viewer, &GraphicsView::openTerminalSGNL, this, &FileManager::openTerminal);
         disconnect(viewer->verticalScrollBar(),   &QScrollBar::valueChanged,  this, &FileManager::saveGraphicsViewVBarValue);
         disconnect(viewer->horizontalScrollBar(), &QScrollBar::valueChanged,  this, &FileManager::saveGraphicsViewHBarValue);
         disconnect(viewer, &GraphicsView::requestCloseCurrentTab, this, &FileManager::closeCurrentTab); // signal -> signal!!!
 
     }else
-        qDebug() << "trying to connect m_viewer -> nullptr! [root_path: "  << QString::fromStdString(m_root_path) << "]";
+        qDebug() << "trying to DISconnect m_viewer -> nullptr! [root_path: "  << QString::fromStdString(m_root_path) << "]";
 }
 
 void FileManager::connectDirectorySelectionPane(DirectorySelectionPane* toolBar)
@@ -1081,7 +1085,8 @@ std::unordered_map<int_bd, FiBDViewer> FileManager::generateViewerData()
             fiView.setSelected(selected);
             fiView.setSearched(searched);
 
-            entries[i] = fiView;
+            entries.emplace(std::make_pair(i, fiView));
+//            entries[i] = fiView;
         }else{
             // dann muss es ein file sein:
             QFileInfo fi(QString::fromStdString(path));
@@ -1093,7 +1098,8 @@ std::unordered_map<int_bd, FiBDViewer> FileManager::generateViewerData()
             fiView.setSelected(selected);
             fiView.setSearched(searched);
 
-            entries[i] = fiView;
+            entries.emplace(std::make_pair(i, fiView));
+//            entries[i] = fiView;
         }
     }
     return entries;

@@ -104,7 +104,8 @@ SOURCES += \
         tab_coordiantor/tabrect.cpp \
     widgetcreator.cpp \
     file_handling_src/image_retriever.cpp \
-    widgetcloser.cpp
+    widgetcloser.cpp \
+    threadtestworker.cpp
 
 HEADERS += \
          mainwindow.h \
@@ -189,7 +190,8 @@ HEADERS += \
         tab_coordiantor/tabrect.h \
         widgetcreator.h \
     file_handling_src/image_retriever.h \
-    widgetcloser.h
+    widgetcloser.h \
+    threadtestworker.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

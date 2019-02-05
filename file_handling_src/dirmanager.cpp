@@ -12,7 +12,8 @@ DirManager::DirManager(const std::string& root_path,
       m_path_fileName(std::unordered_map<std::string, std::string>()),
       m_queue(new DirManagerQueue()),
       m_watcher(new DirFileSystemWatcher()),
-      m_closed(false)
+      m_closed(false),
+      m_thread(new QThread)
 {
     createThread();
 
@@ -61,7 +62,10 @@ void DirManager::deepSearch(std::string keyword, bool includeHiddenFiles)
     if(m_closed)
         return;
 
-    DirDeepSearchWorker* worker = new DirDeepSearchWorker(keyword, m_root, includeHiddenFiles);
+    DirDeepSearchWorker* worker = new DirDeepSearchWorker(keyword,
+                                                          m_root,
+                                                          includeHiddenFiles,
+                                                          m_thread);
     connect(worker, &DirDeepSearchWorker::deepSearchFinished, this, &DirManager::deepSearchFinished, Qt::QueuedConnection);
     emit addWorker(worker);
 }
@@ -284,10 +288,27 @@ void DirManager::rootDirChanged(string root_path)
     if(m_closed)
         return;
 
+    qDebug() << "DirManager::rootDirChanged: activeThread == m_thread: " << (QThread::currentThread() == m_thread);
+
     emit cancelQueueWorkers();
 
-    DirReplaceRootWorker* drrw = new DirReplaceRootWorker(root_path, m_root);
+    DirReplaceRootWorker* drrw = new DirReplaceRootWorker(root_path, m_root, m_thread);
+    connect(drrw, &DirReplaceRootWorker::replaceRoot, this, &DirManager::replaceRoot, Qt::QueuedConnection);
     emit addWorker(drrw);
+}
+
+void DirManager::replaceRoot(FileInfoBD* newRoot, bool deleteOldRoot)
+{
+    qDebug() << "DirManager::replaceRoot";
+    FileInfoBD* old_root = m_root;
+    m_root = newRoot;
+    if(deleteOldRoot)
+    {
+        old_root->close();
+    }
+    m_root = newRoot;
+
+    revalidateDirStructure();
 }
 
 void DirManager::close()
@@ -312,7 +333,10 @@ void DirManager::elapse_hlpr(const std::vector<string>& paths, bool recursive, b
     }
     if(dirs.size() > 0)
     {
-        DirElapseWorker* worker = new DirElapseWorker(dirs, recursive, collapse);
+        DirElapseWorker* worker = new DirElapseWorker(dirs,
+                                                      recursive,
+                                                      collapse,
+                                                      m_thread);
         emit addWorker(worker);
     }
 }
@@ -359,14 +383,24 @@ DirManagerInfo* DirManager::genTreeFromRoot() const
 
 void DirManager::createThread()
 {
-    QThread* thread = new QThread();
-    m_thread = thread;
-    this->moveToThread(thread);
+    qDebug() << "DirManager::createThread";
 
-    connect(this, &DirManager::closeThread, thread, &QThread::quit, Qt::QueuedConnection);
-    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+    moveMembersToThread();
 
-    thread->start();
+    m_thread->setObjectName(QString("DIR_MANAGER_THREAD-%1").arg(STATIC_FUNCTIONS::genRandomNumberString()));
+
+    connect(this, &DirManager::closeThread, m_thread, &QThread::quit, Qt::QueuedConnection);
+    connect(m_thread, &QThread::finished, m_thread, &QThread::deleteLater);
+
+    m_thread->start();
+    qDebug() << "DirManager::createThread - finished";
+}
+void DirManager::moveMembersToThread()
+{
+    this->moveToThread(m_thread);
+    m_root->moveAbsParentToThread(m_thread);
+    m_queue->moveToThread(m_thread);
+    m_watcher->moveToThread(m_thread);
 }
 
 
@@ -429,8 +463,6 @@ void DirManager::disconnectDir(FileInfoBD* dir)
 
 void DirManager::revalidateDirStructure_hlpr(FileInfoBD* fiBD)
 {
-//    fiBD->moveToThread(m_thread);
-
     std::string absPath = fiBD->absPath();
     std::string fileName = fiBD->fileName();
     m_path_to_dir[absPath] = fiBD;

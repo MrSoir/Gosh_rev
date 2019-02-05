@@ -1,13 +1,17 @@
 #include "dirdeepsearchworker.h"
 
 
-DirDeepSearchWorker::DirDeepSearchWorker(std::string keyword, FileInfoBD *root_dir, bool includeHiddenFiles)
+DirDeepSearchWorker::DirDeepSearchWorker(std::string keyword,
+                                         FileInfoBD *root_dir,
+                                         bool includeHiddenFiles,
+                                         QThread* threadToMoveObjectsTo)
     : DirManagerWorker(nullptr),
       m_keyword(keyword),
       m_root_dir(root_dir),
       m_includeHiddenFiles(includeHiddenFiles),
       m_matches(std::vector<DeepSearchResult>()),
-      m_runningThreads(0)
+      m_runningThreads(0),
+      m_threadToMoveObjectsTo(threadToMoveObjectsTo)
 {
     connectSignals();
 }
@@ -35,8 +39,6 @@ void DirDeepSearchWorker::run()
 void DirDeepSearchWorker::workerFinished(std::vector<DeepSearchResult> results, FileInfoBD *dir)
 {
     Q_UNUSED(dir)
-//    if(dir)
-//        dir->moveToThread(this->thread());
 
     for(const auto& match: results)
         m_matches.push_back(match);
@@ -47,6 +49,11 @@ void DirDeepSearchWorker::workerFinished(std::vector<DeepSearchResult> results, 
     {
         elapseMatchingFolders();
     }
+}
+
+void DirDeepSearchWorker::workBeforeLaunchThread()
+{
+    m_root_dir->moveAbsParentToThread(m_thread);
 }
 
 void DirDeepSearchWorker::connectSignals()
@@ -95,9 +102,15 @@ void DirDeepSearchWorker::search(FileInfoBD* dir)
             ++m_runningThreads;
 
             QThread* thread = new QThread();
+            thread->setObjectName(QString("DEEP_SEARCH_HELPER_THREAD-%1").arg(STATIC_FUNCTIONS::genRandomNumberString()));
 
-            DirDeepSearchHelper* helper = new DirDeepSearchHelper(m_keyword, sub_dir, m_includeHiddenFiles);
+            DirDeepSearchHelper* helper = new DirDeepSearchHelper(m_keyword,
+                                                                  sub_dir,
+                                                                  m_includeHiddenFiles,
+                                                                  this->thread());
+            sub_dir->moveToThread(thread);
             helper->moveToThread(thread);
+
             connect(helper, &DirDeepSearchHelper::finished, this, &DirDeepSearchWorker::workerFinished, Qt::QueuedConnection);
             connect(this, &DirDeepSearchWorker::killHelpers, helper, &DirDeepSearchHelper::cancel, Qt::DirectConnection);
 
@@ -140,6 +153,9 @@ void DirDeepSearchWorker::elapseMatchingFolders()
         matching_paths.push_back(match.absPath);
     }
 
+    if(m_threadToMoveObjectsTo)
+        m_root_dir->moveAbsParentToThread(m_threadToMoveObjectsTo);
+
     emit deepSearchFinished(matching_paths, m_keyword);
     emit finished(revalidateDirStructureAfterWorkerHasFinished());
 }
@@ -181,12 +197,16 @@ bool DirDeepSearchWorker::elapseMatchingFolder_hlpr(const std::string& match_abs
 
 //----------------------------------------------------------------------------------------
 
-DirDeepSearchHelper::DirDeepSearchHelper(std::string keyword, FileInfoBD *dir, bool includeHiddenFiles)
+DirDeepSearchHelper::DirDeepSearchHelper(std::string keyword,
+                                         FileInfoBD *dir,
+                                         bool includeHiddenFiles,
+                                         QThread* threadToMoveObjectsTo)
     : QObject(nullptr),
       m_keyword(keyword),
       m_dir(dir),
       m_includeHiddenFiles(includeHiddenFiles),
-      m_cancelled(false)
+      m_cancelled(false),
+      m_threadToMoveObjectsTo(threadToMoveObjectsTo)
 {
 }
 
@@ -198,6 +218,10 @@ DirDeepSearchHelper::~DirDeepSearchHelper()
 void DirDeepSearchHelper::run()
 {
     search(m_dir);
+
+    if(m_threadToMoveObjectsTo)
+        m_dir->moveToThread(m_threadToMoveObjectsTo);
+
     emit finished(m_matches,
                   m_dir);
     this->deleteLater();

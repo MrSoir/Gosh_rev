@@ -90,6 +90,8 @@ int main(int argc, char *argv[])
 //    QPixmap pm = STATIC_FUNCTIONS::getPixmapFromPDF(QString("/home/hippo/Documents/stones.pdf"), QSize(50,50));
 //    qDebug() << "pixmap-size: " << pm.size();
 
+    a.thread()->setObjectName(QString("MAIN_APP_THREAD"));
+
     setStyles(a);
 
     MainWindow w;

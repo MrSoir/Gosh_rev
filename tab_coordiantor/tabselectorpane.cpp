@@ -173,12 +173,20 @@ void TabSelectorPane::rePaintCanvas()
                     pen.setWidth( penWidth );
                     painter->setPen(pen);
 
-                    QPoint p1(boundingRect.left()+padding, boundingRect.center().y());
-                    QPoint p2(boundingRect.right()-padding, boundingRect.center().y());
+                    int r_left  = static_cast<int>(boundingRect.left());
+                    int r_right = static_cast<int>(boundingRect.right());
+                    int r_top   = static_cast<int>(boundingRect.top());
+                    int r_bottom  = static_cast<int>(boundingRect.bottom());
+                    int r_centX = static_cast<int>(boundingRect.center().x());
+                    int r_centY = static_cast<int>(boundingRect.center().y());
+
+
+                    QPoint p1(r_left +padding, r_centY);
+                    QPoint p2(r_right-padding, r_centY);
                     painter->drawLine(p1,p2);
 
-                    p1 = QPoint(boundingRect.center().x(), boundingRect.top()+padding);
-                    p2 = QPoint(boundingRect.center().x(), boundingRect.bottom()-padding);
+                    p1 = QPoint(r_centX, r_top   +padding);
+                    p2 = QPoint(r_centX, r_bottom-padding);
                     painter->drawLine(p1,p2);
                 },
                 QSize(m_addBtnHeight,m_addBtnHeight),

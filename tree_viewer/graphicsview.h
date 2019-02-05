@@ -195,17 +195,17 @@ public slots:
     void handleSearchKeyword(QString keyword, bool deepSearch);
 protected:
      void EnterPressedBD(QKeyEvent* event);
-     void keyPressEvent(QKeyEvent *event);
-     void keyReleaseEvent(QKeyEvent *event);
+     virtual void keyPressEvent(QKeyEvent *event) override;
+     virtual void keyReleaseEvent(QKeyEvent *event) override;
 
-     void resizeEvent(QResizeEvent *event);
+     virtual void resizeEvent(QResizeEvent *event) override;
 
-     void mousePressEvent(QMouseEvent *event);
-//     void mouseReleaseEvent(QMouseEvent *event);
-     void mouseMoveEvent(QMouseEvent *event);
+     virtual void mousePressEvent(QMouseEvent *event) override;
+//     virtual void mouseReleaseEvent(QMouseEvent *event) override;
+     virtual void mouseMoveEvent(QMouseEvent *event) override;
 
-     void enterEvent(QEvent *event);
-     void leaveEvent(QEvent* event);
+     virtual void enterEvent(QEvent *event) override;
+     virtual void leaveEvent(QEvent* event) override;
 private:
      void setFileManager_MetaData(FileManagerInfo* fmi);
      void revalFileManagerMetaData();

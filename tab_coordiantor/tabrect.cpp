@@ -88,21 +88,27 @@ void TabRect::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, Q
     painter->drawText(textRect, m_str);
 
     painter->setClipRect(rct);
-    m_closeRect = QRect(textRect.right(),
-                        rct.top(),
+    int t_right = static_cast<int>(textRect.right());
+    int r_top = static_cast<int>(rct.top());
+    int r_height = static_cast<int>(rct.height());
+    int r_centY = static_cast<int>(rct.center().y());
+
+    m_closeRect = QRect(t_right,
+                        r_top,
                         m_text_paddingXright,
-                        rct.height());
+                        r_height);
 
     QColor crossCol = mouInClos ? m_textCol2 : m_textCol1;
     painter->setPen(QPen(crossCol));
-    QPoint crossCenter( textRect.right() + m_text_paddingXright*0.5,
-                        rct.center().y() );
+    QPoint crossCenter( t_right + static_cast<int>(m_text_paddingXright*0.5),
+                        r_centY );
     paintCross(crossCenter, int(m_text_paddingXright*0.8), int(rct.height()*0.5), painter);
 }
 
 void TabRect::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
-    QPoint mouP(event->pos().x(), event->pos().y());
+    QPoint mouP(static_cast<int>(event->pos().x()),
+                static_cast<int>(event->pos().y()));
 
     if( inClose(mouP) )
     {
@@ -140,12 +146,12 @@ void TabRect::hoverMoveEvent(QGraphicsSceneHoverEvent *event)
 
 void TabRect::paintCross(QPoint centerP, int width, int height, QPainter* painter)
 {
-    QPoint p1(centerP.x() - width*0.5, centerP.y() - height*0.5);
-    QPoint p2(centerP.x() + width*0.5, centerP.y() + height*0.5);
+    QPoint p1(static_cast<int>(centerP.x() - width*0.5), static_cast<int>(centerP.y() - height*0.5));
+    QPoint p2(static_cast<int>(centerP.x() + width*0.5), static_cast<int>(centerP.y() + height*0.5));
     painter->drawLine(p1,p2);
 
-    p1 = QPoint(centerP.x() - width*0.5, centerP.y() + height*0.5);
-    p2 = QPoint(centerP.x() + width*0.5, centerP.y() - height*0.5);
+    p1 = QPoint(static_cast<int>(centerP.x() - width*0.5), static_cast<int>(centerP.y() + height*0.5));
+    p2 = QPoint(static_cast<int>(centerP.x() + width*0.5), static_cast<int>(centerP.y() - height*0.5));
     painter->drawLine(p1,p2);
 }
 
@@ -200,10 +206,11 @@ QPainterPath TabRect::getBoundingPath() const
 QRect TabRect::getTextBoundingRect() const
 {
     QRectF rect = boundingRect();
-    QRect textRect(rect.left() +m_cornerWidth + m_text_paddingXleft,
-                   rect.top() +m_text_paddingYtop,
-                   rect.width() - 2*m_cornerWidth - (m_text_paddingXleft + m_text_paddingXright),
-                   rect.height() - (m_text_paddingYtop + m_text_paddingYbottom));
+    QRect i_rect = rect.toRect();
+    QRect textRect(i_rect.left() +m_cornerWidth + m_text_paddingXleft,
+                   i_rect.top() +m_text_paddingYtop,
+                   i_rect.width() - 2*m_cornerWidth - (m_text_paddingXleft + m_text_paddingXright),
+                   i_rect.height() - (m_text_paddingYtop + m_text_paddingYbottom));
     return textRect;
 }
 

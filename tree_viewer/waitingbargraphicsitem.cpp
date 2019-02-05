@@ -33,14 +33,15 @@ void WaitingBarGraphicsItem::paint(QPainter *painter, const QStyleOptionGraphics
     Q_UNUSED(option)
 
     QRectF rct = boundingRect();
+    QRect i_rct = rct.toRect();
 
     painter->setRenderHint(QPainter::Antialiasing, true);
     painter->setClipRect(rct);
 
-    int w = rct.width();
+    int w = i_rct.width();
 
     int edge = (w - 2*m_padding) / m_rectCount;
-    float x = m_padding;
+    int x = static_cast<int>(m_padding);
 
     m_rectCol.prepareForNextRound();
 
@@ -51,18 +52,18 @@ void WaitingBarGraphicsItem::paint(QPainter *painter, const QStyleOptionGraphics
     {
         painter->setPen(pen);
         painter->setBrush( QBrush(m_rectCol.getCurrentColor()) );
-        painter->drawRect(QRect(rct.left() + x, rct.top(), edge, edge));
+        painter->drawRect(QRect(i_rct.left() + x, i_rct.top(), edge, edge));
 
         m_rectCol.nextCurrentColor();
 
         x += edge;
     }
-    int remainingPart = std::max( int(rct.width() - m_padding - x), 0);
+    int remainingPart = std::max( i_rct.width() - m_padding - x, 0);
     if( remainingPart > 4)
     {
         painter->setPen(pen);
         painter->setBrush( QBrush(m_rectCol.getCurrentColor()) );
-        painter->drawRect(QRect(rct.left() + x, rct.top(), remainingPart, edge));
+        painter->drawRect(QRect(i_rct.left() + x, i_rct.top(), remainingPart, edge));
     }
 
     m_rectCol.nextColor();

@@ -92,6 +92,11 @@ public:
 
     //-----------------------------------------------------
 
+    void moveAbsParentToThread(QThread* thread);
+
+    //-----------------------------------------------------
+
+
     FileInfoBD* getParentDir();
 
     //-----------------------------------------------------
@@ -220,10 +225,6 @@ private:
 
     void doElapsing();
 
-//    void removeFromParent();
-//    bool removeFolder(const QFileInfo& fi);
-//    bool removeFolder(const QString& foldName);
-
     bool isEmpty() const;
 
     void clearSubFolderContainers();
@@ -259,9 +260,6 @@ private:
     std::vector<FileInfoBD*> m_sorted_subFolders_no_hidden;
     std::unordered_map<std::string, std::string> m_filePath_fileName; // inclusive hidden files
 
-//    unsigned long m_filesCount;
-//    unsigned long m_subFoldsCount;
-//    unsigned long m_contentCount;
 
     bool m_showHiddenFiles;
 

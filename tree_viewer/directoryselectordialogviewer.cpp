@@ -13,7 +13,7 @@ DirectorySelectorDialogViewer::DirectorySelectorDialogViewer(QString currentDire
 
     loadBookmarks();
 
-    QRectF rct(0,0,(qreal)viewport()->width(), (qreal)viewport()->height());
+    QRectF rct(0,0,static_cast<qreal>(viewport()->width()), static_cast<qreal>(viewport()->height()));
 
     QLinearGradient gradient(rct.topLeft(), rct.bottomRight());
     gradient.setColorAt(0, QColor(50,50,50, 255));
@@ -43,14 +43,14 @@ void DirectorySelectorDialogViewer::rePaintCanvas()
             paintBookmark(QFileInfo(bkmrkStr), (*rowId)++);
         }
     m_bookmarkAddBtn = new GraphicItemsBD::TextRect(QString("add current directory to bookmarks"),
-                                        QSize(m_size.width()*0.8,m_rowHeight),
+                                        QSize(static_cast<int>(m_size.width()*0.8),m_rowHeight),
                                         QPoint(0,0),
                                         QColor(100,100,100, 255),QColor(0,0,0, 255),
                                         QColor(150,150,100, 255),QColor(50,50,0, 255),
                                         QColor(255,255,255,255));
     m_bookmarkAddBtn->setCallFunction([=](){showBookmarkDialog();});
-    m_bookmarkAddBtn->setPosition(QPoint((m_size.width()-m_bookmarkAddBtn->boundingRect().width())*0.5,
-                                   (*rowId+0.5)*m_rowHeight));
+    m_bookmarkAddBtn->setPosition(QPoint(static_cast<int>((m_size.width()-m_bookmarkAddBtn->boundingRect().width())*0.5),
+                                   static_cast<int>((*rowId+0.5)*m_rowHeight)));
     m_scene.addItem(m_bookmarkAddBtn);
 
     (*rowId) += 2;
@@ -195,7 +195,7 @@ void DirectorySelectorDialogViewer::paintBookmark(QFileInfo fi, int rowId, int c
 {
     paintFileInfo(QFileInfo(fi.absoluteFilePath()), rowId, colId, drawAbsoluteFilePath);
 
-    GraphicItemsBD::TextRect* remRct = new GraphicItemsBD::TextRect(QString("X"),QSize(20,m_rowHeight),QPoint(m_size.width()-40, rowId*m_rowHeight),
+    GraphicItemsBD::TextRect* remRct = new GraphicItemsBD::TextRect(QString("X"),QSize(20,m_rowHeight),QPoint(static_cast<int>(m_size.width()-40), rowId*m_rowHeight),
                                     QColor(255,0,0),QColor(150,0,0),
                                     QColor(255,100,100),QColor(150,50,50),
                                     QColor(0,0,0));
@@ -213,7 +213,7 @@ void DirectorySelectorDialogViewer::paintMountedDrive(QFileInfo fi, int rowId, i
 {
     paintFileInfo(QFileInfo(fi.absoluteFilePath()), rowId, colId, drawAbsoluteFilePath);
 
-    GraphicItemsBD::TextRect* remRct = new GraphicItemsBD::TextRect(QString("X"),QSize(20,m_rowHeight),QPoint(m_size.width()-40, rowId*m_rowHeight),
+    GraphicItemsBD::TextRect* remRct = new GraphicItemsBD::TextRect(QString("X"),QSize(20,m_rowHeight),QPoint(static_cast<int>(m_size.width()-40), rowId*m_rowHeight),
                                     QColor(255,0,0),QColor(150,0,0),
                                     QColor(255,100,100),QColor(150,50,50),
                                     QColor(0,0,0));

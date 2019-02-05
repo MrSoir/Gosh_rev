@@ -30,20 +30,20 @@ void SearchMenuBD::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
     StaticFunctions::paintRect(painter, rct, gradCol1, gradCol2);
 
     if(revalidate){
-        float prevBtnWidth = (float)qMin((float)(rct.width() * 0.2), (float)80.);
-        float prevBtnHeight = rct.height() * 0.5;
-        float offs = 20;
-        float prevBtnX = rct.center().x() - prevBtnWidth - offs;
-        float nextBtnX = rct.center().x() + offs;
-        float upBtnY = 3 + rct.y();
+        qreal prevBtnWidth = static_cast<qreal>(qMin(static_cast<qreal>((rct.width() * 0.2)), static_cast<qreal>(80.0)));
+        qreal prevBtnHeight = static_cast<qreal>(rct.height() * 0.5);
+        qreal offs = 20;
+        qreal prevBtnX = static_cast<qreal>(rct.center().x()) - prevBtnWidth - offs;
+        qreal nextBtnX = static_cast<qreal>(rct.center().x()) + offs;
+        qreal upBtnY = 3 + static_cast<qreal>(rct.y());
         m_preBtn = QRectF(prevBtnX, upBtnY, prevBtnWidth, prevBtnHeight);
         m_nextBtn = QRectF(nextBtnX, upBtnY, prevBtnWidth, prevBtnHeight);
 
-        float closeBtnWidth = (float)qMin((float)(rct.width() * 0.5), (float)40.);
-        float closeBtnHeight = rct.height() * 0.4;
+        qreal closeBtnWidth = qMin(static_cast<qreal>((rct.width() * 0.5)), static_cast<qreal>(40.0));
+        qreal closeBtnHeight = rct.height() * 0.4;
         offs = rct.width() * 0.05;
-        float closeBtnX = rct.right()-closeBtnWidth-offs;
-        float closeBtnY = rct.center().y()-(float)(closeBtnHeight*0.5);
+        qreal closeBtnX = rct.right()-closeBtnWidth-offs;
+        qreal closeBtnY = rct.center().y()-(closeBtnHeight*0.5);
         m_closeBtn = QRectF(closeBtnX,
                             closeBtnY,
                             closeBtnWidth,
@@ -79,7 +79,7 @@ void SearchMenuBD::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
 
     int indxCentX = int((m_preBtn.center().x() + m_nextBtn.center().x()) * 0.5);
     int indxLeft = indxCentX - int(indxWidth*0.5);
-    int indxY = m_preBtn.top() + indxPadding;
+    int indxY = static_cast<int>(m_preBtn.top()) + indxPadding;
 
     QRect indxRct = QRect( indxLeft,
                            indxY,
@@ -115,9 +115,10 @@ void SearchMenuBD::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
         int pixelsWidth = fm.width(str);
         int pixelsHeight = fm.height();
         int offsTxt = 2;
+        QRect i_rect = rct.toRect();
         painter->setPen(QPen(QColor(0,0,0), 3, Qt::SolidLine));
-        painter->drawText(QRect(rct.center().x()-pixelsWidth*0.5,
-                                rct.bottom() - pixelsHeight -offsTxt,
+        painter->drawText(QRect(i_rect.center().x() - static_cast<int>(pixelsWidth*0.5),
+                                i_rect.bottom() - pixelsHeight -offsTxt,
                                 pixelsWidth*2,
                                 pixelsHeight),
                                 str);

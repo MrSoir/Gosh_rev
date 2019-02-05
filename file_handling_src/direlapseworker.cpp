@@ -1,29 +1,32 @@
 #include "direlapseworker.h"
 
 DirElapseWorker::DirElapseWorker(std::vector<FileInfoBD*> dirsToElapse,
-                           bool recursive,
-                           bool collapse)
+                                 bool recursive,
+                                 bool collapse,
+                                 QThread* threadToMoveObjectsTo)
     : DirManagerWorker(nullptr),
       m_dirsToElapse(dirsToElapse),
       m_recursive(recursive),
       m_collapse(collapse),
       m_useSubThreads(!collapse),
-      m_runningThreads(0)
+      m_runningThreads(0),
+      m_threadToMoveObjectsTo(threadToMoveObjectsTo)
 {
-    qDebug() << "DirElapseWorker - collapse: " << collapse;
     connectSignals();
     STATIC_FUNCTIONS::removeSubDirsIfParentDirIsInContainer(m_dirsToElapse);
 }
 
 DirElapseWorker::DirElapseWorker(FileInfoBD *dirToElapse,
-                           bool recursive,
-                           bool collapse)
+                                 bool recursive,
+                                 bool collapse,
+                                 QThread* threadToMoveObjectsTo)
     : DirManagerWorker(nullptr),
       m_dirsToElapse(std::vector<FileInfoBD*>()),
       m_recursive(recursive),
       m_collapse(collapse),
       m_useSubThreads(!collapse),
-      m_runningThreads(0)
+      m_runningThreads(0),
+      m_threadToMoveObjectsTo(threadToMoveObjectsTo)
 {
     m_dirsToElapse.push_back(dirToElapse);
     connectSignals();
@@ -55,10 +58,15 @@ void DirElapseWorker::run()
         }else{
             ++m_runningThreads;
 
-            QThread* thread = new QThread();
+            QThread* thread = new QThread();            
+            thread->setObjectName(QString("DIR_ELAPSE_WORKER_THREAD-%1").arg(STATIC_FUNCTIONS::genRandomNumberString()));
 
-            DirElapseWorkerHelper* helper = new DirElapseWorkerHelper(dir, m_recursive);
+            DirElapseWorkerHelper* helper = new DirElapseWorkerHelper(dir,
+                                                                      m_recursive,
+                                                                      this->thread());
+            dir->moveToThread(thread);
             helper->moveToThread(thread);
+
             connect(helper, &DirElapseWorkerHelper::finished, this, &DirElapseWorker::workerFinished, Qt::QueuedConnection);
             connect(this, &DirElapseWorker::killHelpers, helper, &DirElapseWorkerHelper::cancel, Qt::DirectConnection);
 
@@ -74,19 +82,39 @@ void DirElapseWorker::run()
     }
     if( !m_useSubThreads )
     {
+        moveDirsToCallerThread();
         emit finished(revalidateDirStructureAfterWorkerHasFinished());
     }
 }
 
-void DirElapseWorker::workerFinished(FileInfoBD *dir)
+void DirElapseWorker::moveDirsToCallerThread()
+{
+    if( !m_threadToMoveObjectsTo )
+        return;
+
+    for(auto* dir: m_dirsToElapse)
+    {
+        dir->moveAbsParentToThread(m_threadToMoveObjectsTo);
+    }
+}
+
+void DirElapseWorker::workerFinished(FileInfoBD* dir)
 {
     Q_UNUSED(dir)
     --m_runningThreads;
-//    dir->moveToThread(this->thread());
 
     if(m_runningThreads <= 0)
     {
+        moveDirsToCallerThread();
         emit finished(revalidateDirStructureAfterWorkerHasFinished());
+    }
+}
+
+void DirElapseWorker::workBeforeLaunchThread()
+{
+    for(auto* dir: m_dirsToElapse)
+    {
+        dir->moveAbsParentToThread(m_thread);
     }
 }
 
@@ -120,11 +148,14 @@ void DirElapseWorker::collapseHelper(FileInfoBD *dir)
 
 
 
-DirElapseWorkerHelper::DirElapseWorkerHelper(FileInfoBD* dir, bool recursive)
+DirElapseWorkerHelper::DirElapseWorkerHelper(FileInfoBD* dir,
+                                             bool recursive,
+                                             QThread* threadToMoveObjectsTo)
     : QObject(nullptr),
       m_dir(dir),
       m_recursive(recursive),
-      m_cancelled(false)
+      m_cancelled(false),
+      m_threadToMoveObjectsTo(threadToMoveObjectsTo)
 {
     connect(this, &DirElapseWorkerHelper::finished, this, &DirElapseWorkerHelper::deleteLater);
 }
@@ -136,8 +167,11 @@ DirElapseWorkerHelper::~DirElapseWorkerHelper()
 
 void DirElapseWorkerHelper::run()
 {
-    qDebug() << "DirElapseWorkerHelper::run";
     elapseHelper(m_dir);
+
+    if(m_threadToMoveObjectsTo)
+        m_dir->moveToThread(m_threadToMoveObjectsTo);
+
     emit finished(m_dir);
 }
 

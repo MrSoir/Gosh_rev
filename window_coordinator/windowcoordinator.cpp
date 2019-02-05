@@ -16,7 +16,10 @@ WindowCoordinator::WindowCoordinator(QVector<QDir> initPaths,
     if(initPaths.size() > 0)
     {
         for(int i=0; i < initPaths.size() && i < m_maxWindows; ++i)
+        {
+            qDebug() << "open window: " << initPaths[i].absolutePath();
             addWindowHelper( initPaths[i] );
+        }
     }
     else{
         addWindow();
@@ -88,6 +91,8 @@ void WindowCoordinator::removeWindow(int id)
     if(id < m_windowCounter && id >= 0 && m_windows.size() > 1){
 
         if(m_windows[id]){
+            qDebug() << "WindowCoordinator::removeWindow - id: " << id
+                     << "   - " << m_windows[id]->curRootPath();
             disconnectFileManager(m_windows[id]);
             m_windows[id]->close();
         }

@@ -19,11 +19,9 @@ DirectorySelectorDialog::DirectorySelectorDialog(QString curDir,
 
     this->setModal(true);
 
-//    this->setMinimumSize((int)m_size.width(), (int)m_size.height());
-//    this->setMaximumSize((int)m_size.width(), (int)m_size.height());
-    this->setMaximumHeight((int)m_size.height());
-    this->setMinimumWidth((int)m_size.width());
-    this->setMaximumWidth((int)m_size.width());
+    this->setMaximumHeight(static_cast<int>(m_size.height()));
+    this->setMinimumWidth(static_cast<int>(m_size.width()));
+    this->setMaximumWidth(static_cast<int>(m_size.width()));
     this->setWindowFlags(Qt::FramelessWindowHint | Qt::WindowSystemMenuHint);
 
     QPushButton* closeBtn = new QPushButton("close");

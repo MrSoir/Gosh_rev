@@ -158,8 +158,9 @@ void WindowCoordinatorPane::revalidateLayout()
     if(WidgetCloser::m_closed)
         return;
 
-    if(!m_windowCoordinator)
+    if( !m_windowCoordinator )
         return;
+
     auto windowLayouts = m_windowCoordinator->createCentralWidgets();
     auto orientation   = m_windowCoordinator->getOrientation();
 
@@ -296,6 +297,7 @@ void WindowCoordinatorPane::setToolBar()
         QPushButton* closeBtn = StaticFunctions::PixmapButtonFromPicsResources("frame_remove_scld.png", &TOOLBAR_ICON_SIZE);
         if( closeBtn){
             QObject::connect(closeBtn, &QPushButton::clicked, this, &WindowCoordinatorPane::showRemoveWindowDialog);
+            m_toolBar->addWidget(closeBtn);
         }
 
         if(windowCount < 4){

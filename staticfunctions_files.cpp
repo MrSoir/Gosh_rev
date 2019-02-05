@@ -295,6 +295,17 @@ QString STATIC_FUNCTIONS::genRandomFileBaseName()
     return s;
 }
 
+QString STATIC_FUNCTIONS::genRandomNumberString(int cnt)
+{
+    QString s;
+    for(int i=0; i < cnt; ++i)
+    {
+        int r = rand() % 10 + 48;
+        s.append( static_cast<char>(r) );
+    }
+    return s;
+}
+
 
 //--------------------------------------------------------------------------------------------------
 
@@ -494,3 +505,4 @@ QString STATIC_FUNCTIONS::getTempResourcesDir()
                                      .arg(QDir::separator())
                                      .arg("tmp")).absolutePath();
 }
+

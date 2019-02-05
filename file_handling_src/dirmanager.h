@@ -87,16 +87,16 @@ public slots:
     void dirChanged_slot(std::string dir_path);
 
     void rootDirChanged(std::string root_path);
+    void replaceRoot(FileInfoBD* newRoot, bool deleteOldRoot);
 
     void close();
+
 private:
     void elapse_hlpr(const std::vector<std::string>& paths, bool recursive, bool collapse);
     void delete_hlpr(std::vector<std::string> pathsToDelete);
     void delete_hlpr(std::vector<FiBDDeletor*> dirsToDelete);
 
     DirManagerInfo* genTreeFromRoot() const;
-
-    void createThread();
 
     void connectSignals();
     void connectQueue();
@@ -112,6 +112,9 @@ private:
     void clearContainers();
 
 //    void registerCustomClasses();
+
+    void createThread();
+    void moveMembersToThread();
 
     void addDirsToWatcher_helpr();
 

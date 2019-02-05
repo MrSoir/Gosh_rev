@@ -92,97 +92,100 @@ void RemoveWindowDialog::paintEvent(QPaintEvent *event)
 
     if(m_anzRects == 1){
         if(!rects[0]){
-            float fctr = 0.8;
-            float wndwWdth = (float)rct.width()*fctr;
-            float xStart = rct.x() + (rct.width()-wndwWdth)*0.5;
-            float yStart = rct.y() + (rct.height()-wndwWdth)*0.5;
-            QRect* wndwRct = new QRect(xStart,yStart, wndwWdth,wndwWdth);
+            qreal fctr = 0.8;
+            qreal wndwWdth = rct.width()*fctr;
+            qreal xStart = rct.x() + (rct.width()-wndwWdth)*0.5;
+            qreal yStart = rct.y() + (rct.height()-wndwWdth)*0.5;
+            QRect* wndwRct = new QRect(static_cast<int>(xStart),
+                                       static_cast<int>(yStart),
+                                       static_cast<int>(wndwWdth),
+                                       static_cast<int>(wndwWdth));
 
             rects[0] = wndwRct;
         }
     }else if(m_anzRects == 2){
-        float fctr = 0.9;
-        float rctWidth = ((float)rct.width()) *0.4;
-        float offs = ((float)rct.width())*(1.0-fctr)*0.5;
+        qreal fctr = 0.9;
+        qreal rctWidth = rct.width() *0.4;
+        qreal offs = rct.width()*(1.0-fctr)*0.5;
 
         if(m_horizontal){
-            painter->drawLine(rct.left()+offs,
-                              rct.center().y(),
-                              rct.right()-offs,
-                              rct.center().y());
+            painter->drawLine(static_cast<int>(rct.left()+offs),
+                              static_cast<int>(rct.center().y()),
+                              static_cast<int>(rct.right()-offs),
+                              static_cast<int>(rct.center().y()));
 
-            QSize size(rctWidth, rctWidth);
+            QSize size(static_cast<int>(rctWidth), static_cast<int>(rctWidth));
             QPoint p1, p2;
-            p1 = QPoint(rct.center().x()-rctWidth*0.5,
-                      rct.top()+offs);
-            p2 = QPoint(rct.center().x()-rctWidth*0.5,
-                      rct.bottom()-offs-rctWidth);
+            p1 = QPointF(rct.center().x()-rctWidth*0.5,
+                      rct.top()+offs).toPoint();
+            p2 = QPointF(rct.center().x()-rctWidth*0.5,
+                      rct.bottom()-offs-rctWidth).toPoint();
 
             pos.append(p1);
             pos.append(p2);
             rectSize = size;
         }else{
-            painter->drawLine(rct.center().x(),
-                              rct.top()+offs,
-                              rct.center().x(),
-                              rct.bottom()-offs);
+            painter->drawLine(static_cast<int>(rct.center().x()),
+                              static_cast<int>(rct.top()+offs),
+                              static_cast<int>(rct.center().x()),
+                              static_cast<int>(rct.bottom()-offs));
 
-            QSize size(rctWidth, rctWidth);
+            QSize size(static_cast<int>(rctWidth), static_cast<int>(rctWidth));
             QPoint p1, p2;
-            p1 = QPoint(rct.left()+offs,
-                      rct.center().y()-rctWidth*0.5);
-            p2 = QPoint(rct.right()-offs-rctWidth,
-                      rct.center().y()-rctWidth*0.5);
+            p1 = QPointF(rct.left()+offs,
+                      rct.center().y()-rctWidth*0.5).toPoint();
+            p2 = QPointF(rct.right()-offs-rctWidth,
+                      rct.center().y()-rctWidth*0.5).toPoint();
 
             pos.append(p1);
             pos.append(p2);
             rectSize = size;
         }
     }else if(m_anzRects == 3){
-        float fctr = 0.9;
-        float rctWidth = ((float)rct.width()) *0.4;
-        float offs = ((float)rct.width())*(1.0-fctr)*0.5;
+        qreal fctr = 0.9;
+        qreal rctWidth = rct.width() *0.4;
+        qreal offs = rct.width()*(1.0-fctr)*0.5;
         if(m_horizontal){
-            painter->drawLine(rct.left()+offs,
-                              rct.center().y(),
-                              rct.right()-offs,
-                              rct.center().y());
-            painter->drawLine(rct.center().x(),
-                              rct.center().y(),
-                              rct.center().x(),
-                              rct.bottom()-offs);
+            painter->drawLine(static_cast<int>(rct.left()+offs),
+                              static_cast<int>(rct.center().y()),
+                              static_cast<int>(rct.right()-offs),
+                              static_cast<int>(rct.center().y()));
+            painter->drawLine(static_cast<int>(rct.center().x()),
+                              static_cast<int>(rct.center().y()),
+                              static_cast<int>(rct.center().x()),
+                              static_cast<int>(rct.bottom()-offs));
 
-            QSize size(rctWidth, rctWidth);
+            QSize size(static_cast<int>(rctWidth), static_cast<int>(rctWidth));
             QPoint p1, p2, p3;
-            p1 = QPoint(rct.center().x()-rctWidth*0.5,
-                      rct.top()+offs);
-            p2 = QPoint(rct.left()+offs,
-                      rct.bottom()-offs-rctWidth);
-            p3 = QPoint(rct.right()-offs-rctWidth,
-                      rct.bottom()-offs-rctWidth);
+            p1 = QPointF(rct.center().x()-rctWidth*0.5,
+                      rct.top()+offs).toPoint();
+            p2 = QPointF(rct.left()+offs,
+                      rct.bottom()-offs-rctWidth).toPoint();
+            p3 = QPointF(rct.right()-offs-rctWidth,
+                      rct.bottom()-offs-rctWidth).toPoint();
 
             pos.append(p1);
             pos.append(p2);
             pos.append(p3);
             rectSize = size;
         }else{
-            painter->drawLine(rct.center().x(),
-                              rct.top()+offs,
-                              rct.center().x(),
-                              rct.bottom()-offs);
-            painter->drawLine(rct.center().x(),
-                              rct.center().y(),
-                              rct.right()-offs,
-                              rct.center().y());
+            painter->drawLine(static_cast<int>(rct.center().x()),
+                              static_cast<int>(rct.top()+offs),
+                              static_cast<int>(rct.center().x()),
+                              static_cast<int>(rct.bottom()-offs));
+            painter->drawLine(static_cast<int>(rct.center().x()),
+                              static_cast<int>(rct.center().y()),
+                              static_cast<int>(rct.right()-offs),
+                              static_cast<int>(rct.center().y()));
 
-            QSize size(rctWidth, rctWidth);
+            QSize size(static_cast<int>(rctWidth), static_cast<int>(rctWidth));
             QPoint p1, p2, p3;
-            p1 = QPoint(rct.left()+offs,
-                      rct.center().y()-rctWidth*0.5);
-            p2 = QPoint(rct.right()-offs-rctWidth,
-                      rct.top()+offs);
-            p3 = QPoint(rct.right()-offs-rctWidth,
-                      rct.bottom()-offs-rctWidth);
+            p1 = QPointF(rct.left()+offs,
+                      rct.center().y()-rctWidth*0.5).toPoint();
+            p2 = QPointF(rct.right()-offs-rctWidth,
+                      rct.top()+offs).toPoint();
+            p3 = QPointF(rct.right()-offs-rctWidth,
+                      rct.bottom()-offs-rctWidth).toPoint();
 
             pos.append(p1);
             pos.append(p2);
@@ -190,32 +193,32 @@ void RemoveWindowDialog::paintEvent(QPaintEvent *event)
             rectSize = size;
         }
     }else{ // == 4
-        float fctr = 0.9;
-        float rctWidth = ((float)rct.width()) *0.4;
-        float offs = ((float)rct.width())*(1.0-fctr)*0.5;
+        qreal fctr = 0.9;
+        qreal rctWidth = rct.width() *0.4;
+        qreal offs = rct.width()*(1.0-fctr)*0.5;
 
-        painter->drawLine(rct.left()+offs,
-                          rct.center().y(),
-                          rct.right()-offs,
-                          rct.center().y());
-        painter->drawLine(rct.center().x(),
-                          rct.top()+offs,
-                          rct.center().x(),
-                          rct.bottom()-offs);
-        QSize size(rctWidth, rctWidth);
+        painter->drawLine(static_cast<int>(rct.left()+offs),
+                          static_cast<int>(rct.center().y()),
+                          static_cast<int>(rct.right()-offs),
+                          static_cast<int>(rct.center().y()));
+        painter->drawLine(static_cast<int>(rct.center().x()),
+                          static_cast<int>(rct.top()+offs),
+                          static_cast<int>(rct.center().x()),
+                          static_cast<int>(rct.bottom()-offs));
+        QSize size(static_cast<int>(rctWidth), static_cast<int>(rctWidth));
         QPoint p1, p2, p3, p4;
-        p1 = QPoint(rct.left()+offs,
-                  rct.top()+offs);
-        p2 = QPoint(rct.right()-offs-rctWidth,
-                  rct.top()+offs);
-        p3 = QPoint(rct.left()+offs,
-                  rct.bottom()-offs-rctWidth);
-        p4 = QPoint(rct.right()-offs-rctWidth,
-                  rct.bottom()-offs-rctWidth);
+        p1 = QPointF(rct.left()+offs,
+                  rct.top()+offs).toPoint();
+        p2 = QPointF(rct.right()-offs-rctWidth,
+                  rct.top()+offs).toPoint();
+        p3 = QPointF(rct.left()+offs,
+                  rct.bottom()-offs-rctWidth).toPoint();
+        p4 = QPointF(rct.right()-offs-rctWidth,
+                  rct.bottom()-offs-rctWidth).toPoint();
 
         pos.append(p1);
-        pos.append(p3);
         pos.append(p2);
+        pos.append(p3);
         pos.append(p4);
         rectSize = size;
     }
@@ -239,7 +242,7 @@ void RemoveWindowDialog::mousePressEvent(QMouseEvent *event){
     QPointF mouP = event->pos();
     for(int i=0; i < m_anzRects; i++){
         if(rects[i]
-                && rects[i]->contains(QPoint(mouP.x(), mouP.y()))){
+                && rects[i]->contains(QPointF(mouP.x(), mouP.y()).toPoint())){
             emit removeWindow(i);
             this->close();
             break;
@@ -260,7 +263,7 @@ void RemoveWindowDialog::mouseMoveEvent(QMouseEvent *event){
     QPointF mouP = event->pos();
     mouseRectId = -1;
     for(int i=0; i < m_anzRects; i++){
-        if(rects[i] && rects[i]->contains(QPoint(mouP.x(), mouP.y()))){
+        if(rects[i] && rects[i]->contains(QPointF(mouP.x(), mouP.y()).toPoint())){
             mouseRectId = i;
             break;
         }

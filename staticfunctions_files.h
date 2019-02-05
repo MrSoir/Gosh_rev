@@ -89,6 +89,7 @@ namespace STATIC_FUNCTIONS
     QString getUniqueFolderPathInDir_hlpr(const QString& dir, const QString& dirName);
 
     QString genRandomFileBaseName();
+    QString genRandomNumberString(int cnt = 5);
 
 //----------------------------------------------------------------------------------
 
@@ -115,7 +116,9 @@ namespace STATIC_FUNCTIONS
     template <class T>
     void pointerResetter(T* src_pntr, T* tar_pntr, std::function<void(T*)> delete_func = [](T* t){delete t;})
     {
-        T* oa = new T(*src_pntr);
+//        T* oa = new T(*src_pntr);
+        T* oa = src_pntr;
+        *oa = *src_pntr;
 
         *src_pntr = *tar_pntr;
 

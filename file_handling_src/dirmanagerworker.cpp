@@ -2,15 +2,20 @@
 
 DirManagerWorker::DirManagerWorker(QObject *parent)
     : QObject(parent),
-      m_cancelled(false)
+      m_cancelled(false),
+      m_thread(new QThread())
 {
-    // wird in start connected, und zwar nach dem thread:
-//    connect(this, &DirManagerWorker::finished, this, &DirManagerWorker::deleteLater);
+    m_thread->setObjectName(QString("DIR_MANAGER_WORKER_THREAD-%1").arg(STATIC_FUNCTIONS::genRandomNumberString()));
 }
 
 DirManagerWorker::~DirManagerWorker()
 {
     qDebug() << "~DirManagerWorker";
+}
+
+QThread *DirManagerWorker::getThread()
+{
+    return m_thread;
 }
 
 void DirManagerWorker::cancel()
@@ -21,14 +26,25 @@ void DirManagerWorker::cancel()
 
 void DirManagerWorker::start()
 {
-    QThread* thread = new QThread();
-    this->moveToThread(thread);
+    qDebug() << " DirManagerWorker::start():"
+                "\n   this.thread:  " << this->thread()->objectName()
+             << "\n   activeThread: " << QThread::currentThread()->objectName()
+             << "\n   m_thread:     " << m_thread->objectName();
 
-    connect(this, &DirManagerWorker::finished, thread, &QThread::quit);
-    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+    workBeforeLaunchThread();
+
+    this->moveToThread(m_thread);
+
+    connect(this, &DirManagerWorker::finished, m_thread, &QThread::quit);
+    connect(m_thread, &QThread::finished, m_thread, &QThread::deleteLater);
     connect(this, &DirManagerWorker::finished, this, &DirManagerWorker::deleteLater);
 
-    thread->start();
+    m_thread->start();
 
     emit runTask();
+}
+
+void DirManagerWorker::workBeforeLaunchThread()
+{
+    // in general - do nothin!
 }
