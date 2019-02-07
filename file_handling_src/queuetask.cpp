@@ -74,9 +74,10 @@ void QueueTask::disconnectSignals()
 
 void QueueTask::connectThreadSignals(QThread* thread)
 {
-    connect(thread, &QThread::started, this, &QueueTask::run, Qt::QueuedConnection);
-    connect(this, &QueueTask::finished, thread, &QThread::quit, Qt::QueuedConnection);
+    connect(thread, &QThread::started, this, &QueueTask::run);
+    connect(this, &QueueTask::finished, thread, &QThread::quit);
     connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+    connect(this, &QueueTask::finished, this, &QueueTask::deleteLater);
 }
 
 

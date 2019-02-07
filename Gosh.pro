@@ -105,7 +105,9 @@ SOURCES += \
     widgetcreator.cpp \
     file_handling_src/image_retriever.cpp \
     widgetcloser.cpp \
-    threadtestworker.cpp
+    threadtestworker.cpp \
+    dialogs/openwithdialog.cpp \
+    dialogs/openwithgraphicsview.cpp
 
 HEADERS += \
          mainwindow.h \
@@ -191,7 +193,9 @@ HEADERS += \
         widgetcreator.h \
     file_handling_src/image_retriever.h \
     widgetcloser.h \
-    threadtestworker.h
+    threadtestworker.h \
+    dialogs/openwithdialog.h \
+    dialogs/openwithgraphicsview.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

@@ -10,6 +10,7 @@ OpenFiles::OpenFiles(std::vector<std::string> pathsToOpen,
 
 OpenFiles::~OpenFiles()
 {
+    qDebug() << "~OpenFiles";
 }
 
 bool OpenFiles::executableInParallel() const
@@ -20,6 +21,7 @@ bool OpenFiles::executableInParallel() const
 void OpenFiles::run()
 {
     open();
+    emit finished();
 }
 
 void OpenFiles::open()
@@ -31,7 +33,7 @@ void OpenFiles::open()
 
         if(m_openWith)
         {
-            throw "openWith unimplemented";
+            new OpenWithDialog(path);
         }else{
             QFileInfo fi(QString::fromStdString(path));
             if(fi.isExecutable())

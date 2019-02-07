@@ -49,6 +49,7 @@ public slots:
     virtual void onFinished();
 
     virtual void createThread(); // Worker soll sich selbst in den QThread legen und diesen startetn bequem per aufruf createThread -> damit muss die Queue nur noch QueueTask::createThread() aufrufen und die Sache ist erledigt!
+
 private:
     virtual void connectSignals();
     virtual void disconnectSignals();

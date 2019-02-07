@@ -390,6 +390,7 @@ void FileManager::openSelectedContent()
 }
 void FileManager::openSelectedContentWith()
 {
+    qDebug() << "FileManager::openSelectedContentWith";
     if(m_selector)
     {
         const auto& sel_entries = m_selector->getSelectedEntries();

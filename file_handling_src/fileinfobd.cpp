@@ -155,7 +155,7 @@ FileInfoBD::FileInfoBD(const FileInfoBD &fi)
       m_order(fi.m_order),
       m_current_ordering(fi.m_current_ordering),
 
-      m_alrRegistered(fi.m_alrRegistered)
+      m_alrRegistered(false) // vorsichtshalber dafuer sorgen, dass die kopie explizit nochmals registriert werden muss!
 {
     registerThis();
 }
@@ -198,7 +198,7 @@ FileInfoBD::FileInfoBD(FileInfoBD* fi)
       m_order(fi->m_order),
       m_current_ordering(fi->m_current_ordering),
 
-      m_alrRegistered(fi->m_alrRegistered)
+      m_alrRegistered(false) // vorsichtshalber dafuer sorgen, dass die kopie explizit nochmals registriert werden muss!
 {
     registerThis();
 }
@@ -240,7 +240,7 @@ FileInfoBD& FileInfoBD::operator=(const FileInfoBD& fi)
     this->m_order = fi.m_order;
     this->m_current_ordering = fi.m_current_ordering;
 
-    this->m_alrRegistered = fi.m_alrRegistered;
+    this->m_alrRegistered = false; // vorsichtshalber dafuer sorgen, dass die kopie explizit nochmals registriert werden muss!
 
     registerThis();
 
@@ -284,7 +284,7 @@ FileInfoBD* FileInfoBD::operator=(FileInfoBD* fi)
     this->m_order = fi->m_order;
     this->m_current_ordering = fi->m_current_ordering;
 
-    this->m_alrRegistered = fi->m_alrRegistered;
+    this->m_alrRegistered = false; // vorsichtshalber dafuer sorgen, dass die kopie explizit nochmals registriert werden muss!
 
     registerThis();
 
@@ -325,9 +325,16 @@ void FileInfoBD::moveToThread_rec(QThread *thread)
 
 //-----------------------------------------------------
 
-FileInfoBD *FileInfoBD::getParentDir()
+FileInfoBD* FileInfoBD::getParentDir()
 {
     return m_parent;
+}
+FileInfoBD* FileInfoBD::getAbsParentDir()
+{
+    if(m_parent)
+        return m_parent->getAbsParentDir();
+    else
+        return this;
 }
 
 //-----------------------------------------------------
@@ -401,7 +408,6 @@ void FileInfoBD::close()
 
 void FileInfoBD::closeAbsParent()
 {
-    qDebug() << "FileInfoBD::closeAbsParent: " << m_fileInfo.fileName();
     if(m_parent)
     {
         m_parent->closeAbsParent();
@@ -782,7 +788,7 @@ void FileInfoBD::cancelSorting()
 
 void FileInfoBD::replaceSub_fold(std::string subFoldPath, FileInfoBD* subFoldToRepl)
 {
-    qDebug() << "\n\nFileInfoBD::replaceSub_fold - this.fileName: " << m_fileInfo.fileName() << "   - toReplace: " << subFoldToRepl->m_fileInfo.fileName();
+//    qDebug() << "\n\nFileInfoBD::replaceSub_fold - this.fileName: " << m_fileInfo.fileName() << "   - toReplace: " << subFoldToRepl->m_fileInfo.fileName();
     for(auto* sub_fold: m_sub_folds)
     {
         if(sub_fold && sub_fold->absPath() == subFoldPath)

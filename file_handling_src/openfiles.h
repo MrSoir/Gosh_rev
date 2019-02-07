@@ -13,11 +13,12 @@
 
 #include "queuetask.h"
 #include "process.h"
+#include "dialogs/openwithdialog.h"
 
 class OpenFiles: public QueueTask
 {
 public:
-    OpenFiles(std::vector<std::string> pathsToOpen,
+    explicit OpenFiles(std::vector<std::string> pathsToOpen,
               bool openWith = false);
     virtual ~OpenFiles() override;
 

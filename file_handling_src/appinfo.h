@@ -1,6 +1,8 @@
 #ifndef APPINFO_H
 #define APPINFO_H
 
+#include <QStringList>
+
 #include <string>
 #include <vector>
 #include <unordered_set>
@@ -24,10 +26,13 @@ public:
 
     AppInfo();
     AppInfo(const AppInfo& ai);
+    AppInfo& operator=(const AppInfo ai);
+    AppInfo* operator=(AppInfo* ai);
 
     AppInfo(std::string appInfoStr);
 
     std::string genExecCmnd(const std::vector<std::string>& args = std::vector<std::string>()) const;
+    std::vector<std::string> genExecCmndVec(const std::vector<std::string>& args = std::vector<std::string>()) const;
 
     void addMimeTypesFromVector(const std::vector<std::string>& mts);
 

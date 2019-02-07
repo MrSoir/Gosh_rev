@@ -40,10 +40,13 @@ class FileMimeTypeHandler : public QObject
     Q_OBJECT
 public:
     explicit FileMimeTypeHandler(std::string path,
-                                 int min_icon_size = 0,
+                                 int min_icon_size = MIN_ICON_SIZE,
                                  QObject *parent = nullptr);
+    virtual ~FileMimeTypeHandler() override;
 
-    std::vector<AppInfo> getMimeAppInfos() const;
+    std::vector<AppInfo> getAppInfosOfInstalledApps() const;
+
+    std::vector<AppInfo> matchingApps() const;
 signals:
 
 public slots:

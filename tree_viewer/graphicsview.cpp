@@ -737,7 +737,7 @@ void GraphicsView::addContentBar()
     bool rename = false;
     bool path = false;
     bool terminal = false;
-    bool openWith = false;
+    bool openWith = (m_fileMangrInfo->selectionCount() == 1 && !m_fileMangrInfo->singleFolderSelected());
 
     if(m_fileMangrInfo->foldersSelected()){
         if(m_fileMangrInfo->singleFolderSelected())
@@ -795,9 +795,6 @@ void GraphicsView::addContentBar()
         terminal = true;
 
         path = true;
-
-        if(m_fileMangrInfo->filesSelected())
-            openWith = true;
     }
     if(m_fileMangrInfo->selectionCount() > 0)
     {

@@ -23,7 +23,7 @@ void FileQueue::addTask(QueueTask* task)
     m_tasks.push(task);
     if( task->executableInParallel() )
     {
-        task->run();
+        task->createThread();
     }else if( !m_taskIsRunning )
     {
         processTasks();
@@ -47,9 +47,6 @@ void FileQueue::cancel()
 
 void FileQueue::taskFinished()
 {
-//    disconnectTask(task);
-//    task->deleteLater();
-
     if( m_tasks.size() > 0 )
     {
         processTasks();

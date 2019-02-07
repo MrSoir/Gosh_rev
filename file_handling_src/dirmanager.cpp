@@ -243,7 +243,8 @@ void DirManager::cdUP()
 {
     emit cancelQueueWorkers();
 
-    DirCD_UpWorker* worker = new DirCD_UpWorker(m_root);
+    DirCD_UpWorker* worker = new DirCD_UpWorker(m_root, m_thread);
+    connect(worker, &DirCD_UpWorker::replaceRoot, this, &DirManager::replaceRoot, Qt::QueuedConnection);
     emit addWorker(worker);
 }
 
@@ -256,10 +257,11 @@ void DirManager::revalidateDirStructure()
     if(m_root)
     {
         m_root_path = m_root->absPath();
-        revalidateDirStructure_hlpr(m_root);
+        revalidateDirStructure_hlpr(m_root->getAbsParentDir());
+        registerDirStructure_hlpr(m_root->getAbsParentDir());
     }
 
-    addDirsToWatcher_helpr();
+//    addDirsToWatcher_helpr(); wird nun von registerDirStructure_hlpr uebernommen, daher auskommentiert!!!
 
     emit treeChanged(genTreeFromRoot());
     emit dirStructureRevalidated();
@@ -476,18 +478,28 @@ void DirManager::revalidateDirStructure_hlpr(FileInfoBD* fiBD)
     m_path_to_dir[absPath] = fiBD;
     m_path_fileName[absPath] = fileName;
 
-    if( !fiBD->alreadyRegistered() )
-    {
-        m_watcher->addDir(absPath);
-        connectDir(fiBD);
-        fiBD->setAlreadRegistered(true);
-    }
-
     for(auto* sub_dir: fiBD->getSubFolders())
     {
         if(m_closed)
             return;
         revalidateDirStructure_hlpr(sub_dir);
+    }
+}
+void DirManager::registerDirStructure_hlpr(FileInfoBD* dir)
+{
+    if( !dir )
+        return;
+
+    if( !dir->alreadyRegistered() )
+    {
+        m_watcher->addDir(dir->absPath());
+        connectDir(dir);
+        dir->setAlreadRegistered(true);
+    }
+
+    for(auto* sub_dir: dir->getSubFolders())
+    {
+        registerDirStructure_hlpr(sub_dir);
     }
 }
 

@@ -26,16 +26,21 @@ FileMimeTypeHandler::FileMimeTypeHandler(std::string path,
       m_matching_apps(std::unordered_set<AppInfo>()),
       m_mime_type(Exec::getMimeType_Linux(path)),
       m_path(path),
-      m_min_icon_size(min_icon_size == 0 ? MIN_ICON_SIZE : min_icon_size)
+      m_min_icon_size(min_icon_size)
 {
     evalSupportedImageFileTypes();
     evalMatchingApps();
 }
 
+FileMimeTypeHandler::~FileMimeTypeHandler()
+{
+
+}
+
 
 void FileMimeTypeHandler::evalMatchingApps()
 {
-    std::vector<AppInfo> apps = getMimeAppInfos();
+    std::vector<AppInfo> apps = getAppInfosOfInstalledApps();
     std::vector<AppInfo> matching_apps;
     for(auto& app: apps)
     {
@@ -45,14 +50,14 @@ void FileMimeTypeHandler::evalMatchingApps()
         }
     }
 
-    qDebug() << "matching_apps: " << matching_apps.size() << "  mime_type: " << QString::fromStdString(m_mime_type);
+//    qDebug() << "matching_apps: " << matching_apps.size() << "  mime_type: " << QString::fromStdString(m_mime_type);
 
     for(auto& app: matching_apps)
     {
         app.icon_file_path = getIconPath(app.icon_file_name);
         m_matching_apps.insert(app);
-        qDebug() << "   " << QString::fromStdString(app.name) << "  |   " << QString::fromStdString(app.genExecCmnd())
-                 << "   |   " << QString::fromStdString(app.icon_file_path);
+//        qDebug() << "   " << QString::fromStdString(app.name) << "  |   " << QString::fromStdString(app.genExecCmnd())
+//                 << "   |   " << QString::fromStdString(app.icon_file_path);
     }
 }
 
@@ -60,7 +65,7 @@ std::string FileMimeTypeHandler::getExePath() const
 {
   char result[ PATH_MAX ];
   ssize_t count = readlink( "/proc/self/exe", result, PATH_MAX );
-  return std::string( result, (count > 0) ? count : 0 );
+  return std::string( result, (count > 0) ? static_cast<uint>(count) : 0 );
 }
 
 std::string FileMimeTypeHandler::getResourcesPath() const
@@ -106,7 +111,7 @@ std::vector<std::string> FileMimeTypeHandler::getIconFilePaths() const
     return pths;
 }
 
-std::vector<AppInfo> FileMimeTypeHandler::getMimeAppInfos() const
+std::vector<AppInfo> FileMimeTypeHandler::getAppInfosOfInstalledApps() const
 {
     std::vector<std::string> desktop_pths = getDesktopFilesPaths();
 
@@ -135,7 +140,7 @@ std::vector<AppInfo> FileMimeTypeHandler::getMimeAppInfos() const
                     }
                     else if (app.icon_file_name.empty() && StringOps::startsWith(line, "Icon=")){
                         std::string icon_name = StringOps::right(line, line.size() - std::string("Icon=").size());
-                        app.icon_file_name = icon_name;//getIconPath(icon_name);
+                        app.icon_file_name = icon_name;
                     }
                     else if (StringOps::startsWith(line, "MimeType=")){
                         std::string mimes = StringOps::right(line, line.size() - std::string("MimeType=").size());
@@ -147,24 +152,18 @@ std::vector<AppInfo> FileMimeTypeHandler::getMimeAppInfos() const
         }
     }
 
-    qDebug() << "applicaionts detected: " << appInfos.size();
+//    qDebug() << "applicaionts detected: " << appInfos.size();
     return appInfos;
+}
 
-//    std::string mimes_app_info_path = getMimesInfoFilePath();
-//    std::ofstream mimes_app_info_file(mimes_app_info_path);
-//    if(appInfos.size() > 0)
-//    {
-//        if (mimes_app_info_file.is_open())
-//        {
-//            unsigned long i = 0;
-//            for(const auto& ai: appInfos)
-//            {
-//                mimes_app_info_file << ai.toString();
-//                if(i < appInfos.size()-1)
-//                    mimes_app_info_file << StringOps::new_line();
-//            }
-//        }
-//    }
+std::vector<AppInfo> FileMimeTypeHandler::matchingApps() const
+{
+    std::vector<AppInfo> apps(m_matching_apps.begin(), m_matching_apps.end());
+    auto sortFunc = [](const AppInfo& ai1, const AppInfo& ai2){
+        return ai1.name < ai2.name;
+    };
+    std::sort(apps.begin(), apps.end(), sortFunc);
+    return apps;
 }
 
 std::unordered_set<std::string> FileMimeTypeHandler::findIconInPathsRec(const std::string &icon_name, const std::string &path) const
@@ -231,36 +230,16 @@ std::string FileMimeTypeHandler::findSufficientlyBigIconInPathRec(const std::str
     return "";
 }
 
-std::string FileMimeTypeHandler::getIconPath(const std::string &icon_name) const
+std::string FileMimeTypeHandler::getIconPath(const std::string& icon_name) const
 {
     std::vector<std::string> icon_file_pths = getIconFilePaths();
-//    std::unordered_set<std::string> icon_pths;
     for(const auto& pth: icon_file_pths)
     {
         auto matching_pth = findSufficientlyBigIconInPathRec(icon_name, pth);
         if( !matching_pth.empty() )
             return matching_pth;
-//        const auto& matching_pths = findIconInPathsRec(icon_name, pth);
-//        icon_pths.insert(matching_pths.begin(), matching_pths.end());
     }
     return "";
-//    int max_icon_size = 0.0;
-//    std::string max_icon_path = "";
-//    for(const auto& ip: icon_pths)
-//    {
-//        QImage icn(QString::fromStdString(ip));
-//        if( !icn.isNull() )
-//        {
-//            const auto& sze = icn.size();
-//            int curSize = sze.width() * sze.height();
-//            if(max_icon_size < curSize)
-//            {
-//                max_icon_size = curSize;
-//                max_icon_path = ip;
-//            }
-//        }
-//    }
-//    return max_icon_path;
 }
 
 void FileMimeTypeHandler::createMimeResourceDirIfNotExistent() const
@@ -268,7 +247,7 @@ void FileMimeTypeHandler::createMimeResourceDirIfNotExistent() const
     std::string sep = QString(QDir::separator()).toStdString();
     std::string exec_path = getExePath();
     QDir dir(QString::fromStdString(getResourcesPath()));
-    if (!dir.exists())
+    if ( !dir.exists() )
     {
         bool succ = dir.mkdir(".");
         if (succ)

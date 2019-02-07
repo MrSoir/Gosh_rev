@@ -109,6 +109,8 @@ private:
 //    void disconnectDirs_hlpr(FileInfoBD* dir);
 
     void revalidateDirStructure_hlpr(FileInfoBD* fiBD);
+    void registerDirStructure_hlpr(FileInfoBD* dir);
+
     void clearContainers();
 
 //    void registerCustomClasses();

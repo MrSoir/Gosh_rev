@@ -6,6 +6,7 @@
 #include <QString>
 #include <QVector>
 #include <QSize>
+#include <QDebug>
 
 #include <string>
 #include <vector>
@@ -20,6 +21,9 @@
 
 #include "orderby.h"
 #include "staticfunctions_files.h"
+
+#include "file_handling_src/filemimetypehandler.h"
+#include "file_handling_src/appinfo.h"
 
 Q_DECLARE_METATYPE(QThread::Priority);
 
@@ -43,6 +47,10 @@ Q_DECLARE_METATYPE(Order);
 
 Q_DECLARE_METATYPE(DeepSearchResult);
 Q_DECLARE_METATYPE(std::vector<DeepSearchResult>);
+
+Q_DECLARE_METATYPE(AppInfo);
+Q_DECLARE_METATYPE(std::vector<AppInfo>);
+
 
 
 void setStyles(QApplication& app)
@@ -87,8 +95,12 @@ int main(int argc, char *argv[])
     qRegisterMetaType<DeepSearchResult>();
     qRegisterMetaType<std::vector<DeepSearchResult>>();
 
+    qRegisterMetaType<AppInfo>();
+    qRegisterMetaType<std::vector<AppInfo>>();
+
 //    QPixmap pm = STATIC_FUNCTIONS::getPixmapFromPDF(QString("/home/hippo/Documents/stones.pdf"), QSize(50,50));
 //    qDebug() << "pixmap-size: " << pm.size();
+
 
     a.thread()->setObjectName(QString("MAIN_APP_THREAD"));
 

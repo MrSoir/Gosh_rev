@@ -15,6 +15,26 @@ AppInfo::AppInfo(const AppInfo& ai)
       mime_types(std::unordered_set<std::string>(ai.mime_types))
 {}
 
+AppInfo& AppInfo::operator=(const AppInfo ai)
+{
+    name = ai.name;
+    exec_cmnd = ai.exec_cmnd;
+    icon_file_name = ai.icon_file_name;
+    icon_file_path = ai.icon_file_path;
+    mime_types = std::unordered_set<std::string>(ai.mime_types.begin(), ai.mime_types.end());
+    return *this;
+}
+
+AppInfo *AppInfo::operator=(AppInfo *ai)
+{
+    name = ai->name;
+    exec_cmnd = ai->exec_cmnd;
+    icon_file_name = ai->icon_file_name;
+    icon_file_path = ai->icon_file_path;
+    mime_types = std::unordered_set<std::string>(ai->mime_types.begin(), ai->mime_types.end());
+    return this;
+}
+
 AppInfo::AppInfo(std::string appInfoStr)
 {
     const auto& infos = StringOps::split(appInfoStr, "__|__");
@@ -44,6 +64,32 @@ std::string AppInfo::genExecCmnd(const std::vector<std::string>& args) const
     cmnd.append(args_str);
 
     return StringOps::trim(cmnd);
+}
+
+std::vector<std::string> AppInfo::genExecCmndVec(const std::vector<std::string>& args) const
+{
+    std::string cmnd = exec_cmnd;
+    cmnd = StringOps::replaceAll(cmnd, "%u", "");
+    cmnd = StringOps::replaceAll(cmnd, "%U", "");
+    cmnd = StringOps::replaceAll(cmnd, "%f", "");
+    cmnd = StringOps::replaceAll(cmnd, "%F", "");
+    cmnd = StringOps::trim(cmnd);
+
+    auto program_cmnds = StringOps::split(cmnd, " ");
+
+    std::vector<std::string> cmnds;
+    for(const auto& program_cmnd: program_cmnds)
+    {
+        cmnds.push_back( program_cmnd );
+    }
+
+    std::string args_str = "";
+    for(unsigned long i=0; i < args.size(); ++i)
+    {
+        cmnds.push_back( StringOps::trimLeadingQuotationMarks(args.at(i)) );
+    }
+
+    return cmnds;
 }
 
 void AppInfo::addMimeTypesFromVector(const std::vector<std::string>& mts)
