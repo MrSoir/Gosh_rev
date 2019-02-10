@@ -6,6 +6,8 @@ MainWindow::MainWindow(QWidget *parent)
     TabCoordinator* tabCoordinator = new TabCoordinator(this);
     this->setCentralWidget( tabCoordinator->createWidget() );
 
+    STATIC_FUNCTIONS::setIconToWidget(this);
+
     this->resize(800,600);
 }
 

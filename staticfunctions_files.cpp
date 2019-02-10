@@ -506,3 +506,13 @@ QString STATIC_FUNCTIONS::getTempResourcesDir()
                                      .arg("tmp")).absolutePath();
 }
 
+
+void STATIC_FUNCTIONS::setIconToWidget(QWidget *widget)
+{
+    QString windowIconPath = QString("%1%2%3")
+            .arg("pics")
+            .arg(QDir::separator())
+            .arg("MrSoirIcon.png");
+//            .arg("MrSoir_antique.png");
+    widget->setWindowIcon(QIcon(windowIconPath));
+}

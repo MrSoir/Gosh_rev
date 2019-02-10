@@ -11,7 +11,7 @@ OpenWithDialog::OpenWithDialog(std::string fileToOpenPath,
     setMouseTracking(true);
 
 
-    StaticFunctions::setIconToWidget(this);
+    STATIC_FUNCTIONS::setIconToWidget(this);
 
     this->setModal(true);
     this->setWindowFlags(Qt::FramelessWindowHint);

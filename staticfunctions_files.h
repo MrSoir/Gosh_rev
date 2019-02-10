@@ -46,6 +46,10 @@ namespace STATIC_FUNCTIONS
 
 //----------------------------------------------------------------------------------
 
+    void setIconToWidget(QWidget* widget);
+
+//----------------------------------------------------------------------------------
+
     QString getResourceDir();
     QString getTempResourcesDir();
 
