@@ -32,14 +32,12 @@ class FiBDDeletor : public QObject
 {
     Q_OBJECT
 public:
-    FiBDDeletor(FileInfoBD* fiBD = nullptr);
-    FiBDDeletor(FiBDDeletor& toCopy);
-    FiBDDeletor(FiBDDeletor* toCopy);
+    explicit FiBDDeletor(FileInfoBD* const fiBD = nullptr);
+    explicit FiBDDeletor(const FiBDDeletor& toCopy);
 
     FiBDDeletor& operator=(const FiBDDeletor& toCopy);
-    FiBDDeletor* operator=(FiBDDeletor* toCopy);
 
-    virtual ~FiBDDeletor();
+    virtual ~FiBDDeletor() override;
 
     FileInfoBD* m_fiBD;
 
@@ -55,6 +53,8 @@ class FiBD_Collector : public QObject
     Q_OBJECT
 public:
     explicit FiBD_Collector();
+    explicit FiBD_Collector(const FiBD_Collector& c);
+    virtual ~FiBD_Collector() override;
 signals:
     void fiBD_created(FileInfoBD* fiBD);
     void fIBD_destroyed(FileInfoBD* fiBD);
@@ -82,10 +82,8 @@ public:
                         bool includeHiddenFiles = false,
                         QObject *parentm_focus_match_id = nullptr);
     explicit FileInfoBD(const FileInfoBD& fi);
-    explicit FileInfoBD(FileInfoBD* fi);
 
     FileInfoBD& operator=(const FileInfoBD& fi);
-    FileInfoBD* operator=(FileInfoBD* fi);
 
 
     virtual ~FileInfoBD() override;

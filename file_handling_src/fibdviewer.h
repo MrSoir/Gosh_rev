@@ -16,7 +16,8 @@
 
 //using namespace ORDERED_BY;
 
-class FiBDViewer : public Searchable,
+class FiBDViewer : public QObject,
+                   public Searchable,
                    public Selectable
 {
 public:
@@ -48,7 +49,6 @@ public:
     virtual ~FiBDViewer() override;
 
     FiBDViewer& operator=(const FiBDViewer& fi);
-    FiBDViewer* operator=(FiBDViewer* fi);
 
 
     // getters:

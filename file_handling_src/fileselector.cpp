@@ -197,6 +197,9 @@ void FileSelector::select(std::string path, bool cntrl_prsd, bool shift_prsd)
 
 void FileSelector::selectEntireContent()
 {
+    if(!m_paths || !m_folder_paths)
+        return;
+
     for(auto& pth: *m_paths)
         m_selected_paths.emplace(pth);
 

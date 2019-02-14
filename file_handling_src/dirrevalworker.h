@@ -20,6 +20,11 @@ public:
                             QThread* threadToMoveObjectsTo);
     explicit DirRevalWorker(std::vector<FileInfoBD*> fis,
                             QThread* threadToMoveObjectsTo);
+    explicit DirRevalWorker();
+
+    explicit DirRevalWorker(const DirRevalWorker& w);
+
+    DirRevalWorker& operator=(const DirRevalWorker& w);
 
     virtual ~DirRevalWorker() override;
 

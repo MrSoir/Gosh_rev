@@ -16,6 +16,45 @@ DirDeepSearchWorker::DirDeepSearchWorker(std::string keyword,
     connectSignals();
 }
 
+DirDeepSearchWorker::DirDeepSearchWorker(const DirDeepSearchWorker &ds)
+    : DirManagerWorker(ds.parent()),
+      m_keyword(ds.m_keyword),
+      m_root_dir(ds.m_root_dir),
+      m_includeHiddenFiles(ds.m_includeHiddenFiles),
+      m_matches(ds.m_matches),
+      m_runningThreads(ds.m_runningThreads),
+      m_threadToMoveObjectsTo(ds.m_threadToMoveObjectsTo)
+{
+    connectSignals();
+}
+
+DirDeepSearchWorker::DirDeepSearchWorker()
+    : DirManagerWorker(nullptr),
+      m_keyword(""),
+      m_root_dir(nullptr),
+      m_includeHiddenFiles(true),
+      m_matches(std::vector<DeepSearchResult>()),
+      m_runningThreads(0),
+      m_threadToMoveObjectsTo(nullptr)
+{
+    connectSignals();
+}
+
+DirDeepSearchWorker &DirDeepSearchWorker::operator=(const DirDeepSearchWorker &ds)
+{
+    DirManagerWorker::operator=(ds);
+    m_keyword = ds.m_keyword;
+    m_root_dir = ds.m_root_dir;
+    m_includeHiddenFiles = ds.m_includeHiddenFiles;
+    m_matches = ds.m_matches;
+    m_runningThreads = ds.m_runningThreads;
+    m_threadToMoveObjectsTo = ds.m_threadToMoveObjectsTo;
+
+    connectSignals();
+
+    return *this;
+}
+
 DirDeepSearchWorker::~DirDeepSearchWorker()
 {
     qDebug() << "~DirDeepSearchWorker";
@@ -33,7 +72,12 @@ bool DirDeepSearchWorker::revalidateDirStructureAfterWorkerHasFinished() const
 
 void DirDeepSearchWorker::run()
 {
-    search(m_root_dir);
+    if(m_root_dir)
+    {
+        search(m_root_dir);
+    }else{
+        qDebug() << "DirDeepSearchWorker::run -> m_root_dir is nullptr!!! -> maybe because of non-argument-Default-Construtor - required by Qt-Signal-Slot-Registration!!!";
+    }
 }
 
 void DirDeepSearchWorker::workerFinished(std::vector<DeepSearchResult> results, FileInfoBD *dir)
@@ -53,7 +97,8 @@ void DirDeepSearchWorker::workerFinished(std::vector<DeepSearchResult> results, 
 
 void DirDeepSearchWorker::workBeforeLaunchThread()
 {
-    m_root_dir->moveToThread_rec(m_thread);
+    if(m_root_dir)
+        m_root_dir->moveToThread_rec(m_thread);
 }
 
 void DirDeepSearchWorker::connectSignals()
@@ -153,7 +198,7 @@ void DirDeepSearchWorker::elapseMatchingFolders()
         matching_paths.push_back(match.absPath);
     }
 
-    if(m_threadToMoveObjectsTo)
+    if(m_threadToMoveObjectsTo && m_root_dir)
         m_root_dir->moveToThread_rec(m_threadToMoveObjectsTo);
 
     emit deepSearchFinished(matching_paths, m_keyword);

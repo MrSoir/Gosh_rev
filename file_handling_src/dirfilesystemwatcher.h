@@ -14,6 +14,11 @@ class DirFileSystemWatcher : public QObject
     Q_OBJECT
 public:
     explicit DirFileSystemWatcher(QObject *parent = nullptr);
+    explicit DirFileSystemWatcher(const DirFileSystemWatcher& dfs);
+
+    DirFileSystemWatcher& operator=(const DirFileSystemWatcher& dfsw);
+
+    virtual ~DirFileSystemWatcher() override;
 
 signals:
     void dirChanged(std::string dir);

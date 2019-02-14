@@ -7,15 +7,16 @@ AppInfo::AppInfo()
       icon_file_path(""),
       mime_types(std::unordered_set<std::string>())
 {}
-AppInfo::AppInfo(const AppInfo& ai)
-    : name(ai.name),
-      exec_cmnd(ai.exec_cmnd),
-      icon_file_name(ai.icon_file_name),
-      icon_file_path(ai.icon_file_path),
-      mime_types(std::unordered_set<std::string>(ai.mime_types))
-{}
+//AppInfo::AppInfo(const AppInfo& ai)
+//    : QObject(ai.parent()),
+//      name(ai.name),
+//      exec_cmnd(ai.exec_cmnd),
+//      icon_file_name(ai.icon_file_name),
+//      icon_file_path(ai.icon_file_path),
+//      mime_types(std::unordered_set<std::string>(ai.mime_types))
+//{}
 
-AppInfo& AppInfo::operator=(const AppInfo ai)
+AppInfo& AppInfo::operator=(const AppInfo& ai)
 {
     name = ai.name;
     exec_cmnd = ai.exec_cmnd;
@@ -23,16 +24,6 @@ AppInfo& AppInfo::operator=(const AppInfo ai)
     icon_file_path = ai.icon_file_path;
     mime_types = std::unordered_set<std::string>(ai.mime_types.begin(), ai.mime_types.end());
     return *this;
-}
-
-AppInfo *AppInfo::operator=(AppInfo *ai)
-{
-    name = ai->name;
-    exec_cmnd = ai->exec_cmnd;
-    icon_file_name = ai->icon_file_name;
-    icon_file_path = ai->icon_file_path;
-    mime_types = std::unordered_set<std::string>(ai->mime_types.begin(), ai->mime_types.end());
-    return this;
 }
 
 AppInfo::AppInfo(std::string appInfoStr)
@@ -137,4 +128,23 @@ bool AppInfo::operator==(const AppInfo& rhs) {
         && exec_cmnd == rhs.exec_cmnd
         && icon_file_name == rhs.icon_file_name
         && icon_file_path== rhs.icon_file_path;;
+}
+
+bool operator==(const AppInfo& lhs, const AppInfo& rhs) {
+    if(lhs.mime_types.size() != rhs.mime_types.size())
+        return false;
+
+    for(const auto& ai: lhs.mime_types)
+    {
+        if(rhs.mime_types.find(ai) != rhs.mime_types.end())
+            return false;
+    }
+    for(const auto& ai: rhs.mime_types)
+    {
+        if(lhs.mime_types.find(ai) != lhs.mime_types.end())
+            return false;
+    }
+    return lhs.name == rhs.name
+        && lhs.exec_cmnd == rhs.exec_cmnd
+        && lhs.icon_file_name == rhs.icon_file_name;
 }

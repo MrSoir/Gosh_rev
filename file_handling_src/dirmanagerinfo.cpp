@@ -56,18 +56,6 @@ DirManagerInfo::DirManagerInfo(const DirManagerInfo& dmi)
       files_sorted(dmi.files_sorted)
 {
 }
-DirManagerInfo::DirManagerInfo(DirManagerInfo* dmi)
-    : absPath(dmi->absPath),
-      fileName(dmi->fileName),
-      isHidden(dmi->isHidden),
-      isElapsed(dmi->isElapsed),
-      isLoaded(dmi->isLoaded),
-      lastModified(dmi->lastModified),
-      order(dmi->order),
-      subDirs_sorted(dmi->subDirs_sorted),
-      files_sorted(dmi->files_sorted)
-{
-}
 
 DirManagerInfo::DirManagerInfo()
     : absPath(""),
@@ -96,20 +84,6 @@ DirManagerInfo &DirManagerInfo::operator=(const DirManagerInfo &dmf)
     subDirs_sorted = dmf.subDirs_sorted;
     files_sorted   = dmf.files_sorted;
     return *this;
-}
-
-DirManagerInfo *DirManagerInfo::operator=(DirManagerInfo *dmf)
-{
-    absPath        = dmf->absPath;
-    fileName       = dmf->fileName;
-    isHidden       = dmf->isHidden;
-    isElapsed      = dmf->isElapsed;
-    isLoaded       = dmf->isLoaded;
-    lastModified   = dmf->lastModified;
-    order          = dmf->order;
-    subDirs_sorted = dmf->subDirs_sorted;
-    files_sorted   = dmf->files_sorted;
-    return this;
 }
 
 //-------------------------

@@ -19,64 +19,62 @@ SOURCE_TARGET::FileTree::~FileTree()
     }
 }
 
-
-SOURCE_TARGET::FileTree* SOURCE_TARGET::iterateOverEntries_hlpr(const QVector<QFileInfo>& entries,
-                                                                const QString& basePath,
-                                                                const QString& tarDir,
-                                                                std::function<bool(QString,QString,bool,bool*)> caller,
-                                                                bool preOrder)
+SOURCE_TARGET::FileTree* SOURCE_TARGET::iterateOverDir_hlpr(const QString& sourceDir,
+                                                                 const QString& tarDir,
+                                                                 caller_func caller,
+                                                                 bool preOrder)
 {
     bool cancelled = false;
-    return iterateOverEntries_hlpr(entries, basePath, tarDir, caller, &cancelled, preOrder);
+    return iterateOverDir_hlpr(sourceDir, tarDir, caller, &cancelled, preOrder);
 }
-SOURCE_TARGET::FileTree* SOURCE_TARGET::iterateOverEntries_hlpr(const QVector<QFileInfo>& entries,
-                                                                const QString& basePath,
-                                                                const QString& tarDir,
-                                                                std::function<bool(QString,QString,bool,bool*)> caller,
-                                                                bool* cancelled,
-                                                                bool preOrder)
+SOURCE_TARGET::FileTree* SOURCE_TARGET::iterateOverDir_hlpr(const QString& sourceDir,
+                                                            const QString& tarDir,
+                                                            caller_func caller,
+                                                            bool* cancelled,
+                                                            bool preOrder)
 {
     FileTree* tree = new FileTree();
-    bool currentTreeSuccess = true;
 
-    for(const QFileInfo& entry: entries)
+    tree->sourcePath = sourceDir.toStdString();
+    tree->tarPath = tarDir.toStdString();
+
+    QString p_tarDir = tarDir;
+    bool currentTreeSuccess = preOrder ? caller(sourceDir, &p_tarDir, true, QFileInfo(sourceDir).isHidden(), cancelled) : true;
+
+    auto entries = ListFiles::getEntriesInDirectory(sourceDir).toVector();
+    for(const auto& entry: entries)
     {
-        QString absPath = entry.absoluteFilePath();
-        QString absTarPath = PATH::genTargetPath(absPath, basePath, tarDir);
-
-        tree->sourcePath = StaticFunctions::getDir(absPath).toStdString();    // etw. unelegant...
-        tree->tarPath    = StaticFunctions::getDir(absTarPath).toStdString(); // etw. unelegant...
-
         if(*cancelled)
             break;
+
+        bool isDir    = entry.isDir();
+        bool isHidden = entry.isHidden();
+
+        QString absSrcPath = entry.absoluteFilePath();
+
+        QString absTarPath = PATH::genTargetPath(absSrcPath, p_tarDir);
 
         bool success = true;
 
-        if(preOrder)
+        if(isDir)
         {
-            success = caller(absPath, absTarPath, entry.isDir(), cancelled);
-        }
-
-        if(*cancelled)
-            break;
-
-        if(entry.isDir())
-        {
-            FileTree* sub_tree = iterateOverEntries_hlpr(ListFiles::getEntriesInDirectory(entry.absoluteFilePath()).toVector(), basePath, tarDir, caller,cancelled, preOrder);
+            FileTree* sub_tree = iterateOverDir_hlpr(absSrcPath, absTarPath, caller, cancelled, preOrder);
             tree->folds.push_back(sub_tree);
-        }else{
-            tree->files.push_back(std::tuple<std::string,std::string,bool>(absPath.toStdString(), absTarPath.toStdString(), success));
-        }
-
-        if(!preOrder)
+        }else if(entry.isFile())
         {
-            success = caller(absPath, absTarPath, entry.isDir(), cancelled);
+            success = caller(absSrcPath, &absTarPath, isDir, isHidden, cancelled);
+            tree->files.push_back(std::tuple<std::string,std::string,bool>(absSrcPath.toStdString(), absTarPath.toStdString(), success));
         }
-
 
         if(!success)
             currentTreeSuccess = false;
+    }
 
+    if(!preOrder)
+    {
+        bool success = caller(sourceDir, &p_tarDir, true, QFileInfo(sourceDir).isHidden(), cancelled);
+        if(!success)
+            currentTreeSuccess = false;
     }
 
     tree->success = currentTreeSuccess;
@@ -88,7 +86,7 @@ SOURCE_TARGET::FileTree* SOURCE_TARGET::iterateOverEntries_hlpr(const QVector<QF
 
 std::vector<SOURCE_TARGET::FileTree*> SOURCE_TARGET::iterateOverEntries(const QVector<QFileInfo>& entries,
                                                                         const QString& tarDir,
-                                                                        std::function<bool(QString,QString,bool,bool*)> caller,
+                                                                        caller_func caller,
                                                                         bool preOrder)
 {
     std::vector<SOURCE_TARGET::FileTree*> trees;
@@ -97,20 +95,25 @@ std::vector<SOURCE_TARGET::FileTree*> SOURCE_TARGET::iterateOverEntries(const QV
         QString basePath;
         if(entry.isDir())
         {
-            QString basePath = entry.absoluteFilePath();
-            const auto& sub_entries = ListFiles::getEntriesInDirectory(entry).toVector();
-            trees.push_back(iterateOverEntries_hlpr(sub_entries, basePath, tarDir, caller, preOrder));
+            QString absSrcPath = entry.absoluteFilePath();
+            QString absTarPath = PATH::genTargetPath(absSrcPath, tarDir);
+            trees.push_back(iterateOverDir_hlpr(absSrcPath, absTarPath, caller, preOrder));
         }else{
-            basePath = PATH::getBasePath(entry);
-            QVector<QFileInfo> v = {entry};
-            trees.push_back(iterateOverEntries_hlpr(v, basePath, tarDir, caller, preOrder));
+            QString absSourcePath = entry.absoluteFilePath();
+            QString absTargetPath = PATH::genTargetPath(absSourcePath, tarDir);
+            bool cancelled = false;
+            FileTree* tree = new FileTree();
+            tree->sourcePath = absSourcePath.toStdString();
+            tree->tarPath    = absTargetPath.toStdString();
+            tree->success    = caller(absSourcePath, &absTargetPath, entry.isDir(), entry.isHidden(), &cancelled);
+            trees.push_back(tree);
         }
     }
     return trees;
 }
 SOURCE_TARGET::FileTree* SOURCE_TARGET::iterateOverEntries(QFileInfo entry,
                                                            const QString& tarPath,
-                                                           std::function<bool(QString,QString,bool,bool*)> caller,
+                                                           caller_func caller,
                                                            bool preOrder)
 {
     QVector<QFileInfo> v = {entry};
@@ -121,7 +124,7 @@ SOURCE_TARGET::FileTree* SOURCE_TARGET::iterateOverEntries(QFileInfo entry,
 
 std::vector<SOURCE_TARGET::FileTree*> SOURCE_TARGET::iterateOverEntries(const QVector<QString> absPaths,
                                                                         const QString& tarPath,
-                                                                        std::function<bool(QString,QString,bool,bool*)> caller,
+                                                                        caller_func caller,
                                                                         bool preOrder)
 {
     QVector<QFileInfo> v;
@@ -133,7 +136,7 @@ std::vector<SOURCE_TARGET::FileTree*> SOURCE_TARGET::iterateOverEntries(const QV
 }
 SOURCE_TARGET::FileTree* SOURCE_TARGET::iterateOverEntries(QString absPath,
                                                            const QString& tarPath,
-                                                           std::function<bool(QString,QString,bool,bool*)> caller,
+                                                           caller_func caller,
                                                            bool preOrder)
 {
     QVector<QFileInfo> v = {QFileInfo(absPath)};
@@ -144,7 +147,7 @@ SOURCE_TARGET::FileTree* SOURCE_TARGET::iterateOverEntries(QString absPath,
 
 std::vector<SOURCE_TARGET::FileTree*> SOURCE_TARGET::iterateOverEntries(const std::vector<std::string> absPaths,
                                                                         const std::string& tarPath,
-                                                                        std::function<bool(QString,QString,bool,bool*)> caller,
+                                                                        caller_func caller,
                                                                         bool preOrder)
 {
     QVector<QFileInfo> v;
@@ -156,7 +159,7 @@ std::vector<SOURCE_TARGET::FileTree*> SOURCE_TARGET::iterateOverEntries(const st
 }
 SOURCE_TARGET::FileTree* SOURCE_TARGET::iterateOverEntries(std::string absPath,
                                                            const std::string& tarPath,
-                                                           std::function<bool(QString,QString,bool,bool*)> caller,
+                                                           caller_func caller,
                                                            bool preOrder)
 {
     QVector<QFileInfo> v = {QFileInfo(QString::fromStdString(absPath))};

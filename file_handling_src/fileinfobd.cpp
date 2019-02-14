@@ -10,6 +10,15 @@ FiBD_Collector::FiBD_Collector()
 {
 }
 
+FiBD_Collector::FiBD_Collector(const FiBD_Collector &c)
+    : QObject(c.parent())
+{
+}
+
+FiBD_Collector::~FiBD_Collector()
+{
+}
+
 void FiBD_Collector::fiBD_created_slot(FileInfoBD* fiBD)
 {
     emit fiBD_created(fiBD);
@@ -160,51 +169,11 @@ FileInfoBD::FileInfoBD(const FileInfoBD &fi)
     registerThis();
 }
 
-FileInfoBD::FileInfoBD(FileInfoBD* fi)
-    : QObject(fi->parent()),
-
-      m_isElapsed(fi->m_isElapsed),
-      m_alrLoaded(fi->m_alrLoaded),
-
-      m_fileInfo(fi->m_fileInfo),
-
-      m_files(fi->m_files),
-      m_sub_folds(fi->m_sub_folds),
-      m_sub_fold_paths(fi->m_sub_fold_paths),
-      m_path_to_subFold(fi->m_path_to_subFold),
-      m_hidden_files(fi->m_hidden_files),
-      m_hidden_folds(fi->m_hidden_folds),
-      m_sortedFilePaths_incl_hidden(fi->m_sortedFilePaths_incl_hidden),
-      m_sortedFoldPaths_incl_hidden(fi->m_sortedFoldPaths_incl_hidden),
-      m_entryPaths_incl_hidden(fi->m_entryPaths_incl_hidden),
-      m_sortedFilePaths_no_hidden(fi->m_sortedFilePaths_no_hidden),
-      m_sortedFoldPaths_no_hidden(fi->m_sortedFoldPaths_no_hidden),
-      m_entryPaths_no_hidden(fi->m_entryPaths_no_hidden),
-      m_sorted_subFolders_incl_hidden(fi->m_sorted_subFolders_incl_hidden),
-      m_sorted_subFolders_no_hidden(fi->m_sorted_subFolders_no_hidden),
-      m_filePath_fileName(fi->m_filePath_fileName),
-
-      m_showHiddenFiles(fi->m_showHiddenFiles),
-      m_disableSignals(fi->m_disableSignals),
-
-      m_parent(fi->m_parent),
-
-      m_cancelled_elapsing(fi->m_cancelled_elapsing),
-      m_cancelled_collapsing(fi->m_cancelled_collapsing),
-      m_cancelled_hidingHiddenFiles(fi->m_cancelled_hidingHiddenFiles),
-      m_cancelled_revalidation(fi->m_cancelled_revalidation),
-      m_cancelled_sorting(fi->m_cancelled_sorting),
-
-      m_order(fi->m_order),
-      m_current_ordering(fi->m_current_ordering),
-
-      m_alrRegistered(false) // vorsichtshalber dafuer sorgen, dass die kopie explizit nochmals registriert werden muss!
-{
-    registerThis();
-}
 
 FileInfoBD& FileInfoBD::operator=(const FileInfoBD& fi)
 {
+    this->setParent(fi.parent());
+
     this->m_isElapsed = fi.m_isElapsed;
     this->m_alrLoaded = fi.m_alrLoaded;
 
@@ -245,50 +214,6 @@ FileInfoBD& FileInfoBD::operator=(const FileInfoBD& fi)
     registerThis();
 
     return *this;
-}
-
-FileInfoBD* FileInfoBD::operator=(FileInfoBD* fi)
-{
-    this->m_isElapsed = fi->m_isElapsed;
-    this->m_alrLoaded = fi->m_alrLoaded;
-
-    this->m_fileInfo = fi->m_fileInfo;
-
-    this->m_files = fi->m_files;
-    this->m_sub_folds = fi->m_sub_folds;
-    this->m_sub_fold_paths = fi->m_sub_fold_paths;
-    this->m_path_to_subFold = fi->m_path_to_subFold;
-    this->m_hidden_files = fi->m_hidden_files;
-    this->m_hidden_folds = fi->m_hidden_folds;
-    this->m_sortedFilePaths_incl_hidden = fi->m_sortedFilePaths_incl_hidden;
-    this->m_sortedFoldPaths_incl_hidden = fi->m_sortedFoldPaths_incl_hidden;
-    this->m_entryPaths_incl_hidden = fi->m_entryPaths_incl_hidden;
-    this->m_sortedFilePaths_no_hidden = fi->m_sortedFilePaths_no_hidden;
-    this->m_sortedFoldPaths_no_hidden = fi->m_sortedFoldPaths_no_hidden;
-    this->m_entryPaths_no_hidden = fi->m_entryPaths_no_hidden;
-    this->m_sorted_subFolders_incl_hidden = fi->m_sorted_subFolders_incl_hidden;
-    this->m_sorted_subFolders_no_hidden = fi->m_sorted_subFolders_no_hidden;
-    this->m_filePath_fileName = fi->m_filePath_fileName;
-
-    this->m_showHiddenFiles = fi->m_showHiddenFiles;
-    this->m_disableSignals = fi->m_disableSignals;
-
-    this->m_parent = fi->m_parent;
-
-    this->m_cancelled_elapsing = fi->m_cancelled_elapsing;
-    this->m_cancelled_collapsing = fi->m_cancelled_collapsing;
-    this->m_cancelled_hidingHiddenFiles = fi->m_cancelled_hidingHiddenFiles;
-    this->m_cancelled_revalidation = fi->m_cancelled_revalidation;
-    this->m_cancelled_sorting = fi->m_cancelled_sorting;
-
-    this->m_order = fi->m_order;
-    this->m_current_ordering = fi->m_current_ordering;
-
-    this->m_alrRegistered = false; // vorsichtshalber dafuer sorgen, dass die kopie explizit nochmals registriert werden muss!
-
-    registerThis();
-
-    return this;
 }
 
 
@@ -1200,32 +1125,23 @@ void FileInfoBD::resetCancelFlags()
 
 
 
-FiBDDeletor::FiBDDeletor(FileInfoBD* fiBD)
+FiBDDeletor::FiBDDeletor(FileInfoBD* const fiBD)
     : QObject(nullptr),
       m_fiBD(fiBD)
 {
 }
 
-FiBDDeletor::FiBDDeletor(FiBDDeletor& toCopy)
-    : QObject(nullptr),
+FiBDDeletor::FiBDDeletor(const FiBDDeletor& toCopy)
+    : QObject(toCopy.parent()),
       m_fiBD(toCopy.m_fiBD)
-{
-}
-FiBDDeletor::FiBDDeletor(FiBDDeletor* toCopy)
-    : QObject(nullptr),
-      m_fiBD(toCopy->m_fiBD)
 {
 }
 
 FiBDDeletor& FiBDDeletor::operator=(const FiBDDeletor &toCopy)
 {
+    this->setParent(toCopy.parent());
     this->m_fiBD = toCopy.m_fiBD;
     return *this;
-}
-FiBDDeletor* FiBDDeletor::operator=(FiBDDeletor* toCopy)
-{
-    this->m_fiBD = toCopy->m_fiBD;
-    return this;
 }
 
 

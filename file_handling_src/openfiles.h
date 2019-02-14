@@ -19,7 +19,12 @@ class OpenFiles: public QueueTask
 {
 public:
     explicit OpenFiles(std::vector<std::string> pathsToOpen,
-              bool openWith = false);
+                       bool openWith = false);
+    explicit OpenFiles();
+    explicit OpenFiles(const OpenFiles& of);
+
+    OpenFiles& operator=(const OpenFiles& of);
+
     virtual ~OpenFiles() override;
 
     virtual bool executableInParallel() const override;

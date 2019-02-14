@@ -104,6 +104,19 @@ private:
 
     bool elapseRectPressed(QPointF mouP);
 
+    void drawBackground(QPainter* painter,
+                        const QRectF& br);
+    void setBackgrColor(QPainter* painter,
+                        bool isSelected,
+                        bool isSearched,
+                        bool isSearchFocused);
+    QColor genBackgrColor(bool isSelected,
+                          bool isSearched,
+                          bool isSearchFocused) const;
+    void composeColor(QColor** col1, const QColor& col2) const;
+    int composeColorVals(int v1, int v2) const;
+    QColor getEverySecondRowBackgroundColor() const;
+
     //--------------------
 
     const FiBDViewer m_fiv;
@@ -126,8 +139,6 @@ private:
     bool m_openOnDoubleClick;
     bool m_rightClickEnabled = false;
 
-    QColor m_backgroundColor = QColor(255,255,255);
-
     int m_fontSize;
 
     bool m_dragEntered = false;
@@ -144,6 +155,14 @@ private:
 //    GraphicsViewUpdater* m_graphicsView;
 
     std::atomic<int> m_isCurrentlyRepainting;
+
+    QColor m_backgroundColor  = QColor(255,255,255, 255);
+    QColor m_hoverCol         = StaticFunctions::getGoshBlueColor();
+    QColor m_selCol           = QColor(160,255,160, 255);
+    QColor m_searchedCol      = QColor(255,200,200, 255);
+    QColor m_searchFocusedCol = QColor(160,160,255,   255);
+
+    QColor m_backgrColInUse = m_backgroundColor;
 };
 
 

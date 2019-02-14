@@ -24,12 +24,10 @@ public:
     explicit DirManagerInfo(FileInfoBD* fi);
 
     explicit DirManagerInfo(const DirManagerInfo& dmi);
-    explicit DirManagerInfo(DirManagerInfo* dmi);
 
     explicit DirManagerInfo();
 
     DirManagerInfo& operator=(const DirManagerInfo& dmf);
-    DirManagerInfo* operator=(DirManagerInfo* dmf);
 
     virtual ~DirManagerInfo();
 

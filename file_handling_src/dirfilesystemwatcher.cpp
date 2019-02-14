@@ -8,6 +8,30 @@ DirFileSystemWatcher::DirFileSystemWatcher(QObject* parent)
     connectSignals();
 }
 
+DirFileSystemWatcher::DirFileSystemWatcher(const DirFileSystemWatcher &dfs)
+    : QObject(dfs.parent()),
+      m_watcher(dfs.m_watcher),
+      m_dirs_watched(dfs.m_dirs_watched)
+{
+    connectSignals();
+}
+
+DirFileSystemWatcher &DirFileSystemWatcher::operator=(const DirFileSystemWatcher &dfsw)
+{
+    this->setParent(dfsw.parent());
+    m_watcher = dfsw.m_watcher;
+    m_dirs_watched = dfsw.m_dirs_watched;
+
+    connectSignals();
+
+    return *this;
+}
+
+
+DirFileSystemWatcher::~DirFileSystemWatcher()
+{
+}
+
 void DirFileSystemWatcher::addDir(const std::string& dir_path)
 {
     m_watcher->addPath(QString::fromStdString(dir_path));

@@ -7,6 +7,22 @@ FileQueue::FileQueue()
 {
 }
 
+FileQueue::FileQueue(const FileQueue &fq)
+    : QObject(fq.parent()),
+      m_tasks(fq.m_tasks),
+      m_taskIsRunning(fq.m_taskIsRunning)
+{
+}
+
+FileQueue &FileQueue::operator=(const FileQueue &fq)
+{
+    this->setParent(fq.parent());
+    this->m_tasks = fq.m_tasks;
+    this->m_taskIsRunning = fq.m_taskIsRunning;
+    return *this;
+}
+
+
 FileQueue::~FileQueue()
 {
     emit cancelled();
@@ -23,7 +39,7 @@ void FileQueue::addTask(QueueTask* task)
     m_tasks.push(task);
     if( task->executableInParallel() )
     {
-        task->createThread();
+        task->execute();
     }else if( !m_taskIsRunning )
     {
         processTasks();
@@ -68,7 +84,7 @@ void FileQueue::processTasks()
 
         connectTask(task);
 
-        task->createThread();
+        task->execute();
     }
 }
 

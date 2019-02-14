@@ -11,6 +11,30 @@ CreateEntry::CreateEntry(const string &baseDir,
       m_baseDir(baseDir),
       m_type(type)
 {
+    qDebug() << "CreateEntry - CREATE_FILE: " << (type == CREATION_TYPE::CREATE_FILE ? "CREATE_FILE" : "CREATE_FOLDER");
+}
+
+CreateEntry::CreateEntry()
+    : TextDialogWorker("",
+                       ""),
+      m_baseDir(""),
+      m_type(CREATION_TYPE::CREATE_FOLDER)
+{
+}
+
+CreateEntry::CreateEntry(const CreateEntry &ce)
+    : TextDialogWorker(ce),
+      m_baseDir(ce.m_baseDir),
+      m_type(ce.m_type)
+{
+}
+
+CreateEntry &CreateEntry::operator=(const CreateEntry &ce)
+{
+    TextDialogWorker::operator=(ce);
+    this->m_baseDir = ce.m_baseDir;
+    this->m_type = ce.m_type;
+    return *this;
 }
 
 CreateEntry::~CreateEntry()
@@ -78,12 +102,12 @@ void CreateEntry::createEntry()
 
     if(m_type == CREATION_TYPE::CREATE_FOLDER)
     {
-        COPY_MOVE::CopyFiles::makeDir(absPath);
+        STATIC_FUNCTIONS::createNewFolder(absPath);
     }else if(m_type == CREATION_TYPE::CREATE_FILE)
     {
-        COPY_MOVE::CopyFiles::makeDir(absPath);
+        STATIC_FUNCTIONS::createNewFile(absPath);
     }else{
-        throw "CreateEntry::createEntry: not supported type selected!";
+        qDebug() << "CreateEntry::createEntry: not supported type selected!";
     }
 
 }

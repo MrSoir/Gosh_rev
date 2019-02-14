@@ -26,6 +26,11 @@ public:
                            bool sort_recursive,
                            QThread* threadToMoveObjectsTo);
 
+    explicit DirSortWorker();
+    explicit DirSortWorker(const DirSortWorker& w);
+
+    DirSortWorker& operator=(const DirSortWorker& w);
+
     virtual ~DirSortWorker() override;
 
     virtual bool blockOtherThreads() const override;

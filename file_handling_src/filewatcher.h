@@ -11,7 +11,7 @@ class FileWatcher : public QObject
     Q_OBJECT
 public:
     explicit FileWatcher(QObject *parent = nullptr);
-    ~FileWatcher();
+    virtual ~FileWatcher() override;
 
 signals:
     void directoryChanged(std::string path);

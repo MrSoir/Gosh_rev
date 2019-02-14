@@ -23,24 +23,56 @@
 
 namespace COPY_MOVE
 {
+    class CopyFilesHelper : public QObject
+    {
+        Q_OBJECT
+    public:
+        explicit CopyFilesHelper(const std::string& absSrcPath, const std::string& absTarDir, bool deleteAfterCopying, QObject* parent = nullptr);
+        explicit CopyFilesHelper(const std::vector<std::string>& absSrcPaths, const std::string& absTarDir, bool deleteAfterCopying, QObject* parent = nullptr);
+
+        explicit CopyFilesHelper(const CopyFilesHelper& h);
+        explicit CopyFilesHelper();
+
+        virtual ~CopyFilesHelper() override;
+
+        static bool copyFile(const QString& absSourcePath, const QString& absTarPath);
+        static bool makeDir(const QString& tarPath);
+    signals:
+        void incrementProgress();
+        void addProgressUpperBound(unsigned long long);
+        void finished();
+        void cancelled();
+    public slots:
+        void cancel();
+        void run();
+    private:
+        bool deleteFile(SOURCE_TARGET::FileTree* tree);
+
+        std::vector<std::string> m_absSrcPaths;
+        std::string m_absTarDir;
+        unsigned long long m_entriesToCopy;
+        bool m_deleteAfterCopying;
+        bool m_cancelled;
+    };
+
+    //---------------------------------------------------------------
 
     class CopyFiles: public ProgressDialogWorker
     {
         Q_OBJECT
     public:
-        CopyFiles(std::vector<std::string> pathsToCopy,
+        explicit CopyFiles(std::vector<std::string> pathsToCopy,
                   std::string targetPath,
                   bool deleteAfterCopying = false);
+        explicit CopyFiles();
+        explicit CopyFiles(const CopyFiles& cp);
+
         virtual ~CopyFiles() override;
 
-        static bool copyFile(const QString& absSourcePath, const QString& absTarPath);
-        static bool makeDir(const QString& tarPath);
     public slots:
         void run() override;
     private:
         void copyFiles();
-
-        bool deleteFile(SOURCE_TARGET::FileTree* tree);
 
         std::vector<std::string> m_paths;
         std::string m_tarPath;
@@ -54,7 +86,10 @@ namespace COPY_MOVE
     {
         Q_OBJECT
     public:
-        DuplicateFiles(std::vector<std::string> pathsToDplct);
+        explicit DuplicateFiles(std::vector<std::string> pathsToDplct);
+        explicit DuplicateFiles();
+        explicit DuplicateFiles(const DuplicateFiles& df);
+
         virtual ~DuplicateFiles() override;
 
     public slots:
@@ -72,8 +107,11 @@ namespace COPY_MOVE
     {
         Q_OBJECT
     public:
-        MoveFiles(std::vector<std::string> pathsToCopy,
-                  std::string targetPath);
+        explicit MoveFiles(std::vector<std::string> pathsToCopy,
+                           std::string targetPath);
+        explicit MoveFiles();
+        explicit MoveFiles(const MoveFiles& mf);
+
         virtual ~MoveFiles() override;
 
         static bool moveEntry(const QString& absSourcePath, const QString& absTarPath);
@@ -92,7 +130,10 @@ namespace COPY_MOVE
     {
         Q_OBJECT
     public:
-        DeleteFiles(std::vector<std::string> pathsToCopy);
+        explicit DeleteFiles(std::vector<std::string> pathsToCopy);
+        explicit DeleteFiles();
+        explicit DeleteFiles(const DeleteFiles& df);
+
         virtual ~DeleteFiles() override;
 
         static bool removeDir(const QString& path);

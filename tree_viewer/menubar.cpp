@@ -13,6 +13,7 @@ MenuBar::MenuBar(qreal maxWidthOrHeight,
       m_centerFromEnd(m_centerFromEnd),
       m_orientation(orientation)
 {
+//    qDebug() << "MenuBar::Constructor";
     revalidateSize();
 }
 
@@ -102,8 +103,8 @@ void MenuBar::setCaller(std::shared_ptr<DynamicFunctionCaller<QString, std::func
     m_buttons.clear();
     m_mouInBtns.clear();
     for(int i=0; i < m_btnsCount; i++){
-        m_buttons.append(QRectF(0.,0., 0.,0.));
-        m_mouInBtns.append(false);
+        m_buttons.push_back(QRectF(0.,0., 0.,0.));
+        m_mouInBtns.push_back(false);
     }
 
     revalGroupMap();
@@ -156,11 +157,12 @@ void MenuBar::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, Q
 //        int maxColumns = static_cast<int>(m_anzColumns);
         auto it = m_groupingMap.begin();
 
-        for(int i=0; i < m_buttons.size(); i++){
+        for(std::size_t i=0; i < m_buttons.size(); i++){
             if(it == m_groupingMap.end())
                 break;
 
             int btnId = it->second[static_cast<unsigned int>(curGroupId)];
+            auto btnId_sze = static_cast<std::size_t>(btnId);
 
             qreal curX = startX + curCol * (m_btnEdge + m_offsets);
             qreal curY = startY + curRow * (m_btnEdge + m_offsets);
@@ -170,11 +172,11 @@ void MenuBar::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, Q
             else
                 curX += groupBordCount * (groupBordStrokeWidth + 2);
 
-            m_buttons[btnId].setX( curX );
-            m_buttons[btnId].setY( curY );
+            m_buttons[btnId_sze].setX( curX );
+            m_buttons[btnId_sze].setY( curY );
 
-            m_buttons[btnId].setWidth (m_btnEdge);
-            m_buttons[btnId].setHeight(m_btnEdge);
+            m_buttons[btnId_sze].setWidth (m_btnEdge);
+            m_buttons[btnId_sze].setHeight(m_btnEdge);
 
 //            qDebug() << "painting: curGroupId: " << curGroupId << " curRow: " << curRow << "    curCol: " << curCol;
 
@@ -235,7 +237,7 @@ void MenuBar::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, Q
             }
         }
     }
-    for(int i=0; i < m_buttons.size(); i++){
+    for(std::size_t i=0; i < m_buttons.size(); i++){
         QColor nextColor1, nextColor2;
         if(m_mouInBtns[i]){
             nextColor1 = QColor(255, 255, 255, 255);
@@ -264,9 +266,11 @@ GraphicItemsBD::ORIENTATION MenuBar::orientation(){return m_orientation;}
 
 void MenuBar::mousePressEvent(QGraphicsSceneMouseEvent *event){
     QPointF mouP = event->pos();
-    for(int i=0; i < m_buttons.size(); i++){
-        if(m_buttons[i].contains(mouP) && m_btnFuncs){
+    for(std::size_t i=0; i < m_buttons.size(); i++){
+        auto rct = m_buttons[i];
+        if(rct.contains(mouP) && m_btnFuncs){
             m_btnFuncs->getFunction(QString("buttonFunction%1").arg(i))();
+            break;
         }
     }
     qint64 curTime = QDateTime::currentMSecsSinceEpoch();
@@ -274,15 +278,15 @@ void MenuBar::mousePressEvent(QGraphicsSceneMouseEvent *event){
 
     }
     lastTmePrsd = curTime;
-    update();
+//    update();
 }
 void MenuBar::hoverMoveEvent(QGraphicsSceneHoverEvent * event){
     QPointF mouP = event->pos();
     bool anyBtnTrue = false;
     bool updt = false;
-    for(int i=0; i < m_buttons.size(); i++){
+    for(std::size_t i=0; i < m_buttons.size(); i++){
         if(m_buttons.at(i).contains(mouP)){
-            if(!m_mouInBtns.at(i)){
+            if( !(m_mouInBtns.at(i)) ){
                 m_mouInBtns[i] = true;
                 updt = true;
             }
@@ -292,7 +296,7 @@ void MenuBar::hoverMoveEvent(QGraphicsSceneHoverEvent * event){
         }
     }
     if(anyBtnTrue){
-        for(int i=0; i < m_buttons.size(); i++){
+        for(std::size_t i=0; i < m_buttons.size(); i++){
             m_mouInBtns[i] = false;
         }
         updt = true;
@@ -470,7 +474,7 @@ std::pair<int, int> MenuBar::evalColumnAndRowDimensions()
     }
 }
 
-QString MenuBar::vec_to_str(const std::vector<int> vec)
+QString MenuBar::vec_to_str(const std::vector<int> &vec)
 {
     if(vec.empty())
         return QString("[empty]");

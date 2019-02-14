@@ -8,6 +8,33 @@ DirManagerWorker::DirManagerWorker(QObject *parent)
     m_thread->setObjectName(QString("DIR_MANAGER_WORKER_THREAD-%1").arg(STATIC_FUNCTIONS::genRandomNumberString()));
 }
 
+DirManagerWorker::DirManagerWorker(const DirManagerWorker &dmw)
+    : QObject(dmw.parent()),
+      m_cancelled(dmw.m_cancelled),
+      m_thread(dmw.m_thread)
+{
+    m_thread->setObjectName(QString("DIR_MANAGER_WORKER_THREAD-%1").arg(STATIC_FUNCTIONS::genRandomNumberString()));
+}
+
+DirManagerWorker::DirManagerWorker()
+    : QObject(nullptr),
+      m_cancelled(false),
+      m_thread(new QThread())
+{
+    m_thread->setObjectName(QString("DIR_MANAGER_WORKER_THREAD-%1").arg(STATIC_FUNCTIONS::genRandomNumberString()));
+}
+
+DirManagerWorker &DirManagerWorker::operator=(const DirManagerWorker &dmw)
+{
+    this->setParent(dmw.parent());
+    this->m_cancelled = dmw.m_cancelled;
+    this->m_thread = dmw.m_thread;
+
+    m_thread->setObjectName(QString("DIR_MANAGER_WORKER_THREAD-%1").arg(STATIC_FUNCTIONS::genRandomNumberString()));
+
+    return *this;
+}
+
 DirManagerWorker::~DirManagerWorker()
 {
     qDebug() << "~DirManagerWorker";
@@ -35,9 +62,9 @@ void DirManagerWorker::start()
 
     this->moveToThread(m_thread);
 
+    connect(this, &DirManagerWorker::finished, this, &DirManagerWorker::deleteLater);
     connect(this, &DirManagerWorker::finished, m_thread, &QThread::quit);
     connect(m_thread, &QThread::finished, m_thread, &QThread::deleteLater);
-    connect(this, &DirManagerWorker::finished, this, &DirManagerWorker::deleteLater);
 
     m_thread->start();
 

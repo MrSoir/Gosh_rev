@@ -12,6 +12,12 @@ class DirManagerWorker : public QObject
     Q_OBJECT
 public:
     explicit DirManagerWorker(QObject *parent = nullptr);
+    explicit DirManagerWorker(const DirManagerWorker& dmw);
+
+    explicit DirManagerWorker();
+
+    DirManagerWorker& operator=(const DirManagerWorker& dmw);
+
     virtual ~DirManagerWorker() override;
 
     virtual bool blockOtherThreads() const = 0;

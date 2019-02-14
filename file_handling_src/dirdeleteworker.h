@@ -18,6 +18,10 @@ class DirDeleteWorker: public DirManagerWorker
 public:
     explicit DirDeleteWorker(std::vector<FiBDDeletor*> dirsToElapse);
     explicit DirDeleteWorker(FiBDDeletor* dirToDelete);
+    explicit DirDeleteWorker(const DirDeleteWorker& ddw);
+
+    DirDeleteWorker& operator=(const DirDeleteWorker& ddw);
+
     virtual ~DirDeleteWorker() override;
 
     virtual bool blockOtherThreads() const override;

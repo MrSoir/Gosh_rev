@@ -175,53 +175,7 @@ void GraphicsFile::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
 //    }else
     QRectF br = boundingRect();
 
-    painter->save();
-    painter->setPen(QPen(QColor(0,0,0, 50), 0.5, Qt::SolidLine));
-    bool m_selected = (m_caller && m_caller->containsFunction(QString("isSelected")))
-                        ? m_caller->getFunction("isSelected")()
-                        : false;
-    bool isSearched = m_caller && m_caller->containsFunction(QString("isSearched")) &&
-                      m_caller->getFunction("isSearched")();
-
-    QColor backgroundColor = m_backgroundColor;//(255,255,255);
-
-    if( (m_selected && m_hover) || m_dragEntered){
-        backgroundColor = QColor(150,255,255, 255);
-        painter->setBrush(backgroundColor);
-        painter->drawRect(br);
-    }else if (isSearched){
-        backgroundColor = QColor(255,180,180,255);
-        painter->setBrush(backgroundColor);
-        painter->drawRect(br);
-    }else if (m_selected){
-        backgroundColor = QColor(0,255,180,255);
-        painter->setBrush(backgroundColor);
-        painter->drawRect(br);
-    }else if (m_hover){
-        backgroundColor = StaticFunctions::getGoshBlueColor();
-        painter->setBrush(backgroundColor);
-        painter->drawRect(br);
-    }else if(m_rowId % 2){
-
-        double fctr = 0.98;
-
-        auto d_red   = static_cast<double>(backgroundColor.red());
-        auto d_green = static_cast<double>(backgroundColor.green());
-        auto d_blue  = static_cast<double>(backgroundColor.blue());
-        auto d_alpha = static_cast<double>(backgroundColor.alpha());
-
-        auto i_red   = static_cast<int>(d_red   * fctr);
-        auto i_green = static_cast<int>(d_green * fctr);
-        auto i_blue  = static_cast<int>(d_blue  * fctr);
-        auto i_alpha = static_cast<int>(d_alpha);
-
-
-        backgroundColor = QColor(i_red, i_green, i_blue, i_alpha);
-        painter->setPen(Qt::transparent);
-        painter->setBrush(QBrush(backgroundColor));
-        painter->drawRect(br);
-    }
-    painter->restore();
+    drawBackground(painter, br);
 
     auto icon_offs = 3;
     auto xOffs = m_pos.x() + m_colId * m_colOffs +icon_offs;
@@ -442,7 +396,7 @@ void GraphicsFile::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
         }
     }
 
-    painter->setBrush(backgroundColor);
+    painter->setBrush(m_backgrColInUse);
     painter->setPen(Qt::transparent);
     painter->drawRect(txtX, txtY, txtWidth+4, txtHeight);
     painter->setPen(m_textColor);
@@ -607,7 +561,6 @@ void GraphicsFile::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
                     && m_caller->containsFunction(QString("elapse"))){
                     auto isEmpty = m_caller->getFunction(QString("isEmpty"));
                     auto isLoaded = m_caller->getFunction(QString("isLoaded"));
-                    qDebug() << "isEmpty: " << isEmpty() << " isLoaded: " << isLoaded();
                     if( !(isLoaded() && isEmpty()) ){
                         auto doElapsing = m_caller->getFunction(QString("elapse"));
                         doElapsing();
@@ -844,4 +797,106 @@ void GraphicsFile::openContent()
 bool GraphicsFile::elapseRectPressed(QPointF mouP)
 {
     return m_elapseRect && m_elapseRect->contains(mouP);
+}
+
+void GraphicsFile::drawBackground(QPainter *painter, const QRectF &br)
+{
+    painter->save();
+
+    painter->setPen(QPen(QColor(0,0,0, 50), 0.5, Qt::SolidLine));
+    bool isSelected = (m_caller && m_caller->containsFunction(QString("isSelected")))
+                        ? m_caller->getFunction("isSelected")()
+                        : false;
+    bool isSearched = m_caller && m_caller->containsFunction(QString("isSearched")) &&
+                      m_caller->getFunction("isSearched")();
+    bool isSearchFocused = isSearched && m_caller->containsFunction(QString("isSearchFocused")) &&
+                     m_caller->getFunction("isSearchFocused")();
+
+    setBackgrColor(painter, isSelected, isSearched, isSearchFocused);
+
+    painter->drawRect(br);
+
+    painter->restore();
+}
+
+void GraphicsFile::setBackgrColor(QPainter* painter,
+                                  bool isSelected,
+                                  bool isSearched,
+                                  bool isSearchFocused)
+{
+    bool setBorderPen = isSelected || isSearched || m_hover || m_dragEntered;
+
+    if(setBorderPen)
+    {
+        m_backgrColInUse = genBackgrColor(isSelected,
+                                          isSearched,
+                                          isSearchFocused);
+        painter->setBrush(m_backgrColInUse);
+        painter->setPen(QPen(QColor(0,0,0, 50), 0.5, Qt::SolidLine));
+    }else{
+        m_backgrColInUse = !setBorderPen && m_rowId % 2
+                ? getEverySecondRowBackgroundColor()
+                : m_backgroundColor;
+
+        painter->setBrush(QBrush(m_backgrColInUse));
+        painter->setPen(Qt::transparent);
+    }
+}
+
+QColor GraphicsFile::genBackgrColor(bool isSelected,
+                                    bool isSearched,
+                                    bool isSearchFocused) const
+{
+    QColor* col = nullptr;
+
+    if(isSelected)
+        composeColor(&col, m_selCol);
+    if(isSearched)
+        composeColor(&col, m_searchedCol);
+    if(isSearchFocused)
+        composeColor(&col, m_searchFocusedCol);
+    if(m_hover || m_dragEntered)
+        composeColor(&col, m_hoverCol);
+
+    QColor retVal = col ? *col : m_backgroundColor;
+    if(col)
+        delete col;
+
+    return retVal;
+}
+
+void GraphicsFile::composeColor(QColor** col1, const QColor& col2) const
+{
+    if( !(*col1) ){
+        *col1 = new QColor(col2);
+    }else
+    {
+        (*col1)->setRed  ( composeColorVals((*col1)->red(),   col2.red()) );
+        (*col1)->setGreen( composeColorVals((*col1)->green(), col2.green()) );
+        (*col1)->setBlue ( composeColorVals((*col1)->blue(),  col2.blue()) );
+        (*col1)->setAlpha( composeColorVals((*col1)->alpha(), col2.alpha()) );
+    }
+}
+
+int GraphicsFile::composeColorVals(int v1, int v2) const
+{
+    return static_cast<int>( static_cast<double>(v1 + v2) / 2.0 );
+}
+
+QColor GraphicsFile::getEverySecondRowBackgroundColor() const
+{
+    double fctr = 0.98;
+
+    auto d_red   = static_cast<double>(m_backgroundColor.red());
+    auto d_green = static_cast<double>(m_backgroundColor.green());
+    auto d_blue  = static_cast<double>(m_backgroundColor.blue());
+    auto d_alpha = static_cast<double>(m_backgroundColor.alpha());
+
+    auto i_red   = static_cast<int>(d_red   * fctr);
+    auto i_green = static_cast<int>(d_green * fctr);
+    auto i_blue  = static_cast<int>(d_blue  * fctr);
+    auto i_alpha = static_cast<int>(d_alpha);
+
+
+    return QColor(i_red, i_green, i_blue, i_alpha);
 }

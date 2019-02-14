@@ -14,8 +14,8 @@ class DirManagerQueue : public QObject
     Q_OBJECT
 public:
     explicit DirManagerQueue(QObject *parent = nullptr);
-    virtual ~DirManagerQueue() override;
 
+    virtual ~DirManagerQueue() override;
 signals:
     void killWorkers();
 

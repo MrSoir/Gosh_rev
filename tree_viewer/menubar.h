@@ -79,16 +79,16 @@ private:
     QPointF m_centerOrientation;
     bool m_centerFromEnd = false;
     int m_btnsCount = 0;
-    QVector<QRectF> m_buttons;
-    QVector<bool> m_mouInBtns;
+    std::vector<QRectF> m_buttons = std::vector<QRectF>();
+    std::vector<bool> m_mouInBtns = std::vector<bool>();
 
     std::shared_ptr<DynamicFunctionCaller<QString, std::function<void()>>> m_btnFuncs = std::shared_ptr<DynamicFunctionCaller<QString, std::function<void()>>>();
     std::shared_ptr<DynamicFunctionCaller<QString, std::function<void(QPainter*, QRectF)>>> m_paintingFuncs = std::shared_ptr<DynamicFunctionCaller<QString, std::function<void(QPainter*, QRectF)>>>();
     std::function<int(int)> m_groupingFunc = nullptr;
 
-    std::vector<std::pair<QPointF,QPointF>> m_groupSeparators;
+    std::vector<std::pair<QPointF,QPointF>> m_groupSeparators = std::vector<std::pair<QPointF,QPointF>>();
 
-    QString vec_to_str(const std::vector<int> vec);
+    QString vec_to_str(const std::vector<int>& vec);
 
     std::map<int, std::vector<int>> m_groupingMap;
 

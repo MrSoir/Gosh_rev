@@ -14,12 +14,20 @@
 
 #include "staticfunctions_files.h"
 
+#define PIXMAP_GETTER_SIZE QSize(50,50)
+
 class PixMapGetter : public QObject
 {
     Q_OBJECT
 public:
     explicit PixMapGetter(std::string path,
-                          QSize pixmapSize = QSize(50,50));
+                          QSize pixmapSize = PIXMAP_GETTER_SIZE);
+    explicit PixMapGetter();
+    explicit PixMapGetter(const PixMapGetter& g);
+
+    PixMapGetter& operator=(const PixMapGetter& g);
+
+    virtual ~PixMapGetter() override;
 signals:
     void finished();
     void sendPixmap(std::string path, QPixmap);
@@ -41,7 +49,11 @@ class Image_Retriever : public QObject
     Q_OBJECT
 public:
     explicit Image_Retriever(QObject *parent = nullptr);
+    explicit Image_Retriever(const Image_Retriever& ir);
 
+    Image_Retriever& operator=(const Image_Retriever& ir);
+
+    virtual ~Image_Retriever() override;
 signals:
 
 public slots:
@@ -54,7 +66,7 @@ private:
 
     std::unordered_set<std::string> m_paths;
     std::unordered_map<std::string, QPixmap> m_path_image;
-    QSize m_imgSize = QSize(50,50);
+    QSize m_imgSize;
 };
 
 #endif // IMAGE_RETRIEVER_H

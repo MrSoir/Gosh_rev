@@ -19,6 +19,11 @@ public:
     explicit DirReplaceRootWorker(std::string root_path,
                                   FileInfoBD* current_rootDir,
                                   QThread* threadToMoveObjectsTo);
+    explicit DirReplaceRootWorker(const DirReplaceRootWorker& w);
+    explicit DirReplaceRootWorker();
+
+    DirReplaceRootWorker& operator=(const DirReplaceRootWorker& w);
+
     virtual ~DirReplaceRootWorker() override;
 
     virtual bool blockOtherThreads() const override;

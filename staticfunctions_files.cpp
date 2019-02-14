@@ -26,7 +26,7 @@ QString STATIC_FUNCTIONS::askUserForNoneExistingFilePath(const QString &path, st
 
     if(fi.exists())
     {
-        int cntr = 0, LOOP_MAX = 3;
+        int cntr = 0, LOOP_MAX = 2;
 
         auto filePathValidator = [=](const QString& fileName){
             QString newAbsPath = tarBasePath + QDir::separator() + fileName;
@@ -39,7 +39,7 @@ QString STATIC_FUNCTIONS::askUserForNoneExistingFilePath(const QString &path, st
         while(fi.exists())
         {
             QString newFileName = genStringGetterDialog( "File does already exist!",
-                                                        "'" + fi.fileName() + " does already exists - please choose another file name:",
+                                                         "'" + fi.fileName() + " does already exists - please choose another file name:",
                                                          fi.fileName(),
                                                          filePathValidator);
             tarPath = PATH::getBasePath(tarPath) + QDir::separator() + newFileName;
@@ -516,3 +516,69 @@ void STATIC_FUNCTIONS::setIconToWidget(QWidget *widget)
 //            .arg("MrSoir_antique.png");
     widget->setWindowIcon(QIcon(windowIconPath));
 }
+
+void STATIC_FUNCTIONS::setStyleSheet(QWidget *widget)
+{
+    QFile styleFile(QString("styles%1%2").arg(QDir::separator()).arg("stylesheet.qss"));
+    if(styleFile.open(QIODevice::ReadOnly))
+    {
+        QTextStream textStream(&styleFile);
+        QString styleSheet = textStream.readAll();
+        styleFile.close();
+        widget->setStyleSheet(styleSheet);
+    }
+}
+
+//-------------------------------------------------------------------------------
+
+bool STATIC_FUNCTIONS::createNewFile(QString absTarFilePath)
+{
+    absTarFilePath = STATIC_FUNCTIONS::askUserForNoneExistingFilePath(absTarFilePath);
+    QFileInfo fi(absTarFilePath);
+    if(absTarFilePath.isEmpty() || fi.exists())
+    {
+        return false;
+    }
+
+    QFile file( absTarFilePath );
+    bool successfullyCreated = file.open(QIODevice::WriteOnly);
+    file.close();
+    return successfullyCreated;
+}
+bool STATIC_FUNCTIONS::createNewFile(const string& absTarFilePath)
+{
+    return createNewFile(QString::fromStdString(absTarFilePath));
+}
+//------------------
+bool STATIC_FUNCTIONS::createNewFolder(QString absTarDirPath)
+{
+    absTarDirPath = STATIC_FUNCTIONS::askUserForNoneExistingFilePath(absTarDirPath);
+
+    if(absTarDirPath.isEmpty() || QFileInfo(absTarDirPath).exists())
+        return false;
+
+    return makeDir(absTarDirPath);
+}
+bool STATIC_FUNCTIONS::createNewFolder(const string &absTarDirPath)
+{
+    return createNewFolder(QString::fromStdString(absTarDirPath));
+}
+//------------------
+bool STATIC_FUNCTIONS::makeDir(const QString& tarPath)
+{
+    return QDir().mkdir(tarPath);
+}
+bool STATIC_FUNCTIONS::makeDir(const string& tarPath)
+{
+    return makeDir(QString::fromStdString(tarPath));
+}
+//------------------
+bool STATIC_FUNCTIONS::copyFile(const QString &absSourcePath, const QString &absTarPath)
+{
+    return QFile::copy(absSourcePath, absTarPath);
+}
+bool STATIC_FUNCTIONS::copyFile(const string &absSourcePath, const string &absTarPath)
+{
+    return copyFile(QString::fromStdString(absSourcePath), QString::fromStdString(absTarPath));
+}
+

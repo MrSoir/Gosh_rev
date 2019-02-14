@@ -22,6 +22,8 @@
 namespace SOURCE_TARGET
 {
 
+    #define caller_func std::function<bool(QString,QString*, bool, bool, bool*)>
+
     class FileTree
     {
     public:
@@ -37,49 +39,47 @@ namespace SOURCE_TARGET
     // bool preOrder: erstmal den caller aufrufen, danach weiter den tree ablaufen
     // bool postOrder = !preOrder: erst den tree weiter tiefer ablaufen, danach erst den caller aufrufen -> fuer delteFolderRecursive wichtig: von unten nach oben loeschen!
 
-    FileTree* iterateOverEntries_hlpr(const QVector<QFileInfo>& entries,
-                                      const QString& basePath,
-                                      const QString& tarDir,
-                                      std::function<bool(QString,QString,bool,bool*)> caller,
-                                      bool preOrder = true);
-    FileTree* iterateOverEntries_hlpr(const QVector<QFileInfo>& entries,
-                                      const QString& basePath,
-                                      const QString& tarDir,
-                                      std::function<bool(QString,QString,bool,bool*)> caller,
-                                      bool* cancelled,
-                                      bool preOrder = true);
+    FileTree* iterateOverDir_hlpr(const QString& sourceDir,
+                                        const QString& tarDir,
+                                        caller_func caller,
+                                        bool preOrder = true);
+    FileTree* iterateOverDir_hlpr(const QString& sourceDir,
+                                        const QString& tarDir,
+                                        caller_func caller,
+                                        bool* cancelled,
+                                        bool preOrder = true);
 
     //--------------------------------------------------
 
     std::vector<FileTree*> iterateOverEntries(const QVector<QFileInfo>& entries,
                                               const QString& tarDir,
-                                              std::function<bool(QString,QString,bool,bool*)> caller,
+                                              caller_func caller,
                                               bool preOrder = true);
     FileTree* iterateOverEntries(QFileInfo entry,
                                  const QString& tarPath,
-                                 std::function<bool(QString,QString,bool,bool*)> caller,
+                                 caller_func caller,
                                  bool preOrder = true);
 
     //--------------------------------------------------
 
     std::vector<FileTree*> iterateOverEntries(const QVector<QString> absPaths,
                                               const QString& tarPath,
-                                              std::function<bool(QString,QString,bool,bool*)> caller,
+                                              caller_func caller,
                                               bool preOrder = true);
     FileTree* iterateOverEntries(QString absPath,
                                  const QString& tarPath,
-                                 std::function<bool(QString,QString,bool,bool*)> caller,
+                                 caller_func caller,
                                  bool preOrder = true);
 
     //--------------------------------------------------
 
     std::vector<FileTree*> iterateOverEntries(const std::vector<std::string> absPaths,
                                               const std::string& tarPath,
-                                              std::function<bool(QString,QString,bool,bool*)> caller,
+                                              caller_func caller,
                                               bool preOrder = true);
     FileTree* iterateOverEntries(std::string absPath,
                                  const std::string& tarPath,
-                                 std::function<bool(QString,QString,bool,bool*)> caller,
+                                 caller_func caller,
                                  bool preOrder = true);
 }
 

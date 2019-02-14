@@ -19,6 +19,35 @@ DirRevalWorker::DirRevalWorker(std::vector<FileInfoBD *> fis,
     connect(this, &DirRevalWorker::runTask, this, &DirRevalWorker::run);
 }
 
+DirRevalWorker::DirRevalWorker()
+    : DirManagerWorker(nullptr),
+      m_fis(std::vector<FileInfoBD*>()),
+      m_threadToMoveObjectsTo(nullptr)
+{
+    connect(this, &DirRevalWorker::runTask, this, &DirRevalWorker::run);
+}
+
+DirRevalWorker::DirRevalWorker(const DirRevalWorker &w)
+    : DirManagerWorker(w.parent()),
+      m_fis(w.m_fis),
+      m_threadToMoveObjectsTo(w.m_threadToMoveObjectsTo)
+{
+    connect(this, &DirRevalWorker::runTask, this, &DirRevalWorker::run);
+}
+
+DirRevalWorker &DirRevalWorker::operator=(const DirRevalWorker &w)
+{
+    DirManagerWorker::operator=(w);
+
+    this->setParent(w.parent());
+    m_fis = w.m_fis;
+    m_threadToMoveObjectsTo = w.m_threadToMoveObjectsTo;
+
+    connect(this, &DirRevalWorker::runTask, this, &DirRevalWorker::run);
+
+    return *this;
+}
+
 DirRevalWorker::~DirRevalWorker()
 {
 }

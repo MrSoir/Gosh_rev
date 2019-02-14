@@ -24,9 +24,7 @@ void SearchMenuBD::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
 
     painter->setClipRect(rct);
 
-    QColor gradCol1(255,255,255, 200);
-    QColor gradCol2(255,255,255, 200);
-    StaticFunctions::paintRect(painter, rct, gradCol1, gradCol2);
+    StaticFunctions::paintRect(painter, rct, m_backgr_col1, m_backgr_col2);
 
     if(revalidate){
         qreal prevBtnWidth = static_cast<qreal>(qMin(static_cast<qreal>((rct.width() * 0.2)), static_cast<qreal>(80.0)));
@@ -67,7 +65,7 @@ void SearchMenuBD::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
 
     QString curSearchId = m_caller->getFunction("getCurrentSearchIndex")();
     QString searchCount = m_caller->getFunction("getSearchResultsCount")();
-    QString indexStr = QString("%1/%2").arg(curSearchId).arg(searchCount);
+    QString indexStr = QString(" %1/%2 ").arg(curSearchId).arg(searchCount);
 
 
     QFont font = StaticFunctions::getGoshFont(7, QFont::Normal);

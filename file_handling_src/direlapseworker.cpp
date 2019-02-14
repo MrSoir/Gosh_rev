@@ -32,6 +32,36 @@ DirElapseWorker::DirElapseWorker(FileInfoBD *dirToElapse,
     connectSignals();
 }
 
+DirElapseWorker::DirElapseWorker(const DirElapseWorker &de)
+    : DirManagerWorker(de.parent()),
+      m_dirsToElapse(de.m_dirsToElapse),
+      m_recursive(de.m_recursive),
+      m_collapse(de.m_collapse),
+      m_useSubThreads(de.m_useSubThreads),
+      m_runningThreads(de.m_runningThreads),
+      m_threadToMoveObjectsTo(de.m_threadToMoveObjectsTo)
+{
+    connectSignals();
+    STATIC_FUNCTIONS::removeSubDirsIfParentDirIsInContainer(m_dirsToElapse);
+}
+
+DirElapseWorker &DirElapseWorker::operator=(const DirElapseWorker &de)
+{
+    DirManagerWorker::operator=(de);
+    this->setParent(de.parent());
+    m_dirsToElapse = de.m_dirsToElapse;
+    m_recursive = de.m_recursive;
+    m_collapse = de.m_collapse;
+    m_useSubThreads = de.m_useSubThreads;
+    m_runningThreads = de.m_runningThreads;
+    m_threadToMoveObjectsTo = de.m_threadToMoveObjectsTo;
+
+    connectSignals();
+    STATIC_FUNCTIONS::removeSubDirsIfParentDirIsInContainer(m_dirsToElapse);
+
+    return *this;
+}
+
 DirElapseWorker::~DirElapseWorker()
 {
     qDebug() << "~DirElapseWorker";
@@ -157,6 +187,28 @@ DirElapseWorkerHelper::DirElapseWorkerHelper(FileInfoBD* dir,
       m_threadToMoveObjectsTo(threadToMoveObjectsTo)
 {
     connect(this, &DirElapseWorkerHelper::finished, this, &DirElapseWorkerHelper::deleteLater);
+}
+
+DirElapseWorkerHelper::DirElapseWorkerHelper()
+    : QObject(nullptr),
+      m_dir(nullptr),
+      m_recursive(false),
+      m_cancelled(false),
+      m_threadToMoveObjectsTo(nullptr)
+{
+    connect(this, &DirElapseWorkerHelper::finished, this, &DirElapseWorkerHelper::deleteLater);
+}
+
+DirElapseWorkerHelper &DirElapseWorkerHelper::operator=(const DirElapseWorkerHelper &hlpr)
+{
+    m_dir = hlpr.m_dir;
+    m_recursive = hlpr.m_recursive;
+    m_cancelled = hlpr.m_cancelled;
+    m_threadToMoveObjectsTo = hlpr.m_threadToMoveObjectsTo;
+
+    connect(this, &DirElapseWorkerHelper::finished, this, &DirElapseWorkerHelper::deleteLater);
+
+    return *this;
 }
 
 DirElapseWorkerHelper::~DirElapseWorkerHelper()

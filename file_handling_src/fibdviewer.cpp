@@ -1,7 +1,8 @@
 #include "fibdviewer.h"
 
 FiBDViewer::FiBDViewer()
-    : Searchable(),
+    : QObject(),
+      Searchable(),
       Selectable(),
       m_path(QString()),
       m_fileName(QString()),
@@ -34,7 +35,8 @@ FiBDViewer::FiBDViewer(QString path,
                        QDateTime lastModified,
                        bool isHidden,
                        int depthId)
-    : Searchable(),
+    : QObject(),
+      Searchable(),
       Selectable(),
       m_path(path),
       m_fileName(fileName),
@@ -62,7 +64,8 @@ FiBDViewer::FiBDViewer(QString path,
 }
 
 FiBDViewer::FiBDViewer(const QFileInfo &fi, int depthId)
-    : Searchable(),
+    : QObject(),
+      Searchable(),
       Selectable(),
       m_path(fi.absoluteFilePath()),
       m_fileName(fi.fileName()),
@@ -95,7 +98,8 @@ FiBDViewer::FiBDViewer(const DirManagerInfo& dmi,
                        bool isSearched,
                        bool isSearchFocused,
                        bool isSelected)
-    : Searchable(),
+    : QObject(),
+      Searchable(),
       Selectable(),
       m_path(QString::fromStdString(dmi.absPath)),
       m_fileName(QString::fromStdString(dmi.fileName)),
@@ -122,7 +126,8 @@ FiBDViewer::FiBDViewer(DirManagerInfo* dmi,
                        bool isSearched,
                        bool isSearchFocused,
                        bool isSelected)
-    : Searchable(),
+    : QObject(),
+      Searchable(),
       Selectable(),
       m_path(QString::fromStdString(dmi->absPath)),
       m_fileName(QString::fromStdString(dmi->fileName)),
@@ -144,7 +149,8 @@ FiBDViewer::FiBDViewer(DirManagerInfo* dmi,
 }
 
 FiBDViewer::FiBDViewer(const FiBDViewer& fi)
-    : Searchable(),
+    : QObject(fi.parent()),
+      Searchable(),
       Selectable(),
       m_path(fi.m_path),
       m_fileName(fi.fileName()),
@@ -176,6 +182,7 @@ FiBDViewer::~FiBDViewer()
 
 FiBDViewer& FiBDViewer::operator=(const FiBDViewer &fi)
 {
+    this->setParent(fi.parent());
     this->m_path = fi.m_path;
     this->m_fileName = fi.m_fileName;
 
@@ -201,32 +208,6 @@ FiBDViewer& FiBDViewer::operator=(const FiBDViewer &fi)
     return *this;
 }
 
-FiBDViewer* FiBDViewer::operator=(FiBDViewer* fi)
-{
-    this->m_path = fi->m_path;
-    this->m_fileName = fi->m_fileName;
-
-    this->m_folder = fi->m_folder;
-    this->m_searched = fi->m_searched;
-    this->m_searchFocused = fi->m_searchFocused;
-    this->m_selected = fi->m_selected;
-    this->m_isLoaded = fi->m_isLoaded;
-    this->m_isElapsed = fi->m_isElapsed;
-    this->m_isHidden = fi->m_isHidden;
-
-    this->m_filesCount = fi->m_filesCount;
-    this->m_subDirCount = fi->m_subDirCount;
-    this->m_depthId = fi->m_depthId;
-
-    this->m_order = fi->m_order;
-
-    this->m_fileSize = fi->m_fileSize;
-    this->m_lastModified = fi->m_lastModified;
-
-    this->m_isCurrentlyRevalidating = fi->m_isCurrentlyRevalidating;
-
-    return this;
-}
 
 void FiBDViewer::setSearched(bool searched)
 {

@@ -8,7 +8,8 @@ FileManager::FileManager(std::string root_path,
 
       m_root_path(root_path),
       m_dir_manager(new DirManager(root_path)),
-      m_tree(m_dir_manager->getTree()),
+//      m_dir_manager(nullptr),
+      m_tree(m_dir_manager ? m_dir_manager->getTree() : nullptr),
 
       m_tasks_queue(new FileQueue()),
 
@@ -351,8 +352,12 @@ void FileManager::copySelectedFilePathToClipboard()
 {
     if(m_selector)
     {
+        auto lastSel = m_selector->getLastSelectedEntry();
+        if(lastSel.empty())
+            return;
+
         QClipboard* clipboard = QGuiApplication::clipboard();
-        clipboard->setText( QString::fromStdString(m_selector->getLastSelectedEntry()) );
+        clipboard->setText( QString::fromStdString(lastSel) );
     }
 }
 void FileManager::copySelectedContent()
@@ -390,7 +395,6 @@ void FileManager::openSelectedContent()
 }
 void FileManager::openSelectedContentWith()
 {
-    qDebug() << "FileManager::openSelectedContentWith";
     if(m_selector)
     {
         const auto& sel_entries = m_selector->getSelectedEntries();
@@ -407,7 +411,7 @@ void FileManager::renameSelectedContent()
         const auto& sel_entries = m_selector->getSelectedEntries();
         if(sel_entries.size() > 0)
         {
-            const auto& lastSelctdEntry = m_selector->getLastSelectedEntry();
+            auto lastSelctdEntry = m_selector->getLastSelectedEntry();
             if( !lastSelctdEntry.empty() )
             {
                 RenameFile* openFilesWorker = new RenameFile( lastSelctdEntry );
@@ -444,7 +448,7 @@ void FileManager::pasteFromClipboard()
     std::string tarPath = m_root_path;
     if(m_selector)
     {
-        std::string lastSelectedPath = m_selector->getLastSelectedEntry();
+        auto lastSelectedPath = m_selector->getLastSelectedEntry();
         if(!lastSelectedPath.empty())
             tarPath = lastSelectedPath;
     }
@@ -515,6 +519,9 @@ void FileManager::unzipSelectedContent()
     if(m_selector)
     {
         auto filePathToZip = m_selector->getLastSelectedEntry();
+        if(filePathToZip.empty())
+            return;
+
         ZIP::UnZipFile* unzipWorker = new ZIP::UnZipFile(filePathToZip);
         emit addQueueTask(unzipWorker);
     }
@@ -591,10 +598,8 @@ void FileManager::keyPressed(std::string s)
     m_keysPressed.append(s);
     m_keysPressed = StringOps::toLower(m_keysPressed);
 
-    if(m_selector)
+    if(m_selector && !m_keysPressed.empty())
     {
-        std::string old_last_sel = m_selector->getLastSelectedEntry();
-
         m_selector->selectKeyWord(m_keysPressed);
     }
 }
@@ -626,9 +631,10 @@ void FileManager::openTerminal()
     if(m_selector)
     {
         std::string last_sel = m_selector->getLastSelectedEntry();
-        QString sel_dir = PATH::getDirFromPath(last_sel);
-        qDebug() << "openTerminal: sel_dir: " << sel_dir;
-        STATIC_FUNCTIONS::openTerminal(sel_dir);
+        QString terminal_root_dir = last_sel.empty()
+                ? QString::fromStdString(m_root_path)
+                : PATH::getDirFromPath(last_sel);
+        STATIC_FUNCTIONS::openTerminal(terminal_root_dir);
     }
 }
 
@@ -810,68 +816,68 @@ void FileManager::connectViewer(GraphicsView* viewer)
     if(viewer) // if, da m_viewer zu test-zwecken noch auf nullptr gesetzt ist. im eigentlichen programm dann eig nicht mehr notwendig darauf zu testen im konstruktor!
     {
         // FileManager -> GraphicsView:
-        connect(this, &FileManager::startWaitingLoop,            viewer, &GraphicsView::startWaitingAnimation);
-        connect(this, &FileManager::exitWaitingLoop,             viewer, &GraphicsView::killWaitingAnimation);
-        connect(this, &FileManager::focusGraphicsView,           viewer, &GraphicsView::focusId);
-        connect(this, &FileManager::requestFocusSGNL,            viewer, &GraphicsView::requestFocus);
-        connect(this, &FileManager::revalidateViewer_Entries,    viewer, &GraphicsView::receiveFileViewers);
-        connect(this, &FileManager::revalidateViewer_MetaData,   viewer, &GraphicsView::receiveFileManagerMetaData);
-        connect(this, &FileManager::revalidateViewer_EntireData, viewer, &GraphicsView::receiveFileManagerData);
+        connect(this, &FileManager::startWaitingLoop,            viewer, &GraphicsView::startWaitingAnimation, Qt::QueuedConnection);
+        connect(this, &FileManager::exitWaitingLoop,             viewer, &GraphicsView::killWaitingAnimation, Qt::QueuedConnection);
+        connect(this, &FileManager::focusGraphicsView,           viewer, &GraphicsView::focusId, Qt::QueuedConnection);
+        connect(this, &FileManager::requestFocusSGNL,            viewer, &GraphicsView::requestFocus, Qt::QueuedConnection);
+        connect(this, &FileManager::revalidateViewer_Entries,    viewer, &GraphicsView::receiveFileViewers, Qt::QueuedConnection);
+        connect(this, &FileManager::revalidateViewer_MetaData,   viewer, &GraphicsView::receiveFileManagerMetaData, Qt::QueuedConnection);
+        connect(this, &FileManager::revalidateViewer_EntireData, viewer, &GraphicsView::receiveFileManagerData, Qt::QueuedConnection);
 
         // GraphicsView -> FileSearcher:
-        connect(viewer, &GraphicsView::nextSearchResultSGNL, m_searcher, &FileSearcher::focusNextMatch);
-        connect(viewer, &GraphicsView::prevSearchResultSGNL, m_searcher, &FileSearcher::focusPreviousMatch);
-        connect(viewer, &GraphicsView::closeSearchMenuSGNL,  m_searcher, &FileSearcher::exitSearchMode);
-        connect(viewer, &GraphicsView::searchForKeyWord,     m_searcher, &FileSearcher::search_QString);
+        connect(viewer, &GraphicsView::nextSearchResultSGNL, m_searcher, &FileSearcher::focusNextMatch, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::prevSearchResultSGNL, m_searcher, &FileSearcher::focusPreviousMatch, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::closeSearchMenuSGNL,  m_searcher, &FileSearcher::exitSearchMode, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::searchForKeyWord,     m_searcher, &FileSearcher::search_QString, Qt::QueuedConnection);
 
         // GraphicsView -> FilesSelector:
-        connect(viewer, &GraphicsView::selectEntireContent, m_selector, &FileSelector::selectEntireContent);
-        connect(viewer, &GraphicsView::clearSelection,      m_selector, &FileSelector::clearSelection);
-        connect(viewer, &GraphicsView::selectButtonUp,      m_selector, &FileSelector::selectPrevious);
-        connect(viewer, &GraphicsView::selectButtonDown,    m_selector, &FileSelector::selectNext);
-        connect(viewer, &GraphicsView::selectContent,       m_selector, &FileSelector::select_QString);
+        connect(viewer, &GraphicsView::selectEntireContent, m_selector, &FileSelector::selectEntireContent, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::clearSelection,      m_selector, &FileSelector::clearSelection, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::selectButtonUp,      m_selector, &FileSelector::selectPrevious, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::selectButtonDown,    m_selector, &FileSelector::selectNext, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::selectContent,       m_selector, &FileSelector::select_QString, Qt::QueuedConnection);
 
         // GraphicsView -> FileManager:
-        connect(viewer, &GraphicsView::setRootFolder, this, &FileManager::setRoot_QDir);
-        connect(viewer, &GraphicsView::deepSearch, this, &FileManager::deepSearch);
-        connect(viewer, &GraphicsView::elapseAllFoldersOfDepthId, this, &FileManager::elapseAllFoldersOfDepthId);
-        connect(viewer, &GraphicsView::elapseSelectedFoldersRecursively, this, &FileManager::elapseSelectedFoldersRecursively);
-        connect(viewer, &GraphicsView::elapseSelectedFolders, this, &FileManager::elapseSelectedFolders);
-        connect(viewer, &GraphicsView::collapseSelectedFoldersRecursively, this, &FileManager::collapseSelectedFoldersRecursively);
-        connect(viewer, &GraphicsView::collapseSelectedFolders, this, &FileManager::collapseSelectedFolders);
-        connect(viewer, &GraphicsView::elapseOrCollapseFolderDependingOnCurrentState, this, &FileManager::elapseOrCollapseFolderDependingOnCurrentState);
-        connect(viewer, &GraphicsView::showHiddenFilesSGNL, this, &FileManager::setIncludeHiddenFiles);
-        connect(viewer, &GraphicsView::requestOpenFoldersInTab, this, &FileManager::openSelectedFoldersInTab);
-        connect(viewer, &GraphicsView::sortDir, this, &FileManager::sortDir);
-        connect(viewer, &GraphicsView::sortAllFolders, this, &FileManager::sortAllFolders);
-        connect(viewer, &GraphicsView::copySelectedFilePathToClipboard, this, &FileManager::copySelectedFilePathToClipboard);
-        connect(viewer, &GraphicsView::copySelectedContent, this, &FileManager::copySelectedContent);
-        connect(viewer, &GraphicsView::cutSelectedContent, this, &FileManager::cutSelectedContent);
-        connect(viewer, &GraphicsView::duplicateSelectedContent, this, &FileManager::duplicateSelectedContent);
-        connect(viewer, &GraphicsView::openSelectedContent, this, &FileManager::openSelectedContent);
-        connect(viewer, &GraphicsView::openSelectedContentWith, this, &FileManager::openSelectedContentWith);
-        connect(viewer, &GraphicsView::renameSelectedContent, this, &FileManager::renameSelectedContent);
-        connect(viewer, &GraphicsView::pasteFromClipboard, this, &FileManager::pasteFromClipboard);
-        connect(viewer, &GraphicsView::paste, this, &FileManager::paste);
-        connect(viewer, &GraphicsView::deleteSelectedContent, this, &FileManager::deleteSelectedContent);
-        connect(viewer, &GraphicsView::showDetailsOfSelectedContent, this, &FileManager::showDetailsOfSelectedContent);
-        connect(viewer, &GraphicsView::zipSelectedContent, this, &FileManager::zipSelectedContent);
-        connect(viewer, &GraphicsView::unzipSelectedContent, this, &FileManager::unzipSelectedContent);
-        connect(viewer, &GraphicsView::createNewFolderSGNL, this, &FileManager::createNewFolder);
-        connect(viewer, &GraphicsView::createNewFileSGNL, this, &FileManager::createNewFile);
-        connect(viewer, &GraphicsView::killCurrentBlockingAction, this, &FileManager::killCurrentBlockingAction);
-        connect(viewer, &GraphicsView::requestFocusSGNL, this, &FileManager::requestFocus);
-        connect(viewer, &GraphicsView::initDragging, this, &FileManager::initDragging);
-        connect(viewer, &GraphicsView::keyPressed, this, &FileManager::keyPressed);
-        connect(viewer, &GraphicsView::setSelectionToRoot, this, &FileManager::setSelectionToRoot);
-        connect(viewer, &GraphicsView::cdUp, this, &FileManager::setParentToRoot);
-        connect(viewer, &GraphicsView::zoomFactorChanged, this, &FileManager::zoomFactorChanged);
-        connect(viewer, &GraphicsView::requestFileViewerRevalidation, this, &FileManager::requestFileViewerRevalidation);
-        connect(viewer, &GraphicsView::zoomFactorChanged,  this, &FileManager::setZoomFactor);
-        connect(viewer, &GraphicsView::openTerminalSGNL, this, &FileManager::openTerminal);
-        connect(viewer->verticalScrollBar(),   &QScrollBar::valueChanged,  this, &FileManager::saveGraphicsViewVBarValue);
-        connect(viewer->horizontalScrollBar(), &QScrollBar::valueChanged,  this, &FileManager::saveGraphicsViewHBarValue);
-        connect(viewer, &GraphicsView::requestCloseCurrentTab, this, &FileManager::closeCurrentTab); // signal -> signal!!!
+        connect(viewer, &GraphicsView::setRootFolder, this, &FileManager::setRoot_QDir, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::deepSearch, this, &FileManager::deepSearch, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::elapseAllFoldersOfDepthId, this, &FileManager::elapseAllFoldersOfDepthId, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::elapseSelectedFoldersRecursively, this, &FileManager::elapseSelectedFoldersRecursively, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::elapseSelectedFolders, this, &FileManager::elapseSelectedFolders, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::collapseSelectedFoldersRecursively, this, &FileManager::collapseSelectedFoldersRecursively, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::collapseSelectedFolders, this, &FileManager::collapseSelectedFolders, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::elapseOrCollapseFolderDependingOnCurrentState, this, &FileManager::elapseOrCollapseFolderDependingOnCurrentState, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::showHiddenFilesSGNL, this, &FileManager::setIncludeHiddenFiles, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::requestOpenFoldersInTab, this, &FileManager::openSelectedFoldersInTab, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::sortDir, this, &FileManager::sortDir, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::sortAllFolders, this, &FileManager::sortAllFolders, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::copySelectedFilePathToClipboard, this, &FileManager::copySelectedFilePathToClipboard, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::copySelectedContent, this, &FileManager::copySelectedContent, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::cutSelectedContent, this, &FileManager::cutSelectedContent, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::duplicateSelectedContent, this, &FileManager::duplicateSelectedContent, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::openSelectedContent, this, &FileManager::openSelectedContent, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::openSelectedContentWith, this, &FileManager::openSelectedContentWith, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::renameSelectedContent, this, &FileManager::renameSelectedContent, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::pasteFromClipboard, this, &FileManager::pasteFromClipboard, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::paste, this, &FileManager::paste, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::deleteSelectedContent, this, &FileManager::deleteSelectedContent, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::showDetailsOfSelectedContent, this, &FileManager::showDetailsOfSelectedContent, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::zipSelectedContent, this, &FileManager::zipSelectedContent, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::unzipSelectedContent, this, &FileManager::unzipSelectedContent, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::createNewFolderSGNL, this, &FileManager::createNewFolder, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::createNewFileSGNL, this, &FileManager::createNewFile, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::killCurrentBlockingAction, this, &FileManager::killCurrentBlockingAction, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::requestFocusSGNL, this, &FileManager::requestFocus, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::initDragging, this, &FileManager::initDragging, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::keyPressed, this, &FileManager::keyPressed, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::setSelectionToRoot, this, &FileManager::setSelectionToRoot, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::cdUp, this, &FileManager::setParentToRoot, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::zoomFactorChanged, this, &FileManager::zoomFactorChanged, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::requestFileViewerRevalidation, this, &FileManager::requestFileViewerRevalidation, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::zoomFactorChanged,  this, &FileManager::setZoomFactor, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::openTerminalSGNL, this, &FileManager::openTerminal, Qt::QueuedConnection);
+        connect(viewer->verticalScrollBar(),   &QScrollBar::valueChanged,  this, &FileManager::saveGraphicsViewVBarValue, Qt::QueuedConnection);
+        connect(viewer->horizontalScrollBar(), &QScrollBar::valueChanged,  this, &FileManager::saveGraphicsViewHBarValue, Qt::QueuedConnection);
+        connect(viewer, &GraphicsView::requestCloseCurrentTab, this, &FileManager::closeCurrentTab, Qt::QueuedConnection); // signal -> signal!!!
 
     }else
         qDebug() << "trying to connect m_viewer -> nullptr! [root_path: "  << QString::fromStdString(m_root_path) << "]";
@@ -1068,45 +1074,63 @@ void FileManager::revalidateViewer_EntireData_hlpr()
     emit revalidateViewer_EntireData( generateViewerData(), new FileManagerInfo(*this) );
 }
 
-std::unordered_map<int_bd, FiBDViewer> FileManager::generateViewerData()
+ViewerData FileManager::generateViewerData()
 {
     std::unordered_map<int_bd, FiBDViewer> entries;
     for(auto i=m_frstDispFile; i <= m_lastDispFile; ++i)
     {
-        auto path = m_order_entries_colpsd[i];
-
-        auto depthId = m_path_depthId_colpsd[path];
-
-        // entweder ist es ein dir:
-        if(m_folders_colpsd.find(path) != m_folders_colpsd.end())
+        if(static_cast<int_bd>(m_order_entries_colpsd.size()) > i)
         {
-            auto* fi = m_folders_colpsd[path];
+            auto path = m_order_entries_colpsd[i];
 
-            FiBDViewer fiView(fi, depthId, false);
+            if(m_path_depthId_colpsd.find(path) != m_path_depthId_colpsd.end())
+            {
+                auto depthId = m_path_depthId_colpsd[path];
 
-            bool selected = m_selector->isSelected(path);
-            bool searched = m_searcher->isSearched(path);
-            fiView.setSelected(selected);
-            fiView.setSearched(searched);
+                bool selected = m_selector->isSelected(path);
+                bool searched = m_searcher->isSearched(path);
+                bool searchFocused = searched && m_searcher->isFocused(path);
 
-            entries.emplace(std::make_pair(i, fiView));
-//            entries[i] = fiView;
+                if(searched)
+                    qDebug() << "path: " << QString::fromStdString(path)
+                             << "   isSearchFocused: " << searchFocused;
+
+                // entweder ist es ein dir:
+                if(m_folders_colpsd.find(path) != m_folders_colpsd.end())
+                {
+                    auto* fi = m_folders_colpsd[path];
+
+                    FiBDViewer fiView(fi, depthId, false);
+                    fiView.setSelected(selected);
+                    fiView.setSearched(searched);
+                    fiView.setSearchFocused(searchFocused);
+
+                    entries[i] = fiView;
+                }else{
+                    // dann muss es ein file sein:
+                    QFileInfo fi(QString::fromStdString(path));
+
+                    FiBDViewer fiView(fi, depthId);
+
+                    fiView.setSelected(selected);
+                    fiView.setSearched(searched);
+                    fiView.setSearchFocused(searchFocused);
+
+                    entries[i] = fiView;
+                }
+            }else{
+                qDebug() << "\nFileManager::generateViewerData - path: "
+                         << QString::fromStdString(path) << " NOT in m_path_depthId_colpsd!!!\n";
+            }
         }else{
-            // dann muss es ein file sein:
-            QFileInfo fi(QString::fromStdString(path));
-
-            FiBDViewer fiView(fi, depthId);
-
-            bool selected = m_selector->isSelected(path);
-            bool searched = m_searcher->isSearched(path);
-            fiView.setSelected(selected);
-            fiView.setSearched(searched);
-
-            entries.emplace(std::make_pair(i, fiView));
-//            entries[i] = fiView;
+            // no warning - happes quite often, when more elements fit in the GraphicsView-Viewport-Size than there actually exist!
+//            qDebug() << "\nFileManager::generateViewerData - m_order_entries_colpsd.size << "
+//                     << m_order_entries_colpsd.size() << "   <-> i : " << i << " index out of range!!!\n";
         }
     }
-    return entries;
+    ViewerData vd;
+    vd.data = entries;
+    return vd;
 }
 
 void FileManager::clearEntryContainers()
@@ -1159,7 +1183,6 @@ void FileManager::copyCutToClipboard_hlpr(bool deleteSourceAfterCopying)
             mimeData->setUrls(urls);
             clipboard->setMimeData(mimeData);
         }
-        clipboard->deleteLater();
     }
 }
 
@@ -1219,10 +1242,13 @@ string FileManager::getBaseDirOfSelection() const
     std::string baseDir = m_root_path;
     if(m_selector){
         std::string lastSel = m_selector->getLastSelectedEntry();
-        if(QFileInfo(QString::fromStdString(lastSel)).isDir())
-            baseDir = lastSel;
-        else
-            baseDir = PATH::getBasePath(lastSel).toStdString();
+        if( !lastSel.empty() )
+        {
+            if(QFileInfo(QString::fromStdString(lastSel)).isDir())
+                baseDir = lastSel;
+            else
+                baseDir = PATH::getBasePath(lastSel).toStdString();
+        }
     }
     return baseDir;
 }
@@ -1438,6 +1464,7 @@ int_bd FileManager::displayedFileCount() const
 
 int_bd FileManager::indexCurSearchResult() const
 {
+    qDebug() << "indexCurSearchResult: " << m_searcher->indexCurSearchResult();
     return m_searcher->indexCurSearchResult();
 }
 

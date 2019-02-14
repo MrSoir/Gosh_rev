@@ -17,10 +17,30 @@ DirDeleteWorker::DirDeleteWorker(FiBDDeletor* dirToDelete)
     connectSignals();
 }
 
+DirDeleteWorker::DirDeleteWorker(const DirDeleteWorker &ddw)
+    : DirManagerWorker(ddw.parent()),
+      m_dirsToDelete(ddw.m_dirsToDelete)
+{
+    connectSignals();
+    evalDirsToDelete();
+}
+
+DirDeleteWorker& DirDeleteWorker::operator=(const DirDeleteWorker &ddw)
+{
+    DirManagerWorker::operator=(ddw);
+    m_dirsToDelete = ddw.m_dirsToDelete;
+
+    connectSignals();
+    evalDirsToDelete();
+
+    return *this;
+}
+
 DirDeleteWorker::~DirDeleteWorker()
 {
     qDebug() << "~DirDeleteWorker";
 }
+
 
 bool DirDeleteWorker::blockOtherThreads() const
 {

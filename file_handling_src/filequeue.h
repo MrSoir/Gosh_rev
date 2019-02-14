@@ -14,7 +14,11 @@ class FileQueue : public QObject
     Q_OBJECT
 public:
     explicit FileQueue();
-    ~FileQueue();
+    explicit FileQueue(const FileQueue& fq);
+
+    FileQueue& operator=(const FileQueue& fq);
+
+    virtual ~FileQueue() override;
 signals:
     void paused();
     void continued();

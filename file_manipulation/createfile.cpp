@@ -9,6 +9,22 @@ CreateFile::CreateFile(const std::string& baseDir)
 {
 }
 
+CreateFile::CreateFile(const CreateFile &cf)
+    : CreateEntry(cf)
+{
+}
+
+CreateFile::CreateFile()
+    : CreateEntry()
+{
+}
+
+CreateFile &CreateFile::operator=(const CreateFile &cf)
+{
+    CreateEntry::operator=(cf);
+    return *this;
+}
+
 CreateFile::~CreateFile()
 {
 }

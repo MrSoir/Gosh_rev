@@ -28,9 +28,13 @@ class DirDeepSearchWorker : public DirManagerWorker
     Q_OBJECT
 public:
     explicit DirDeepSearchWorker(std::string keyword,
-                        FileInfoBD* root_dir,
-                        bool includeHiddenFiles,
-                        QThread* threadToMoveObjectsTo);
+                                 FileInfoBD* root_dir,
+                                 bool includeHiddenFiles,
+                                 QThread* threadToMoveObjectsTo);
+    explicit DirDeepSearchWorker(const DirDeepSearchWorker& ds);
+    explicit DirDeepSearchWorker();
+
+    DirDeepSearchWorker& operator=(const DirDeepSearchWorker& ds);
 
     virtual ~DirDeepSearchWorker() override;
 

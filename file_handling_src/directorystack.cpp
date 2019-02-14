@@ -6,6 +6,20 @@ DirectoryStack::DirectoryStack()
 {
 }
 
+DirectoryStack::DirectoryStack(const DirectoryStack &ds)
+    : QObject (ds.parent()),
+      m_dirs(ds.m_dirs)
+{
+}
+
+DirectoryStack &DirectoryStack::operator=(const DirectoryStack &ds)
+{
+    this->setParent(ds.parent());
+    this->m_dirs = ds.m_dirs;
+
+    return *this;
+}
+
 DirectoryStack::~DirectoryStack()
 {
 }

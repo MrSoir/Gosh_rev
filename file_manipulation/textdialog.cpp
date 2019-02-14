@@ -7,35 +7,30 @@ TextDialog::TextDialog(const QString &msg,
                        QWidget *parent)
     : ThreadedDialog(worker, parent),
       m_textValidator(textValidator),
-      m_msg(new QLabel(this)),
-      m_validatorLbl(new QLabel(this)),
-      m_lineEdit(new QLineEdit(this)),
+      m_msg(new QLabel()),
+      m_validatorLbl(new QLabel()),
+      m_lineEdit(new QLineEdit()),
       m_textIsValid(true)
 {
     m_msg->setText(msg);
     m_lineEdit->setText(initLineEditMsg);
     validateText();
-    setLayout();
+    setMainLayout();
 
     connectSignals();
-    emit startThread();
 
+    this->setMinimumWidth(400);
     this->show();
 }
 
 TextDialog::~TextDialog()
 {
+    qDebug() << "~TextDialog";
 }
 
 void TextDialog::okClicked()
 {
     emit textSelected(m_lineEdit->text());
-
-    // kein TextDialog::close() -> mit emit textSelected wird TextDialogWorker::run() gestartet
-    // => damit beginnt der TextDialogWorker seine arbeit. wenn er fertig ist, sendet er das signal
-    // TextDialogWorker::finished() -> das wiederum schliesst den TextDialog!
-    okBtn->setEnabled(false);
-    cnclBtn->setEnabled(false);
 }
 
 void TextDialog::cancelClicked()
@@ -61,12 +56,14 @@ void TextDialog::connectSignals()
 {
     TextDialogWorker* worker = static_cast<TextDialogWorker*>(m_worker);
     connect(this, &TextDialog::textSelected, worker, &TextDialogWorker::textSelected);
+    connect(this, &TextDialog::textSelected, this, &TextDialog::close);
+    connect(this, &TextDialog::textSelected, this, &TextDialog::deleteLater);
 }
 
-void TextDialog::setLayout()
+void TextDialog::setMainLayout()
 {
     m_msg->setAlignment(Qt::AlignBottom | Qt::AlignRight);
-    QHBoxLayout* lineEditLyt = new QHBoxLayout(this);
+    QHBoxLayout* lineEditLyt = new QHBoxLayout();
     lineEditLyt->addWidget(m_msg);
     lineEditLyt->addWidget(m_lineEdit);
 
@@ -82,10 +79,10 @@ void TextDialog::setLayout()
 
     connect(m_lineEdit, &QLineEdit::textChanged, this, &TextDialog::validateText);
 
-    QVBoxLayout* mainLayout = new QVBoxLayout(this);
+    QVBoxLayout* mainLayout = new QVBoxLayout();
     mainLayout->addLayout(lineEditLyt);
     mainLayout->addWidget(m_validatorLbl);
     mainLayout->addLayout(btnLyt);
 
-    QWidget::setLayout(mainLayout);
+    this->setLayout(mainLayout);
 }

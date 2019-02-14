@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QtDebug>
+#include <QMessageBox>
 
 #include <string>
 #include <algorithm>
@@ -24,7 +25,7 @@ public:
     explicit FileSearcher(std::unordered_map<std::string, std::string>* path_fileName,
                           std::unordered_map<std::string, int_bd>* path_ord,
                           QObject *parent = nullptr);
-    ~FileSearcher();
+    virtual ~FileSearcher() override;
 
     bool isSearched(const std::string& path) const;
     bool isFocused(const std::string& path) const;
@@ -68,6 +69,10 @@ private:
     void clearContainers();
 
     void printMatches() const;
+
+    void showNoMatchesFoundDialog();
+
+    //----------------------------------------
 
     std::string m_key_word; // string that is searched for
     std::unordered_set<std::string> m_matched_paths; // all paths, which's fileNames contain the m_key_word

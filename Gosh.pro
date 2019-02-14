@@ -6,7 +6,9 @@
 
 QT       += core gui
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+greaterThan(QT_MAJOR_VERSION, 4):
+
+QT += widgets
 
 TARGET = Gosh
 TEMPLATE = app
@@ -107,7 +109,8 @@ SOURCES += \
     widgetcloser.cpp \
     threadtestworker.cpp \
     dialogs/openwithdialog.cpp \
-    dialogs/openwithgraphicsview.cpp
+    dialogs/openwithgraphicsview.cpp \
+    file_handling_src/viewerdata.cpp
 
 HEADERS += \
          mainwindow.h \
@@ -195,7 +198,8 @@ HEADERS += \
     widgetcloser.h \
     threadtestworker.h \
     dialogs/openwithdialog.h \
-    dialogs/openwithgraphicsview.h
+    dialogs/openwithgraphicsview.h \
+    file_handling_src/viewerdata.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

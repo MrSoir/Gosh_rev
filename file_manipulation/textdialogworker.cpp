@@ -12,11 +12,36 @@ TextDialogWorker::TextDialogWorker(const QString& message,
 {
 }
 
+TextDialogWorker::TextDialogWorker()
+    : DialogWorker(nullptr),
+      m_message(""),
+      m_initText(""),
+      m_receivedTextFromDialog(QString(""))
+{
+}
+
+TextDialogWorker::TextDialogWorker(const TextDialogWorker &tdw)
+    : DialogWorker(tdw),
+      m_message(tdw.m_message),
+      m_initText(tdw.m_initText),
+      m_receivedTextFromDialog(tdw.m_receivedTextFromDialog)
+{
+}
+
+TextDialogWorker &TextDialogWorker::operator=(const TextDialogWorker &tdw)
+{
+    DialogWorker::operator=(tdw);
+    this->m_message = tdw.m_message;
+    this->m_initText = tdw.m_initText;
+    this->m_receivedTextFromDialog = tdw.m_receivedTextFromDialog;
+    return *this;
+}
+
 TextDialogWorker::~TextDialogWorker()
 {
 }
 
-void TextDialogWorker::createThread()
+void TextDialogWorker::launchDialog()
 {
     new TextDialog(m_message,
                    m_initText,
@@ -27,7 +52,7 @@ void TextDialogWorker::createThread()
 void TextDialogWorker::textSelected(QString text)
 {
     m_receivedTextFromDialog = text;
-    run();
+    createThread();
 }
 
 void TextDialogWorker::connectThreadSignals(QThread *thread)

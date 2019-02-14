@@ -26,6 +26,11 @@ class RenameFile: public TextDialogWorker
     Q_OBJECT
 public:
     explicit RenameFile(const std::string& absPathToRename);
+    explicit RenameFile();
+    explicit RenameFile(const RenameFile& rf);
+
+    RenameFile& operator=(const RenameFile& rf);
+
     virtual ~RenameFile() override;
 
     static bool renameFile(const std::string& absFilePath,

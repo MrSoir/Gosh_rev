@@ -5,6 +5,7 @@
 #include <QFileInfo>
 #include <QFileInfoList>
 #include <QDir>
+#include <QDebug>
 
 namespace PATH
 {

@@ -8,6 +8,29 @@ OpenFiles::OpenFiles(std::vector<std::string> pathsToOpen,
 {
 }
 
+OpenFiles::OpenFiles()
+    : QueueTask(),
+      m_paths(std::vector<std::string>()),
+      m_openWith(false)
+{
+}
+
+OpenFiles::OpenFiles(const OpenFiles &of)
+    : QueueTask(),
+      m_paths(of.m_paths),
+      m_openWith(of.m_openWith)
+{
+}
+
+OpenFiles &OpenFiles::operator=(const OpenFiles &of)
+{
+    QueueTask::operator=(of);
+    this->m_paths = of.m_paths;
+    this->m_openWith = of.m_openWith;
+    return *this;
+}
+
+
 OpenFiles::~OpenFiles()
 {
     qDebug() << "~OpenFiles";

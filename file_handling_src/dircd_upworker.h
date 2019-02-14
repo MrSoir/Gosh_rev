@@ -18,6 +18,11 @@ class DirCD_UpWorker : public DirManagerWorker
 public:
     explicit DirCD_UpWorker(FileInfoBD* current_rootDir,
                             QThread* threadToMoveObjectsTo);
+    explicit DirCD_UpWorker(const DirCD_UpWorker& dc);
+    explicit DirCD_UpWorker();
+
+    DirCD_UpWorker& operator=(const DirCD_UpWorker& dc);
+
     virtual ~DirCD_UpWorker() override;
 
     virtual bool blockOtherThreads() const override;

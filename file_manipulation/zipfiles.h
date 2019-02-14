@@ -30,6 +30,11 @@ namespace ZIP
     public:
         explicit ZipFiles(std::vector<std::string> pathsToZip,
                           std::string tarPath);
+        explicit ZipFiles();
+        explicit ZipFiles(const ZipFiles& zf);
+
+        ZipFiles& operator=(const ZipFiles& zf);
+
         virtual ~ZipFiles() override;
 
     public slots:
@@ -50,6 +55,11 @@ namespace ZIP
     public:
         explicit UnZipFile(std::string zipFilePath,
                            std::string unZipTarPath = "");
+        explicit UnZipFile();
+        explicit UnZipFile(const UnZipFile& ufz);
+
+        UnZipFile& operator=(const UnZipFile& uzf);
+
         virtual ~UnZipFile() override;
 
     public slots:

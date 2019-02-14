@@ -26,6 +26,11 @@ class CreateFolder: public CreateEntry
     Q_OBJECT
 public:
     explicit CreateFolder(const std::string& baseDir); // baseDir == dir to create folder in
+    explicit CreateFolder();
+    explicit CreateFolder(const CreateFolder& cf);
+
+    CreateFolder& operator=(const CreateFolder& cf);
+
     virtual ~CreateFolder() override;
 };
 

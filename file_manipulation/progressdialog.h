@@ -21,11 +21,13 @@ public:
     explicit ProgressDialog(const QString& msg,
                             ProgressDialogWorker* worker,
                             QWidget *parent = nullptr);
+
     virtual ~ProgressDialog() override;
 
 public slots:
     void updateMessage(const QString& msg);
     void updateProgress(double progrs_in_perctg);
+    void addProgressUpperBound(unsigned long long plus);
 private:
     void connectSignals() override;
 

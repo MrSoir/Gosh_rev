@@ -35,6 +35,11 @@ public:
                          QString dialog_message,
                          QString dialog_init_text,
                          CREATION_TYPE type); // baseDir == dir to create folder in
+    explicit CreateEntry();
+    explicit CreateEntry(const CreateEntry& ce);
+
+    CreateEntry& operator=(const CreateEntry& ce);
+
     virtual ~CreateEntry() override;
 
 public slots:

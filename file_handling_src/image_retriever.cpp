@@ -1,8 +1,33 @@
 #include "image_retriever.h"
 
-Image_Retriever::Image_Retriever(QObject *parent) : QObject(parent)
+Image_Retriever::Image_Retriever(QObject *parent)
+    : QObject(parent),
+      m_paths(std::unordered_set<std::string>()),
+      m_path_image(std::unordered_map<std::string, QPixmap>()),
+      m_imgSize(PIXMAP_GETTER_SIZE)
 {
+}
 
+Image_Retriever::Image_Retriever(const Image_Retriever &ir)
+    : QObject(ir.parent()),
+      m_paths(ir.m_paths),
+      m_path_image(ir.m_path_image),
+      m_imgSize(ir.m_imgSize)
+{
+}
+
+Image_Retriever &Image_Retriever::operator=(const Image_Retriever &ir)
+{
+    this->setParent(ir.parent());
+    m_paths = ir.m_paths;
+    m_path_image = ir.m_path_image;
+    m_imgSize = ir.m_imgSize;
+
+    return *this;
+}
+
+Image_Retriever::~Image_Retriever()
+{
 }
 
 void Image_Retriever::getImage(const std::string &path)
@@ -41,10 +66,46 @@ void Image_Retriever::retrieveImage(std::string path)
 
 PixMapGetter::PixMapGetter(string path,
                            QSize pixmapSize)
-    : m_path(path),
-      m_pixmapSize(pixmapSize)
+    : QObject(nullptr),
+      m_path(path),
+      m_pixmapSize(pixmapSize),
+      m_pixmap(QPixmap())
 {
     connect(this, &PixMapGetter::finished, this, &PixMapGetter::deleteLater);
+}
+
+PixMapGetter::PixMapGetter()
+    : QObject(nullptr),
+      m_path(""),
+      m_pixmapSize(PIXMAP_GETTER_SIZE),
+      m_pixmap(QPixmap())
+{
+    connect(this, &PixMapGetter::finished, this, &PixMapGetter::deleteLater);
+}
+
+PixMapGetter::PixMapGetter(const PixMapGetter &g)
+    : QObject(g.parent()),
+      m_path(g.m_path),
+      m_pixmapSize(g.m_pixmapSize),
+      m_pixmap(g.m_pixmap)
+{
+    connect(this, &PixMapGetter::finished, this, &PixMapGetter::deleteLater);
+}
+
+PixMapGetter &PixMapGetter::operator=(const PixMapGetter &g)
+{
+    this->setParent(g.parent());
+    m_path = g.m_path;
+    m_pixmapSize = g.m_pixmapSize;
+    m_pixmap = g.m_pixmap;
+
+    connect(this, &PixMapGetter::finished, this, &PixMapGetter::deleteLater);
+
+    return *this;
+}
+
+PixMapGetter::~PixMapGetter()
+{
 }
 
 void PixMapGetter::start()

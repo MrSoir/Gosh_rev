@@ -63,6 +63,31 @@ ZIP::ZipFiles::ZipFiles(std::vector<std::string> pathsToZip,
 {
 }
 
+ZIP::ZipFiles::ZipFiles()
+    : ProgressDialogWorker(),
+      m_pathsToZip(std::vector<std::string>()),
+      m_tarPath(""),
+      m_zipProcess(nullptr)
+{
+}
+
+ZIP::ZipFiles::ZipFiles(const ZIP::ZipFiles &zf)
+    : ProgressDialogWorker(zf),
+      m_pathsToZip(zf.m_pathsToZip),
+      m_tarPath(zf.m_tarPath),
+      m_zipProcess(zf.m_zipProcess)
+{
+}
+
+ZIP::ZipFiles &ZIP::ZipFiles::operator=(const ZIP::ZipFiles &zf)
+{
+    ProgressDialogWorker::operator=(zf);
+    m_pathsToZip = zf.m_pathsToZip;
+    m_tarPath = zf.m_tarPath;
+    m_zipProcess = zf.m_zipProcess;
+    return *this;
+}
+
 ZIP::ZipFiles::~ZipFiles()
 {
     if(m_zipProcess)
@@ -119,6 +144,31 @@ ZIP::UnZipFile::UnZipFile(string zipFilePath, string unZipTarPath)
       m_unZipTarPath(unZipTarPath),
       m_zipProcess(nullptr)
 {
+}
+
+ZIP::UnZipFile::UnZipFile()
+    : ProgressDialogWorker(),
+      m_zipFilePath(""),
+      m_unZipTarPath(""),
+      m_zipProcess(nullptr)
+{
+}
+
+ZIP::UnZipFile::UnZipFile(const ZIP::UnZipFile &uzf)
+    : ProgressDialogWorker(uzf),
+      m_zipFilePath(uzf.m_zipFilePath),
+      m_unZipTarPath(uzf.m_unZipTarPath),
+      m_zipProcess(uzf.m_zipProcess)
+{
+}
+
+ZIP::UnZipFile& ZIP::UnZipFile::operator=(const ZIP::UnZipFile &uzf)
+{
+    ProgressDialogWorker::operator=(uzf);
+    m_zipFilePath = uzf.m_zipFilePath;
+    m_unZipTarPath = uzf.m_unZipTarPath;
+    m_zipProcess = uzf.m_zipProcess;
+    return *this;
 }
 
 ZIP::UnZipFile::~UnZipFile()

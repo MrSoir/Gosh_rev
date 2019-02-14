@@ -47,11 +47,26 @@ namespace STATIC_FUNCTIONS
 //----------------------------------------------------------------------------------
 
     void setIconToWidget(QWidget* widget);
+    void setStyleSheet(QWidget* widget);
 
 //----------------------------------------------------------------------------------
 
     QString getResourceDir();
     QString getTempResourcesDir();
+
+//----------------------------------------------------------------------------------
+
+    bool createNewFile(QString absTarFilePath);
+    bool createNewFile(const std::string& absTarFilePath);
+    //---------
+    bool createNewFolder(QString absTarDirPath);
+    bool createNewFolder(const std::string& absTarDirPath);
+    //---------
+    bool makeDir(const QString& tarPath);
+    bool makeDir(const std::string& tarPath);
+
+    bool copyFile(const QString& absSourcePath, const QString& absTarPath);
+    bool copyFile(const std::string& absSourcePath, const std::string& absTarPath);
 
 //----------------------------------------------------------------------------------
 

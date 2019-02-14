@@ -125,6 +125,8 @@ QString PATH::getDirFromPath(const QFileInfo &fi)
 }
 QString PATH::getDirFromPath(const QString &absPath)
 {
+    if(absPath.isEmpty())
+        return QString("");
     return getDirFromPath(QFileInfo(absPath));
 }
 

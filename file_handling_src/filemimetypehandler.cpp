@@ -1,23 +1,23 @@
 #include "filemimetypehandler.h"
 
-bool operator==(const AppInfo& lhs, const AppInfo& rhs) {
-    if(lhs.mime_types.size() != rhs.mime_types.size())
-        return false;
+//bool operator==(const AppInfo& lhs, const AppInfo& rhs) {
+//    if(lhs.mime_types.size() != rhs.mime_types.size())
+//        return false;
 
-    for(const auto& ai: lhs.mime_types)
-    {
-        if(rhs.mime_types.find(ai) != rhs.mime_types.end())
-            return false;
-    }
-    for(const auto& ai: rhs.mime_types)
-    {
-        if(lhs.mime_types.find(ai) != lhs.mime_types.end())
-            return false;
-    }
-    return lhs.name == rhs.name
-        && lhs.exec_cmnd == rhs.exec_cmnd
-        && lhs.icon_file_name == rhs.icon_file_name;
-}
+//    for(const auto& ai: lhs.mime_types)
+//    {
+//        if(rhs.mime_types.find(ai) != rhs.mime_types.end())
+//            return false;
+//    }
+//    for(const auto& ai: rhs.mime_types)
+//    {
+//        if(lhs.mime_types.find(ai) != lhs.mime_types.end())
+//            return false;
+//    }
+//    return lhs.name == rhs.name
+//        && lhs.exec_cmnd == rhs.exec_cmnd
+//        && lhs.icon_file_name == rhs.icon_file_name;
+//}
 
 FileMimeTypeHandler::FileMimeTypeHandler(std::string path,
                                          int min_icon_size,
@@ -32,9 +32,43 @@ FileMimeTypeHandler::FileMimeTypeHandler(std::string path,
     evalMatchingApps();
 }
 
+FileMimeTypeHandler::FileMimeTypeHandler()
+    : QObject(nullptr),
+      m_matching_apps(std::unordered_set<AppInfo>()),
+      m_mime_type(""),
+      m_path(""),
+      m_min_icon_size(0)
+{
+}
+
+FileMimeTypeHandler::FileMimeTypeHandler(const FileMimeTypeHandler &h)
+    : QObject(h.parent()),
+      m_matching_apps(h.m_matching_apps),
+      m_supportedImgeFileTypes(h.m_supportedImgeFileTypes),
+      m_mime_type(h.m_mime_type),m_path(h.m_path),
+      m_min_icon_size(h.m_min_icon_size)
+{
+    evalSupportedImageFileTypes();
+    evalMatchingApps();
+}
+
+FileMimeTypeHandler &FileMimeTypeHandler::operator=(const FileMimeTypeHandler &fmth)
+{
+    this->setParent(fmth.parent());
+    this->m_matching_apps = fmth.m_matching_apps;
+    this->m_mime_type = fmth.m_mime_type;
+    this->m_path = fmth.m_path;
+    this->m_min_icon_size = fmth.m_min_icon_size;
+
+    evalSupportedImageFileTypes();
+    evalMatchingApps();
+
+    return *this;
+}
+
+
 FileMimeTypeHandler::~FileMimeTypeHandler()
 {
-
 }
 
 

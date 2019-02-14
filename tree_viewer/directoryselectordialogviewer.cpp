@@ -69,17 +69,20 @@ void DirectorySelectorDialogViewer::rePaintCanvas()
     ++(*rowId);
 
     // paint drives:
-    paintLabel(QString("drives:"), (*rowId)++);
-        QStorageInfo storage = QStorageInfo::root();
-        paintFileInfo(QFileInfo(storage.rootPath()), (*rowId)++, 1, true);
+    paintLabel(QString("Root Drive:"), (*rowId)++);
+    QStorageInfo storage = QStorageInfo::root();
+    paintFileInfo(QFileInfo(storage.rootPath()), (*rowId)++, 1, true);
 
-        QList<QStorageInfo> mv = QStorageInfo::mountedVolumes();
-        for(int i=0; i < mv.size(); i++){
-            if(storage.rootPath() != mv[i].rootPath()){
-                paintMountedDrive(QFileInfo(mv[i].rootPath()), (*rowId)++, 1);
-//                paintFileInfo(QFileInfo(mv[i].rootPath()), (*rowId)++, 1, true);
-            }
+    // paint mounted drives:
+     paintLabel(QString("Mounted Drives:"), (*rowId)++);
+    QList<QStorageInfo> mv = QStorageInfo::mountedVolumes();
+    for(const auto& si: mv)
+    {
+        if(storage.rootPath() != si.rootPath() &&
+                si.isValid() && si.isReady()){
+            paintMountedDrive(QFileInfo(si.rootPath()), (*rowId)++, 1);
         }
+    }
 
     qreal paneHeight = (*rowId)*m_rowHeight;
     m_scene.setSceneRect(m_scene.sceneRect().x(),
@@ -148,7 +151,6 @@ void DirectorySelectorDialogViewer::loadBookmarks()
     QTextStream in(&file);
     while (!in.atEnd()) {
         QString line = in.readLine();
-//        qDebug() << line;
         if( !line.isEmpty() && QFileInfo(line).exists() &&
                 !m_bookmarks.contains(line)){
             m_bookmarks.append(line);
@@ -211,7 +213,7 @@ void DirectorySelectorDialogViewer::paintBookmark(QFileInfo fi, int rowId, int c
 
 void DirectorySelectorDialogViewer::paintMountedDrive(QFileInfo fi, int rowId, int colId, bool drawAbsoluteFilePath)
 {
-    paintFileInfo(QFileInfo(fi.absoluteFilePath()), rowId, colId, drawAbsoluteFilePath);
+    paintFileInfo(fi, rowId, colId, drawAbsoluteFilePath);
 
     GraphicItemsBD::TextRect* remRct = new GraphicItemsBD::TextRect(QString("X"),QSize(20,m_rowHeight),QPoint(static_cast<int>(m_size.width()-40), rowId*m_rowHeight),
                                     QColor(255,0,0),QColor(150,0,0),

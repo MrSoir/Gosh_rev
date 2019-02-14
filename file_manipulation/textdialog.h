@@ -25,6 +25,7 @@ public:
                         TextDialogWorker* worker,
                         std::function<bool(const QString& txt)> textValidator = [](const QString& s){Q_UNUSED(s) return true;},
                         QWidget* parent = nullptr);
+
     virtual ~TextDialog() override;
 
 signals:
@@ -37,7 +38,7 @@ public slots:
 private:
     void connectSignals() override;
 
-    void setLayout();
+    void setMainLayout();
 
     std::function<bool(const QString& txt)> m_textValidator;
     QLabel* m_msg;

@@ -34,9 +34,8 @@ void GraphicItemsBD::GraphicsItemBD::paint(QPainter* painter,
                                            QWidget* widget)
 {
     Q_UNUSED(option)
-    if(!painter->isActive())
+    if(!painter->isActive() && widget)
     {
-        qDebug() << "\nGraphicsItemBD::paint - painter is NOT active -> activating painter!!!\n";
         painter->begin(widget);
     }
 }

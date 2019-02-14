@@ -8,6 +8,33 @@ DirCD_UpWorker::DirCD_UpWorker(FileInfoBD* current_rootDir, QThread *threadToMov
     connect(this, &DirCD_UpWorker::runTask, this, &DirCD_UpWorker::run);
 }
 
+DirCD_UpWorker::DirCD_UpWorker(const DirCD_UpWorker &dc)
+    : DirManagerWorker(dc.parent()),
+      m_current_rootDir(dc.m_current_rootDir),
+      m_threadToMoveObjectsTo(dc.m_threadToMoveObjectsTo)
+{
+    connect(this, &DirCD_UpWorker::runTask, this, &DirCD_UpWorker::run);
+}
+
+DirCD_UpWorker::DirCD_UpWorker()
+    : DirManagerWorker(nullptr),
+      m_current_rootDir(nullptr),
+      m_threadToMoveObjectsTo(nullptr)
+{
+    connect(this, &DirCD_UpWorker::runTask, this, &DirCD_UpWorker::run);
+}
+
+DirCD_UpWorker &DirCD_UpWorker::operator=(const DirCD_UpWorker &dc)
+{
+    DirManagerWorker::operator=(dc);
+    this->m_current_rootDir = dc.m_current_rootDir;
+    this->m_threadToMoveObjectsTo = dc.m_threadToMoveObjectsTo;
+
+    connect(this, &DirCD_UpWorker::runTask, this, &DirCD_UpWorker::run);
+
+    return *this;
+}
+
 DirCD_UpWorker::~DirCD_UpWorker()
 {
 }
@@ -24,6 +51,14 @@ bool DirCD_UpWorker::revalidateDirStructureAfterWorkerHasFinished() const
 
 void DirCD_UpWorker::run()
 {
+    if( !m_current_rootDir )
+    {
+        qDebug() << "\nDirCD_UpWorker::run - m_current_rootDir == nullptr -> DirCD_UpWorker-Default-Constructor!!!\n";
+        emit finished(false);
+        return;
+    }
+
+
     if(m_current_rootDir->getParentDir())
     {
         FileInfoBD* new_root = m_current_rootDir->getParentDir();
@@ -68,5 +103,9 @@ void DirCD_UpWorker::run()
 
 void DirCD_UpWorker::workBeforeLaunchThread()
 {
-    m_current_rootDir->moveAbsParentToThread(m_thread);
+    if(m_current_rootDir)
+        m_current_rootDir->moveAbsParentToThread(m_thread);
+    else{
+        qDebug() << "\nDirCD_UpWorker::workBeforeLaunchThread - m_current_rootDir == nullptr -> DirCD_UpWorker-Default-Constructor!!!\n";
+    }
 }

@@ -490,7 +490,7 @@ void DirManager::registerDirStructure_hlpr(FileInfoBD* dir)
     if( !dir )
         return;
 
-    if( !dir->alreadyRegistered() )
+    if( dir->isLoaded() && !dir->alreadyRegistered() )
     {
         m_watcher->addDir(dir->absPath());
         connectDir(dir);

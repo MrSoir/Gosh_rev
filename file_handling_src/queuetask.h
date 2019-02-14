@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QString>
 #include <QThread>
+#include <QDebug>
 
 #include <queue>
 #include <functional>
@@ -24,10 +25,13 @@ class QueueTask : public QObject
 {
     Q_OBJECT
 public:
-    QueueTask(int jobCounter = 0,
-              QObject* parent = nullptr);
-    QueueTask(const QueueTask& task);
-    virtual ~QueueTask();
+    explicit QueueTask(int jobCounter = 0,
+                       QObject* parent = nullptr);
+    explicit QueueTask(const QueueTask& task);
+
+    QueueTask& operator=(const QueueTask& qt);
+
+    virtual ~QueueTask() override;
 
     virtual bool executableInParallel() const; // FileQueue muss QueueTask nicht auf Queue-Stack legen sondern kann ihn direkt starten, selbst wenn ein anderer Task laeuft. Beispiel: kopieren von dateien kann parallel ablaufen, da die aufgabe unabhaengig vom FileExplorer ist. Hingegen muss FileInfoBD.elapseAll() zwingend auf den Queue gepackt werden.
 
@@ -48,8 +52,9 @@ public slots:
 
     virtual void onFinished();
 
-    virtual void createThread(); // Worker soll sich selbst in den QThread legen und diesen startetn bequem per aufruf createThread -> damit muss die Queue nur noch QueueTask::createThread() aufrufen und die Sache ist erledigt!
+    virtual void createThread(); // Worker soll sich selbst in den QThread legen und diesen startetn
 
+    virtual void execute(); // execute ruft im Normalfall direkt createThread auf. Damit legt sich der Worker selbst in einen selbst erstellten Thread und der worker legt los. Der Caller muss nur QueueTask::execute() aufrufen, und fettig -> ABER: z.B. ProgressDialogWorler -> diese launchen infolge fon ProgressDialogWorker::execute den ProgressDialog, der Dialog wird dann spaeter createThread aufrufen um den Worker loslegen zu lassen
 private:
     virtual void connectSignals();
     virtual void disconnectSignals();
@@ -58,6 +63,7 @@ protected:
     virtual void connectThreadSignals(QThread* thread);
 
     bool m_cancelled;
+    QThread* m_thread;
 };
 
 

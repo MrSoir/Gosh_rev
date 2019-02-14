@@ -18,18 +18,11 @@
 class AppInfo
 {
 public:
-    std::string name;
-    std::string exec_cmnd;
-    std::string icon_file_name;
-    std::string icon_file_path;
-    std::unordered_set<std::string> mime_types;
-
     AppInfo();
-    AppInfo(const AppInfo& ai);
-    AppInfo& operator=(const AppInfo ai);
-    AppInfo* operator=(AppInfo* ai);
-
+//    AppInfo(const AppInfo& ai);
     AppInfo(std::string appInfoStr);
+
+    AppInfo& operator=(const AppInfo& ai);
 
     std::string genExecCmnd(const std::vector<std::string>& args = std::vector<std::string>()) const;
     std::vector<std::string> genExecCmndVec(const std::vector<std::string>& args = std::vector<std::string>()) const;
@@ -38,7 +31,17 @@ public:
 
     std::string toString() const;
     bool operator==(const AppInfo& rhs);
+
+    //-----------------
+
+    std::string name;
+    std::string exec_cmnd;
+    std::string icon_file_name;
+    std::string icon_file_path;
+    std::unordered_set<std::string> mime_types;
 };
+
+bool operator==(const AppInfo& lhs, const AppInfo& rhs);
 
 namespace std
 {

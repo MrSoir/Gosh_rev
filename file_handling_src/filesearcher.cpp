@@ -114,7 +114,12 @@ void FileSearcher::setSearched(std::string key_word, std::vector<std::string> ma
     m_key_word = key_word;
     m_matched_paths = std::unordered_set<std::string>(matched_paths.begin(), matched_paths.end());
 
-    m_inSearchMode = true;
+    m_inSearchMode = matched_paths.size() > 0;
+
+    if(matched_paths.size() == 0)
+    {
+        showNoMatchesFoundDialog();
+    }
 
     if(m_path_ord)
     {
@@ -192,6 +197,8 @@ void FileSearcher::focusPreviousMatch()
 void FileSearcher::exitSearchMode()
 {
     m_inSearchMode = false;
+    clearSearchWithoutSignaling();
+    emit searchResultsChanged();
 }
 
 void FileSearcher::clearSearch()
@@ -225,26 +232,42 @@ void FileSearcher::findMatches()
 
     m_matched_paths.clear();
     m_ord_matchedPaths.clear();
+    m_focused_path = "";
 
     resetCurMatchVars();
 
-    if(m_path_fileName)
+    if(m_path_fileName && m_path_ord)
     {
-        int_bd cntr = 0;
+        std::vector<std::string> sorted_matched_paths;
         for(auto it=m_path_fileName->begin(); it != m_path_fileName->end(); ++it)
         {
             const std::string& entry_name = it->second;
             const std::string& entry_path = it->first;
             if(StringOps::inStringIgnoreCase(entry_name, m_key_word))
             {
-                m_matched_paths.insert( entry_path );
-                m_ord_matchedPaths[cntr++] = entry_path;
+                sorted_matched_paths.push_back( entry_path );
             }
+        }
+        auto sortFunc = [=](const auto& p1, const auto& p2){
+            int_bd i1 = m_path_ord->find(p1) != m_path_ord->end() ? (*m_path_ord)[p1] : -1;
+            int_bd i2 = m_path_ord->find(p2) != m_path_ord->end() ? (*m_path_ord)[p2] : -1;
+            return i1 < i2;
+        };
+        std::sort(sorted_matched_paths.begin(), sorted_matched_paths.end(), sortFunc);
+        for(std::size_t i=0; i < sorted_matched_paths.size(); ++i)
+        {
+            m_matched_paths.insert( sorted_matched_paths[i] );
+            m_ord_matchedPaths[static_cast<int_bd>(i)] = sorted_matched_paths[i];
         }
         resetCurMatchVars();
     }
 
-    printMatches();
+    if(m_matched_paths.size() == 0)
+    {
+        showNoMatchesFoundDialog();
+    }
+
+//    printMatches();
 
     emit searchResultsChanged();
 }
@@ -269,6 +292,20 @@ void FileSearcher::printMatches() const
     qDebug() << "Search-Matches: - inSearchMode: " << m_inSearchMode;
     for(const auto& path: m_matched_paths)
         qDebug() << "   " << QString::fromStdString(path);
+}
+
+void FileSearcher::showNoMatchesFoundDialog()
+{
+    m_inSearchMode = false;
+
+    QString msg = QString("No matches found for '%1'!").arg(QString::fromStdString(m_key_word));
+    QMessageBox* msgBox = new QMessageBox();
+    connect(msgBox, &QMessageBox::finished, [](){qDebug() << "msgBox finished";});
+    connect(msgBox, &QMessageBox::finished, msgBox, &QMessageBox::deleteLater);
+    msgBox->setIcon(QMessageBox::Information);
+    msgBox->setText(msg);
+    msgBox->setModal(false);
+    msgBox->show();
 }
 
 

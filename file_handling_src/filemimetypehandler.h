@@ -42,6 +42,12 @@ public:
     explicit FileMimeTypeHandler(std::string path,
                                  int min_icon_size = MIN_ICON_SIZE,
                                  QObject *parent = nullptr);
+
+    explicit FileMimeTypeHandler();
+    explicit FileMimeTypeHandler(const FileMimeTypeHandler& h);
+
+    FileMimeTypeHandler& operator=(const FileMimeTypeHandler& fmth);
+
     virtual ~FileMimeTypeHandler() override;
 
     std::vector<AppInfo> getAppInfosOfInstalledApps() const;

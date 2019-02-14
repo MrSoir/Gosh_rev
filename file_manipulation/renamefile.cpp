@@ -7,8 +7,30 @@ RenameFile::RenameFile(const std::string& absPathToRename)
 {
 }
 
+RenameFile::RenameFile()
+    : TextDialogWorker(QString("select a new file name"),
+                       ""),
+      m_absPathToRename("")
+{
+}
+
+RenameFile::RenameFile(const RenameFile &rf)
+    : TextDialogWorker(rf),
+      m_absPathToRename(rf.m_absPathToRename)
+{
+}
+
+RenameFile &RenameFile::operator=(const RenameFile &rf)
+{
+    TextDialogWorker::operator=(rf);
+    this->m_absPathToRename = rf.m_absPathToRename;
+    return *this;
+}
+
+
 RenameFile::~RenameFile()
 {
+    qDebug() << "~RenameFile";
 }
 
 bool RenameFile::renameFile(const std::string &absFilePath, const std::string &newFilename)

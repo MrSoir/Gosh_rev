@@ -10,6 +10,22 @@ CreateFolder::CreateFolder(const string &baseDir)
 {
 }
 
+CreateFolder::CreateFolder()
+    : CreateEntry()
+{
+}
+
+CreateFolder::CreateFolder(const CreateFolder &cf)
+    : CreateEntry(cf)
+{
+}
+
+CreateFolder &CreateFolder::operator=(const CreateFolder &cf)
+{
+    CreateEntry::operator=(cf);
+    return *this;
+}
+
 CreateFolder::~CreateFolder()
 {
 }

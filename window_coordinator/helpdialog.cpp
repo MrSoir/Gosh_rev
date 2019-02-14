@@ -45,6 +45,9 @@ HelpDialog::HelpDialog(QSize size, QPoint pos, QWidget *parent)
 
     mainLayout->addWidget(genSeparator(), rowId++, 0, 1, 2);
 
+    addLabelToGridPane(QString("Ctrl + E"), rowId,   0, mainLayout);
+    addLabelToGridPane(QString("elapse selected folders"), rowId++, 1, mainLayout);
+
     addLabelToGridPane(QString("Ctrl + F4"), rowId,   0, mainLayout);
     addLabelToGridPane(QString("close current tab"), rowId++, 1, mainLayout);
 

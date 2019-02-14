@@ -9,7 +9,6 @@
 #include <QMimeData>
 #include <QTextStream>
 #include <QVector>
-#include <QClipboard>
 #include <QMimeData>
 #include <QDrag>
 #include <QDropEvent>
@@ -44,6 +43,8 @@
 #include "file_manipulation/createfile.h"
 
 #include "widgetcreator.h"
+
+#include "viewerdata.h"
 
 #define INIT_ZOOM_FACTOR 9
 
@@ -110,9 +111,9 @@ signals:
 
     void requestFocusSGNL(QDir); // -> GrahpicsView::requestFocus()
 
-    void revalidateViewer_Entries(std::unordered_map<int_bd, FiBDViewer> entries); // -> GrahpicsView::receiveFileViewers
-    void revalidateViewer_MetaData( FileManagerInfo* fmi ); // GraphicsView::receiveFileManagerMetaData
-    void revalidateViewer_EntireData(std::unordered_map<int_bd, FiBDViewer> entries, FileManagerInfo* fmi);
+    void revalidateViewer_Entries(ViewerData entries); // -> GrahpicsView::receiveFileViewers
+    void revalidateViewer_MetaData(FileManagerInfo* fmi ); // GraphicsView::receiveFileManagerMetaData
+    void revalidateViewer_EntireData(ViewerData entries, FileManagerInfo* fmi);
 
 
     // signals for DirManager:
@@ -249,7 +250,7 @@ private:
     void revalidateViewer_entries_hlpr();
     void revalidateViewer_metaData_hlpr();
     void revalidateViewer_EntireData_hlpr();
-    std::unordered_map<int_bd, FiBDViewer> generateViewerData();
+    ViewerData generateViewerData();
 
     void clearEntryContainers();
 

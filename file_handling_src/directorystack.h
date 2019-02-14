@@ -12,6 +12,10 @@ class DirectoryStack : public QObject
     Q_OBJECT
 public:
     explicit DirectoryStack();
+    explicit DirectoryStack(const DirectoryStack& ds);
+
+    DirectoryStack& operator=(const DirectoryStack& ds);
+
     virtual ~DirectoryStack() override;
 
     void addDir(QDir dir);

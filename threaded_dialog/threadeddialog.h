@@ -6,8 +6,10 @@
 #include <QCloseEvent>
 #include <QProgressBar>
 #include <QThread>
+#include <QDebug>
 
 #include "dialogworker.h"
+#include "staticfunctions_files.h"
 
 class ThreadedDialog : public QWidget
 {
@@ -15,22 +17,26 @@ class ThreadedDialog : public QWidget
 public:
     explicit ThreadedDialog(DialogWorker* worker,
                             QWidget *parent = nullptr);
+
     virtual ~ThreadedDialog() override;
 signals:
-    void startThread(QThread::Priority priority = QThread::Priority::NormalPriority);
+    void createAndLaunchWorkerThread(QThread::Priority priority = QThread::Priority::NormalPriority);
     void cancel();
 public slots:
     void workerFinished();
+    void doCancelling();
 protected:
     void closeEvent(QCloseEvent* event) override;
 protected:
-    void createThread();
-
     virtual void connectSignals() = 0;
 
     DialogWorker* m_worker; // wird ueber signal-slot->deleteLater geloescht, muss nicht im destructor geloescht werden!!!
 
     bool m_finishedCorrectly;
+
+private:
+
+    void connectWorkerSignals();
 };
 
 #endif // THREADEDDIALOG_H

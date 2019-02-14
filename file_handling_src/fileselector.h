@@ -23,7 +23,7 @@ public:
                           std::unordered_map<std::string, std::string>* path_fileNames,
                           std::unordered_set<std::string>* folder_paths,
                           QObject* parent = nullptr);
-    ~FileSelector();
+    virtual ~FileSelector() override;
 
     bool isSelected(const std::string& path) const;
     void processSelection(std::vector<Selectable*>& selection);

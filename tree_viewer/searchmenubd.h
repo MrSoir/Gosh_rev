@@ -43,6 +43,9 @@ private:
     std::shared_ptr<DynamicFunctionCaller<QString, std::function<QString()>>> m_caller = std::shared_ptr<DynamicFunctionCaller<QString, std::function<QString()>>>();
 
     qint64 lastTmePrsd = Q_INT64_C(0);
+
+    QColor m_backgr_col1 = QColor(255,255,255, 0);
+    QColor m_backgr_col2 = QColor(255,255,255, 255);
 };
 
 #endif // SEARCHMENUBD_H

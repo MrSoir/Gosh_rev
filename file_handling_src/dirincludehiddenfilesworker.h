@@ -19,6 +19,11 @@ public:
     explicit DirIncludeHiddenFilesWorker(FileInfoBD* root_dir,
                                          bool include,
                                          QThread* threadToMoveObjectsTo);
+    explicit DirIncludeHiddenFilesWorker();
+    explicit DirIncludeHiddenFilesWorker(const DirIncludeHiddenFilesWorker& wrkr);
+
+    DirIncludeHiddenFilesWorker& operator=(const DirIncludeHiddenFilesWorker& wrkr);
+
     virtual ~DirIncludeHiddenFilesWorker() override;
 
     virtual bool blockOtherThreads() const override;

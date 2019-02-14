@@ -24,6 +24,10 @@ public:
                              bool recursive,
                              bool collapse,
                              QThread* threadToMoveObjectsTo);
+    explicit DirElapseWorker(const DirElapseWorker& de);
+
+    DirElapseWorker& operator=(const DirElapseWorker& de);
+
     virtual ~DirElapseWorker() override;
 
     virtual bool blockOtherThreads() const override;
@@ -64,6 +68,11 @@ public:
     explicit DirElapseWorkerHelper(FileInfoBD* dir,
                                    bool recursive,
                                    QThread* threadToMoveObjectsTo);
+    explicit DirElapseWorkerHelper();
+    explicit DirElapseWorkerHelper(const DirElapseWorkerHelper& hlpr);
+
+    DirElapseWorkerHelper& operator=(const DirElapseWorkerHelper& hlpr);
+
     virtual ~DirElapseWorkerHelper() override;
 
 signals:

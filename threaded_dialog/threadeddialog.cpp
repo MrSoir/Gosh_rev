@@ -1,15 +1,19 @@
 #include "threadeddialog.h"
 
-ThreadedDialog::ThreadedDialog(DialogWorker *worker,
+ThreadedDialog::ThreadedDialog(DialogWorker* worker,
                                QWidget *parent)
     : QWidget(parent),
       m_worker(worker)
 {
-    createThread();
+    connectWorkerSignals();
+
+    STATIC_FUNCTIONS::setIconToWidget(this);
+    STATIC_FUNCTIONS::setStyleSheet(this);
 }
 
 ThreadedDialog::~ThreadedDialog()
 {
+    qDebug() << "~ThreadedDialog";
 }
 
 
@@ -31,17 +35,25 @@ void ThreadedDialog::closeEvent(QCloseEvent* event)
     event->accept();
 }
 
-void ThreadedDialog::createThread()
+void ThreadedDialog::doCancelling()
 {
-    QThread* thread = new QThread();
-    m_worker->moveToThread(thread);
+    qDebug() << "doCancelling...";
+    emit cancel();
+}
 
-    connect(thread, &QThread::started,                      m_worker, &DialogWorker::run, Qt::QueuedConnection);
+void ThreadedDialog::connectWorkerSignals()
+{
+    if( !m_worker )
+    {
+        qDebug() << "ThreadedDialog::createThread - m_worker == nullptr -> Default-Constructor!!!";
+        return;
+    }
 
-    connect(this, &ThreadedDialog::startThread,     thread, &QThread::start, Qt::QueuedConnection);
-    connect(this, &ThreadedDialog::cancel,          m_worker, &DialogWorker::cancel, Qt::DirectConnection);
+    connect(this, &ThreadedDialog::createAndLaunchWorkerThread,  m_worker, &DialogWorker::createThread, Qt::QueuedConnection);
 
-    connect(m_worker, &DialogWorker::finished,              this, &ThreadedDialog::workerFinished, Qt::QueuedConnection);
+    connect(this, &ThreadedDialog::cancel,        m_worker, &DialogWorker::cancel, Qt::DirectConnection);
 
-//    emit startThread(); // wird von sub-class gestartet!
+    connect(m_worker, &DialogWorker::finished, this, &ThreadedDialog::workerFinished, Qt::QueuedConnection);
+
+//    emit startThread(); // wird von sub-class gestartet, da sonst der thread bereits laeuft und vielleicht schon fertig ist, bevor die sub-class selbst sich connecten konnte -> sub-class.deleteLater <-> worker-finished laeuft nicht...
 }

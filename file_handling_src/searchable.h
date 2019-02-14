@@ -1,12 +1,9 @@
 #ifndef SEARCHABLE_H
 #define SEARCHABLE_H
 
-
-#include <QObject>
 #include <string>
 
-class Searchable: public QObject{
-    Q_OBJECT
+class Searchable{
 public:
     virtual ~Searchable();
     virtual void setSearched(bool searched) = 0;

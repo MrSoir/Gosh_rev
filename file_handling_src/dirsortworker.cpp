@@ -28,6 +28,40 @@ DirSortWorker::DirSortWorker(Order order,
     connect(this, &DirSortWorker::runTask, this, &DirSortWorker::run);
 }
 
+DirSortWorker::DirSortWorker()
+    : DirManagerWorker(nullptr),
+      m_order(Order()),
+      m_fis(std::vector<FileInfoBD*>()),
+      m_sort_recursive(false),
+      m_threadToMoveObjectsTo(nullptr)
+{
+    connect(this, &DirSortWorker::runTask, this, &DirSortWorker::run);
+}
+
+DirSortWorker::DirSortWorker(const DirSortWorker &w)
+    : DirManagerWorker(w.parent()),
+      m_order(w.m_order),
+      m_fis(w.m_fis),
+      m_sort_recursive(w.m_sort_recursive),
+      m_threadToMoveObjectsTo(w.m_threadToMoveObjectsTo)
+{
+    connect(this, &DirSortWorker::runTask, this, &DirSortWorker::run);
+}
+
+DirSortWorker &DirSortWorker::operator=(const DirSortWorker &w)
+{
+    DirManagerWorker::operator=(w);
+    this->setParent(w.parent());
+    m_order = w.m_order;
+    m_fis = w.m_fis;
+    m_sort_recursive = w.m_sort_recursive;
+    m_threadToMoveObjectsTo = w.m_threadToMoveObjectsTo;
+
+    connect(this, &DirSortWorker::runTask, this, &DirSortWorker::run);
+
+    return *this;
+}
+
 DirSortWorker::~DirSortWorker()
 {
     qDebug() << "~DirSortWorker";

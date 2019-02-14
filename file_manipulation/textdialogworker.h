@@ -12,10 +12,15 @@ public:
     explicit TextDialogWorker(const QString &message,
                               const QString &initText,
                               QObject* parent = nullptr);
+    explicit TextDialogWorker();
+    explicit TextDialogWorker(const TextDialogWorker& tdw);
+
+    TextDialogWorker& operator=(const TextDialogWorker& tdw);
+
     virtual ~TextDialogWorker() override;
 
 public slots:
-    virtual void createThread() override;
+    virtual void launchDialog() override;
     virtual void textSelected(QString text);
 protected:
     virtual void connectThreadSignals(QThread* thread) override;

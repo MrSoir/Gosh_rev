@@ -50,6 +50,8 @@
 
 #include "widgetcloser.h"
 
+#include "file_handling_src/viewerdata.h"
+
 #define int_bd long long
 
 //using namespace ORDERED_BY;
@@ -80,7 +82,7 @@ class GraphicsView : public QGraphicsView/*,
     Q_OBJECT
 public:
     explicit GraphicsView(FileManagerInfo* fmi,
-                          std::unordered_map<int_bd, FiBDViewer> entriesToRender,
+                          ViewerData entriesToRender,
                           int hBarValue = 0,
                           int vBarValue = 0,
                           int zoomFactor = 9,
@@ -109,6 +111,8 @@ signals:
     void deepSearch(QString keyword);
 
     void elapseAllFoldersOfDepthId(int id);
+
+    void update_SGNL();
 
 //    -------------------------
 
@@ -172,14 +176,13 @@ signals:
     void requestFileViewerRevalidation(int_bd firstDispFI, int_bd lastDispFI);
 
 public slots:
-    void receiveFileViewers(std::unordered_map<int_bd, FiBDViewer> new_files);
+    void receiveFileViewers(ViewerData new_files);
     void receiveFileManagerMetaData(FileManagerInfo* fmi);
-    void receiveFileManagerData(std::unordered_map<int_bd, FiBDViewer> new_files, FileManagerInfo* fmi);
+    void receiveFileManagerData(ViewerData new_files, FileManagerInfo* fmi);
 
     void requestFocus();
 
 //    void folderChanged(std::weak_ptr<const FileInfoBD> f = std::weak_ptr<FileInfoBD>());
-    void revalidate();
 
     void focusId(int_bd id);
 
@@ -193,6 +196,9 @@ public slots:
     void killWaitingAnimation();
 
     void handleSearchKeyword(QString keyword, bool deepSearch);
+
+private slots:
+    void revalidate();
 protected:
      void EnterPressedBD(QKeyEvent* event);
      virtual void keyPressEvent(QKeyEvent *event) override;

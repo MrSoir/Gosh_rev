@@ -2,7 +2,7 @@
 
 
 GraphicsView::GraphicsView(FileManagerInfo* fmi,
-                           std::unordered_map<int_bd, FiBDViewer> entriesToRender,
+                           ViewerData entriesToRender,
                            int hBarValue,
                            int vBarValue,
                            int zoomFactor,
@@ -16,9 +16,11 @@ GraphicsView::GraphicsView(FileManagerInfo* fmi,
       m_loadingId(0),
       m_animationTimer(new QTimer(this)),
       m_fileMangrInfo(fmi),
-      m_entriesToRender(entriesToRender)
+      m_entriesToRender(entriesToRender.data)
 {
 //    qDebug() << "GraphicsView::Constructor";
+
+    connect(this, &GraphicsView::update_SGNL, this, &GraphicsView::revalidate);
 
     revalFileManagerMetaData();
 
@@ -53,7 +55,7 @@ GraphicsView::GraphicsView(FileManagerInfo* fmi,
                           static_cast<int>(-cursor_width*0.5),
                           static_cast<int>(-cursor_height*0.5)));
 
-        rePaintCanvas();
+        emit update_SGNL();
     });
 
     // wichtig: damit die scene immer ganz oben beginnt!
@@ -67,7 +69,7 @@ GraphicsView::GraphicsView(FileManagerInfo* fmi,
     connect(this->verticalScrollBar(),   &QScrollBar::valueChanged,  this, &GraphicsView::vScrollValueChanged);
     connect(this->horizontalScrollBar(), &QScrollBar::valueChanged,  this, &GraphicsView::hScrollValueChanged);
 
-    rePaintCanvas();
+    update_SGNL();
 
     setHBarValue(hBarValue);
     setVBarValue(vBarValue);
@@ -190,7 +192,7 @@ void GraphicsView::killWaitingAnimation()
         m_isLoading = false;
         this->setCursor(QCursor(Qt::ArrowCursor));
         m_animationTimer->stop();
-        update();
+        update_SGNL();
     }
 }
 
@@ -224,7 +226,6 @@ void GraphicsView::keyPressEvent(QKeyEvent *event)
     if(event->key() == Qt::Key_Escape){
         if(inSearchMode() || m_paintMenuBar || m_paintContBar){
             closeAllSubMenus();
-            update();
         }else{
             emit clearSelection();
         }
@@ -306,7 +307,12 @@ void GraphicsView::keyPressEvent(QKeyEvent *event)
         if(contrlPrsd){
             showHiddenFiles();
         }
-    }else if(event->key() == Qt::Key_Delete){
+    }else if(event->key() == Qt::Key_E){
+        if(contrlPrsd){
+            elapseSelectedFolders();
+        }
+    }
+    else if(event->key() == Qt::Key_Delete){
         emit deleteSelectedContent();
     }
 
@@ -317,8 +323,6 @@ void GraphicsView::keyPressEvent(QKeyEvent *event)
         if( !startsWithBackslash && !txt.isEmpty() )
             emit keyPressed(txt.toStdString());
     }
-
-    this->rePaintCanvas();
 }
 
 void GraphicsView::keyReleaseEvent(QKeyEvent *event)
@@ -332,12 +336,12 @@ void GraphicsView::keyReleaseEvent(QKeyEvent *event)
 //             event->key() == Qt::Key_AltGr){
 //        m_alt_prsd = false;
 //    }
-    this->rePaintCanvas();
+    emit update_SGNL();
 }
 
 void GraphicsView::resizeEvent(QResizeEvent *event)
 {
-    rePaintCanvas();
+    emit update_SGNL();
     return QGraphicsView::resizeEvent(event);
 }
 
@@ -361,14 +365,14 @@ void GraphicsView::mouseMoveEvent(QMouseEvent *event)
             m_upperRect->contains(scrAdjMouP)){
         m_paintUpperRect = false;
         m_paintMenuBar = true;
-        rePaintCanvas();
+        emit update_SGNL();
     }else if(!m_paintMenuBar){
         if (m_paintUpperRect && m_mouseP->y() > upperRectBound){
             m_paintUpperRect = false;
-            rePaintCanvas();
+            emit update_SGNL();
         }else if (!m_paintUpperRect && m_mouseP->y() <= upperRectBound){
             m_paintUpperRect = true;
-            rePaintCanvas();
+            emit update_SGNL();
         }
     }
     return QGraphicsView::mouseMoveEvent(event);
@@ -405,7 +409,7 @@ void GraphicsView::revalFileManagerMetaData()
 
 void GraphicsView::updateGraphicsView()
 {
-    this->viewport()->update();
+    emit update_SGNL();
 }
 
 int GraphicsView::getVScrollBarValue()
@@ -418,11 +422,11 @@ int GraphicsView::getHScrollBarValue()
     return this->horizontalScrollBar()->value();
 }
 
-void GraphicsView::receiveFileViewers(std::unordered_map<int_bd, FiBDViewer> new_files)
+void GraphicsView::receiveFileViewers(ViewerData new_files)
 {
 //    qDebug() << "GraphicsView::receiveFileViewers -  new_files:" << new_files.size();
-    m_entriesToRender = new_files;
-    revalidate();
+    m_entriesToRender = new_files.data;
+    emit update_SGNL();
 }
 
 void GraphicsView::receiveFileManagerMetaData(FileManagerInfo* fmi)
@@ -431,17 +435,17 @@ void GraphicsView::receiveFileManagerMetaData(FileManagerInfo* fmi)
 
     setFileManager_MetaData(fmi);
 
-    revalidate();
+    emit update_SGNL();
 }
 
-void GraphicsView::receiveFileManagerData(std::unordered_map<long long, FiBDViewer> new_files,
+void GraphicsView::receiveFileManagerData(ViewerData new_files,
                                           FileManagerInfo *fmi)
 {
 //    qDebug() << "GraphicsView::receiveFileManagerData";
 
-    m_entriesToRender = new_files;
+    m_entriesToRender = new_files.data;
     setFileManager_MetaData(fmi);
-    revalidate();
+    emit update_SGNL();
 }
 
 void GraphicsView::requestFocus()
@@ -451,7 +455,7 @@ void GraphicsView::requestFocus()
 
 void GraphicsView::focusId(int_bd id)
 {
-    revalidate(); // das revalidate macht eigetnlich das repaintAnyway komplett zunichte. aber:
+    emit update_SGNL(); // das revalidate macht eigetnlich das repaintAnyway komplett zunichte. aber:
     // wenn beim suchergebnis bisher nur 10 dateien angezeigt wurden -> vScrollBar also nicht existent
     // und nun 1000 files dargestellt werden und man versucht vScrollBar->setValue(1000) zu setzen,
     // juckt das den vScrollBar nicht und sein wert bleibt bei 0.
@@ -600,9 +604,7 @@ void GraphicsView::addMenuBar(){
 void GraphicsView::closeMenuBar()
 {
     m_paintMenuBar = false;
-    QTimer::singleShot(10,[=](){
-        rePaintCanvas();
-    });
+    emit update_SGNL();
 }
 
 void GraphicsView::addElapseBar()
@@ -991,9 +993,7 @@ void GraphicsView::addContentBar()
 void GraphicsView::closeContentBar()
 {
     m_paintContBar = false;
-    QTimer::singleShot(10,[=](){
-        rePaintCanvas();
-    });
+    emit update_SGNL();
 }
 void GraphicsView::addSearchMenu(){
     QSize menuSize(this->viewport()->width(), m_searchMenuHeight);
@@ -1141,6 +1141,9 @@ void GraphicsView::rePaintCanvas()
             auto isSearchedFunc = [=](){
                 return fiv.searched();
             };
+            auto isSearchFocusedFunc = [=](){
+                return fiv.searchFocused();
+            };
 
             auto caller = std::make_shared<DynamicFunctionCaller<QString, std::function<bool()>>>();
             caller->setFunction(QString("elapse"), elapseFunc);
@@ -1152,6 +1155,7 @@ void GraphicsView::rePaintCanvas()
             caller->setFunction(QString("isSelected"), isSelectedFunc);
             caller->setFunction(QString("setAsRoot"), setSelectedFoldToRootFunc);
             caller->setFunction(QString("isSearched"), isSearchedFunc);
+            caller->setFunction(QString("isSearchFocused"), isSearchFocusedFunc);
             caller->setFunction(QString("containsFiles"), containsFilesFunc);
 //            caller->setFunction(QString("executeAction"), [=](FILE_ACTION action){this->executeFileAction(action);});
 
@@ -1189,12 +1193,16 @@ void GraphicsView::rePaintCanvas()
             auto isSearchedFunc = [=](){
                 return fiv.searched();
             };
+            auto isSearchFocusedFunc = [=](){
+                return fiv.searchFocused();
+            };
 
             auto caller = std::make_shared<DynamicFunctionCaller<QString, std::function<bool()>>>();
             caller->setFunction(QString("isDir"), isDirFunc);
             caller->setFunction(QString("select"), selectFunc);
             caller->setFunction(QString("isSelected"), isSelectedFunc);
             caller->setFunction(QString("isSearched"), isSearchedFunc);
+            caller->setFunction(QString("isSearchFocused"), isSearchFocusedFunc);
 
             paintFileInfo(fiv, row, col, caller);
         };
@@ -1254,6 +1262,8 @@ void GraphicsView::rePaintCanvas()
             m_graphicsGroup->addToGroup(rotSlctr);
         }
     }
+
+    m_scene->update();
 }
 
 void GraphicsView::setWaitingBarSizeAndPos()
@@ -1379,8 +1389,8 @@ void GraphicsView::zoomOut()
     if(m_fontSize > 5){
         --m_fontSize;
         revalidateRowHeight();
-        QTimer::singleShot(0, [=](){rePaintCanvas();});
         emit zoomFactorChanged(m_fontSize);
+        emit update_SGNL();
     }
 }
 
@@ -1389,8 +1399,8 @@ void GraphicsView::zoomIn()
     if(m_fontSize < 20){
         ++m_fontSize;
         revalidateRowHeight();
-        QTimer::singleShot(0, [=](){rePaintCanvas();});
         emit zoomFactorChanged(m_fontSize);
+        emit update_SGNL();
     }
 }
 
@@ -1509,6 +1519,6 @@ void GraphicsView::revalFirstAndLastDisplayedFI(bool revalIfStillInBounds)
         emit requestFileViewerRevalidation(m_firstDispFI, m_lastDispFI);
     }else if(revalIfStillInBounds)
     {
-        revalidate();
+        emit update_SGNL();
     }
 }
