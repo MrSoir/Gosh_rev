@@ -8,7 +8,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     STATIC_FUNCTIONS::setIconToWidget(this);
 
-    this->resize(800,600);
+    this->resize(900,600);
 }
 
 MainWindow::~MainWindow()

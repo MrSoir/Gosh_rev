@@ -23,7 +23,7 @@ WindowCoordinator::WindowCoordinator(QVector<QDir> initPaths,
     }
     else{
         addWindow();
-//        addWindow();
+        addWindow();
     }
 }
 

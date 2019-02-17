@@ -24,6 +24,7 @@ class FileSearcher : public QObject
 public:
     explicit FileSearcher(std::unordered_map<std::string, std::string>* path_fileName,
                           std::unordered_map<std::string, int_bd>* path_ord,
+                          std::unordered_map<std::string, std::string>* entry_to_firstElapsedEntry,
                           QObject *parent = nullptr);
     virtual ~FileSearcher() override;
 
@@ -46,7 +47,8 @@ signals:
 public slots:
     void entriesChanged();
     void entriesChanged(std::unordered_map<std::string, std::string>* path_fileName,
-                        std::unordered_map<std::string, int_bd>* path_ord);
+                        std::unordered_map<std::string, int_bd>* path_ord,
+                        std::unordered_map<std::string, std::string>* entry_to_firstElapsedEntry);
 
     void search_QString(QString key_word);
     void search(std::string key_word);
@@ -72,15 +74,21 @@ private:
 
     void showNoMatchesFoundDialog();
 
+    std::string getFirstElapseEntryPath(const std::string path) const;
+    void revalidateFirstElapsedEntryPaths();
+    void findAndInsertFirstElapsedEntryPath(const std::string& path);
+
     //----------------------------------------
 
     std::string m_key_word; // string that is searched for
     std::unordered_set<std::string> m_matched_paths; // all paths, which's fileNames contain the m_key_word
-    std::unordered_map<int_bd, std::string> m_ord_matchedPaths;
+    std::unordered_set<std::string> m_matched_firstElapsedEntryPaths;
+    std::unordered_map<int_bd, std::string> m_searchIndex_matchedPaths;
 
 //    std::unordered_set<std::string> m_paths; // all paths
-    std::unordered_map<std::string, std::string>* m_path_fileName; // map: fileName -> path
-    std::unordered_map<std::string, int_bd>* m_path_ord;
+    std::unordered_map<std::string, std::string>* m_path_fileName_disp; // map: fileName -> path
+    std::unordered_map<std::string, int_bd>* m_path_ord_disp;
+    std::unordered_map<std::string, std::string>* m_entry_to_firstElapsedEntry;
 
     bool m_inSearchMode;
     int_bd  m_focused_match_id;

@@ -29,8 +29,9 @@ FileManager::FileManager(std::string root_path,
 
       m_dirStack(new DirectoryStack()),
 
-      m_searcher(new FileSearcher(&m_path_fileNames_colpsd,
-                                  &m_entries_order_colpsd,
+      m_searcher(new FileSearcher(&m_path_fileNames,
+                                  &m_entries_order,
+                                  &m_entry_to_firstElapsedFolder,
                                   this)),
       m_selector(new FileSelector(&m_paths_colpsd,
                                   &m_order_entries_colpsd,
@@ -1317,15 +1318,18 @@ QString getPaddingString(int cnt)
 
 void FileManager::printEntries()
 {
-    for(std::size_t i=0; i < m_paths_colpsd.size(); ++i)
+    for(std::size_t i=0; i < m_paths.size(); ++i)
     {
-        auto path = m_order_entries_colpsd[static_cast<int_bd>(i)];
+        auto path = m_order_entries[static_cast<int_bd>(i)];
         auto order = m_entries_order[path];
         int depth = m_path_depthId[path];
+        auto firstElpsedEntryPath = m_entry_to_firstElapsedFolder.find(path) != m_entry_to_firstElapsedFolder.end() ? m_entry_to_firstElapsedFolder[path] : "None!!!";
         QString padding = getPaddingString(depth);
-        qDebug() << QString("%1: %2%3   -> order: %4").arg(i)
+        qDebug() << QString("%1: %2%3   (firstElpsed: %4)   -> order: %5")
+                                     .arg(i)
                                      .arg(padding)
                                      .arg(QString::fromStdString(path))
+                                     .arg(QString::fromStdString(firstElpsedEntryPath))
                                      .arg(order);
     }
 }
@@ -1386,12 +1390,12 @@ void FileManager::revalidateTree()
 }
 
 void FileManager::revalidateTree_hlpr(DirManagerInfo* entry,
-                                   DirManagerInfo* firstNonCollapsedFold,
-                                   bool isCollapsed,
-                                   int_bd* cntr,
-                                   int_bd* cntr_clpsd,
-                                   int depthId,
-                                   int* maxDepthId)
+                                      DirManagerInfo* firstNonCollapsedFold,
+                                      bool isCollapsed,
+                                      int_bd* cntr,
+                                      int_bd* cntr_clpsd,
+                                      int depthId,
+                                      int* maxDepthId)
 {
     if(*maxDepthId < depthId)
         *maxDepthId = depthId;
@@ -1440,7 +1444,7 @@ void FileManager::revalidateTree_hlpr(DirManagerInfo* entry,
 
         for(auto* sub_dir: entry->subDirs_sorted)
         {
-            DirManagerInfo* fncf = isCollapsed ? firstNonCollapsedFold : sub_dir;
+            DirManagerInfo* fncf = subs_collapsed ? firstNonCollapsedFold : sub_dir;
 
             revalidateTree_hlpr(sub_dir, fncf, subs_collapsed, cntr, cntr_clpsd, depthId + 1, maxDepthId);
         }
@@ -1451,6 +1455,8 @@ void FileManager::revalidateTree_hlpr(DirManagerInfo* entry,
             const auto& file_name = filePath_fileName.second;
 
             m_paths.insert(file_path);
+
+            m_entry_to_firstElapsedFolder[file_path] = subs_collapsed ? firstNonCollapsedFold->absPath : file_path;
 
             m_path_depthId[file_path] = depthId + 1;
 
