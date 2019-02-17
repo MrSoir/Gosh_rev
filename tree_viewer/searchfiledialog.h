@@ -19,6 +19,8 @@
 
 //class DialogOptionsWidget;
 
+#include "staticfunctions.h"
+
 class SearchFileDialog : public QWidget
 {
     Q_OBJECT

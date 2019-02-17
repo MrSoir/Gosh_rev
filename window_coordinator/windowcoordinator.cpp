@@ -29,6 +29,7 @@ WindowCoordinator::WindowCoordinator(QVector<QDir> initPaths,
 
 void WindowCoordinator::close()
 {
+    m_closed = true;
     while(m_windows.size() > 0)
     {
         auto* window = m_windows[0];
@@ -41,6 +42,9 @@ void WindowCoordinator::close()
 
 void WindowCoordinator::openFoldersInTab_SLOT(std::vector<std::string> paths)
 {
+    if(m_closed)
+        return;
+
     QVector<QDir> dirs;
     for(const auto& path: paths)
     {
@@ -68,6 +72,9 @@ QWidget* WindowCoordinator::createWidget()
 {
     WindowCoordinatorPane* pane = new WindowCoordinatorPane(this);
     connectWCPane(pane);
+    connect(pane, &WindowCoordinatorPane::widgetClosed_SGNL, [=](){
+        disconnectWCPane(pane);
+    });
     return pane;
 }
 
@@ -88,6 +95,9 @@ Orientation::ORIENTATION WindowCoordinator::getOrientation()
 
 void WindowCoordinator::removeWindow(int id)
 {
+    if(m_closed)
+        return;
+
     if(id < m_windowCounter && id >= 0 && m_windows.size() > 1){
 
         if(m_windows[id]){
@@ -188,25 +198,35 @@ void WindowCoordinator::changeOrientation()
 
 void WindowCoordinator::setIncludeHiddenFiles(bool inclHdnFls)
 {
+    if(m_closed)
+        return;
     emit includeHiddenFiles_SGNL(inclHdnFls);
 }
 
 void WindowCoordinator::includeHiddenFiles()
 {
+    if(m_closed)
+        return;
     emit includeHiddenFiles_SGNL(true);
 }
 
 void WindowCoordinator::excludeHiddenFiles()
 {
+    if(m_closed)
+        return;
     emit includeHiddenFiles_SGNL(false);
 }
 
 void WindowCoordinator::emitLabelChanged(QDir newLabel)
 {
+    if(m_closed)
+        return;
     m_curFocusedRootPath = newLabel.absolutePath();
     emit labelChanged(newLabel);
 }
 void WindowCoordinator::focusedWindowChanged(QDir dir)
 {
+    if(m_closed)
+        return;
     emitLabelChanged(dir);
 }

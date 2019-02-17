@@ -43,7 +43,7 @@ private:
     int m_workersRunning;
     std::vector<DirManagerWorker*> m_workersToRun;
 
-    bool m_closed;
+    bool m_closed = false;
 };
 
 #endif // DIRMANAGERQUEUE_H

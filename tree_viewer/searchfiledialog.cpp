@@ -4,6 +4,8 @@ SearchFileDialog::SearchFileDialog(QWidget *parent) : QWidget(parent)
 {
     setFocusPolicy(Qt::StrongFocus);
 
+    StaticFunctions::setIconToWidget(this);
+
     QVBoxLayout* layt = new QVBoxLayout();
 
     m_searchKeyword = new QLineEdit();

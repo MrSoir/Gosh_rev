@@ -14,13 +14,14 @@ FileManagerInfo::FileManagerInfo()
       m_searchIndx(0),
       m_searchRsltsCnt(0),
 
-      m_includeHiddenFiles(0),
-      m_inSearchMode(0),
-      m_foldersSelected(0),
-      m_filesSelected(0),
-      m_selctnCntnsZpdFle(0),
+      m_includeHiddenFiles(false),
+      m_inSearchMode(false),
+      m_executingDeepSearch(false),
+      m_foldersSelected(false),
+      m_filesSelected(false),
+      m_selctnCntnsZpdFle(false),
 
-      m_depthIdElapsed(0)
+      m_depthIdElapsed(std::vector<bool>())
 {
 }
 
@@ -38,6 +39,7 @@ FileManagerInfo::FileManagerInfo(const FileManager& fmi)
 
       m_includeHiddenFiles(fmi.includeHiddenFiles()),
       m_inSearchMode(fmi.inSearchMode()),
+      m_executingDeepSearch(fmi.executingDeepSearch()),
       m_foldersSelected(fmi.foldersSelected()),
       m_filesSelected(fmi.filesSelected()),
       m_selctnCntnsZpdFle(fmi.selectionContainsZipFiles()),
@@ -60,6 +62,7 @@ FileManagerInfo::FileManagerInfo(FileManager* fmi)
 
       m_includeHiddenFiles(fmi->includeHiddenFiles()),
       m_inSearchMode(fmi->inSearchMode()),
+      m_executingDeepSearch(fmi->executingDeepSearch()),
       m_foldersSelected(fmi->foldersSelected()),
       m_filesSelected(fmi->filesSelected()),
       m_selctnCntnsZpdFle(fmi->selectionContainsZipFiles()),
@@ -82,35 +85,13 @@ FileManagerInfo::FileManagerInfo(const FileManagerInfo& fmi)
 
       m_includeHiddenFiles(fmi.m_includeHiddenFiles),
       m_inSearchMode(fmi.m_inSearchMode),
+      m_executingDeepSearch(fmi.executingDeepSearch()),
       m_foldersSelected(fmi.m_foldersSelected),
       m_filesSelected(fmi.m_filesSelected),
       m_selctnCntnsZpdFle(fmi.m_selctnCntnsZpdFle),
 
       m_depthIdElapsed(fmi.m_depthIdElapsed)
 {
-}
-
-FileManagerInfo* FileManagerInfo::operator=(FileManagerInfo* fmi)
-{
-    m_curRootPath = fmi->m_curRootPath;
-    m_curSearchRslt = fmi->m_curSearchRslt;
-
-    m_maxDepth = fmi->m_maxDepth;
-    m_selectionCount = fmi->m_selectionCount;
-    m_displayedFileCount = fmi->m_displayedFileCount;
-    m_indxCurSearchRslt = fmi->m_indxCurSearchRslt;
-    m_searchIndx = fmi->m_searchIndx;
-    m_searchRsltsCnt = fmi->m_searchRsltsCnt;
-
-    m_includeHiddenFiles = fmi->m_includeHiddenFiles;
-    m_inSearchMode = fmi->m_inSearchMode;
-    m_foldersSelected = fmi->m_foldersSelected;
-    m_filesSelected = fmi->m_filesSelected;
-    m_selctnCntnsZpdFle = fmi->m_selctnCntnsZpdFle;
-
-    m_depthIdElapsed = fmi->m_depthIdElapsed;
-
-    return this;
 }
 
 FileManagerInfo& FileManagerInfo::operator=(const FileManagerInfo& fmi)
@@ -127,6 +108,7 @@ FileManagerInfo& FileManagerInfo::operator=(const FileManagerInfo& fmi)
 
     m_includeHiddenFiles = fmi.m_includeHiddenFiles;
     m_inSearchMode = fmi.m_inSearchMode;
+    m_executingDeepSearch = fmi.m_executingDeepSearch;
     m_foldersSelected = fmi.m_foldersSelected;
     m_filesSelected = fmi.m_filesSelected;
     m_selctnCntnsZpdFle = fmi.m_selctnCntnsZpdFle;
@@ -135,6 +117,11 @@ FileManagerInfo& FileManagerInfo::operator=(const FileManagerInfo& fmi)
 
     return *this;
 }
+
+//FileManagerInfo::~FileManagerInfo()
+//{
+
+//}
 
 //------------------------------------------------------------------
 
@@ -181,6 +168,11 @@ bool FileManagerInfo::includeHiddenFiles() const
 bool FileManagerInfo::inSearchMode() const
 {
     return m_inSearchMode;
+}
+
+bool FileManagerInfo::executingDeepSearch() const
+{
+    return m_executingDeepSearch;
 }
 
 bool FileManagerInfo::singleFolderSelected() const

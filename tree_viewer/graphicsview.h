@@ -101,6 +101,8 @@ public:
     int getHScrollBarValue();
 
 signals:
+    void cancelDeepSearch_SGNL();
+
     void requestCloseCurrentTab();
     void requestOpenFoldersInTab();
 
@@ -279,6 +281,10 @@ private:
 
     void revalFirstAndLastDisplayedFI(bool revalIfStillInBounds=false);
 
+    void paintCancelCurrentThreadWorker();
+
+    void cancelDeepSearch();
+
     QGraphicsScene* m_scene;
 
     int m_fontSize;
@@ -314,8 +320,9 @@ private:
     int m_contBarWidth = 45;
 
     bool m_shwRtSel = true;
-    int m_rootSelWidth = 80;
-    int m_rootSelHeight = 20;
+    bool m_showCancelBtn = true;
+    QSize m_rootSelSize = QSize(50,50);
+    QSize m_cancelBtnSize = QSize(80,50);
     int m_elapseBarHeight = 15;
     QColor m_elapseCol1 = QColor(255,255,255, 255),
            m_elapseCol2 = QColor(200,255,200, 255);
@@ -327,7 +334,6 @@ private:
     QTimer* m_animationTimer;
     WaitingBarGraphicsItem* m_waitingBar;
 
-    QSize m_cancelBtnSize;
     GraphicItemsBD::PixmapRect* m_cancelBtn = nullptr;
     bool m_waitingBarIsAddedToScene = false;
     int m_waitingBarHeight = 40;

@@ -45,6 +45,7 @@ namespace COPY_MOVE
     public slots:
         void cancel();
         void run();
+        void receiveUserSelectedString(QString s);
     private:
         bool deleteFile(SOURCE_TARGET::FileTree* tree);
 

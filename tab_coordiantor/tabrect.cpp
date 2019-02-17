@@ -52,6 +52,8 @@ void TabRect::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, Q
 {
     GraphicItemsBD::GraphicsItemBD::paint(painter, option, widget);
 
+    painter->setFont(m_font);
+
     QRectF rct = boundingRect();
     painter->setClipRect(rct);
 
@@ -98,7 +100,7 @@ void TabRect::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, Q
                         m_text_paddingXright,
                         r_height);
 
-    QColor crossCol = mouInClos ? m_textCol2 : m_textCol1;
+    QColor crossCol = mouInClos ? m_closeXCol_hover : m_textCol1;
     painter->setPen(QPen(crossCol));
     QPoint crossCenter( t_right + static_cast<int>(m_text_paddingXright*0.5),
                         r_centY );
@@ -146,6 +148,14 @@ void TabRect::hoverMoveEvent(QGraphicsSceneHoverEvent *event)
 
 void TabRect::paintCross(QPoint centerP, int width, int height, QPainter* painter)
 {
+    painter->save();
+
+    if(mouInClos)
+    {
+        QPen pen(painter->pen());
+        pen.setWidth(3);
+        painter->setPen(pen);
+    }
     QPoint p1(static_cast<int>(centerP.x() - width*0.5), static_cast<int>(centerP.y() - height*0.5));
     QPoint p2(static_cast<int>(centerP.x() + width*0.5), static_cast<int>(centerP.y() + height*0.5));
     painter->drawLine(p1,p2);
@@ -153,19 +163,14 @@ void TabRect::paintCross(QPoint centerP, int width, int height, QPainter* painte
     p1 = QPoint(static_cast<int>(centerP.x() - width*0.5), static_cast<int>(centerP.y() + height*0.5));
     p2 = QPoint(static_cast<int>(centerP.x() + width*0.5), static_cast<int>(centerP.y() - height*0.5));
     painter->drawLine(p1,p2);
+
+    painter->restore();
 }
 
 void TabRect::revalMousePos(QPointF mouP)
 {
-    if( inClose(mouP) )
-    {
-        mouIn = false;
-        mouInClos = true;
-    }else
-    {
-        mouIn = true;
-        mouInClos = false;
-    }
+    mouInClos = inClose(mouP);
+    mouIn = !mouInClos;
 }
 
 QPainterPath TabRect::getBoundingPath() const

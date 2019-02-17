@@ -7,8 +7,7 @@ WindowCoordinatorPane::WindowCoordinatorPane(WindowCoordinator* wc,
                                              int windowCount,
                                              Orientation::ORIENTATION orientation,
                                              QWidget *parent)
-    : //QWidget(parent),
-      WidgetCloser(parent),
+    : WidgetCloser(parent),
 
       m_windowCoordinator(wc),
       m_splitterRatios(splitterRatios),
@@ -17,8 +16,6 @@ WindowCoordinatorPane::WindowCoordinatorPane(WindowCoordinator* wc,
       m_removeDialogSize(QSize(0,0))
 {
     connect(this, &WindowCoordinatorPane::widgetClosed_SGNL, this, &WindowCoordinatorPane::widgetClosed);
-
-    revalidateLayout();
 }
 
 WindowCoordinatorPane::~WindowCoordinatorPane()
@@ -56,8 +53,6 @@ void WindowCoordinatorPane::clearSplitter()
 
 void WindowCoordinatorPane::paintEvent(QPaintEvent *event)
 {
-    Q_UNUSED(event)
-
     QPainter* painter = new QPainter();
 
     if(!painter->isActive())
@@ -65,11 +60,16 @@ void WindowCoordinatorPane::paintEvent(QPaintEvent *event)
 
     painter->setBrush(QColor(255,255,255));
     painter->drawRect(QRect(0,0, this->width(), this->height()));
+    painter->end();
+    delete painter;
+
     QWidget::paintEvent(event);
 }
 
 void WindowCoordinatorPane::keyPressEvent(QKeyEvent *event)
 {
+    if(m_closed)
+        return;
     Q_UNUSED(event);
     if(event->key() == Qt::Key_F11)
     {
@@ -79,6 +79,9 @@ void WindowCoordinatorPane::keyPressEvent(QKeyEvent *event)
 
 void WindowCoordinatorPane::resizeEvent(QResizeEvent *event)
 {
+    if(m_closed)
+        return;
+
     Q_UNUSED(event);
 
     int edge = static_cast<int>(std::min(this->width(), this->height()) * m_dialogSizeFactor);
@@ -91,6 +94,8 @@ void WindowCoordinatorPane::resizeEvent(QResizeEvent *event)
 
     emit setRemoveDialogSize(m_removeDialogSize);
     emit setRemoveDialogPosition(newPos);
+
+    revalidateLayout();
 
     QWidget::resizeEvent(event);
 }
@@ -111,6 +116,8 @@ QList<QList<int> > WindowCoordinatorPane::generateSplitterRatios()
 
 void WindowCoordinatorPane::splitterRatiosChanged()
 {
+    if(m_closed)
+        return;
     emit splitterRatiosChangedSGNL( generateSplitterRatios() );
 }
 

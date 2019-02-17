@@ -767,23 +767,27 @@ void FileInfoBD::doSorting()
 //    1. sort folders:
     std::vector<FileInfoBD*> subFolds(m_sub_folds.begin(), m_sub_folds.end());
 
-    if(m_order.ordered_by == ORDERED_BY::NAME)
-    {
-        auto sortFunc = genSortingFunction<FileInfoBD*, std::string>([](FileInfoBD* fi){return StringOps::toLower(fi->fileName());});
-        std::sort(subFolds.begin(), subFolds.end(), sortFunc);
-    }else if(m_order.ordered_by == ORDERED_BY::SIZE)
-    {
-        auto sortFunc = genSortingFunction<FileInfoBD*, qint64>([](FileInfoBD* fi){return fi->m_fileInfo.size();});
-        std::sort(subFolds.begin(), subFolds.end(), sortFunc);
-    }else if(m_order.ordered_by == ORDERED_BY::TYPE)
-    {
-        auto sortFunc = genSortingFunction<FileInfoBD*, std::string>([](FileInfoBD* fi){return StringOps::toLower(fi->m_fileInfo.completeSuffix().toStdString());});
-        std::sort(subFolds.begin(), subFolds.end(), sortFunc);
-    }else if(m_order.ordered_by == ORDERED_BY::MOD_DATE)
-    {
-        auto sortFunc = genSortingFunction<FileInfoBD*, qint64>([](FileInfoBD* fi){return fi->m_fileInfo.lastModified().toMSecsSinceEpoch();});
-        std::sort(subFolds.begin(), subFolds.end(), sortFunc);
-    }
+//    folders immer nach ORDERED_BY::NAME sortieren, alles andere macht wenig sinn! nur ReverseSorting wird angewendet!:
+    auto sortFunc = genSortingFunction<FileInfoBD*, std::string>([](FileInfoBD* fi){return StringOps::toLower(fi->fileName());});
+    std::sort(subFolds.begin(), subFolds.end(), sortFunc);
+
+//    if(m_order.ordered_by == ORDERED_BY::NAME)
+//    {
+//        auto sortFunc = genSortingFunction<FileInfoBD*, std::string>([](FileInfoBD* fi){return StringOps::toLower(fi->fileName());});
+//        std::sort(subFolds.begin(), subFolds.end(), sortFunc);
+//    }else if(m_order.ordered_by == ORDERED_BY::SIZE)
+//    {
+//        auto sortFunc = genSortingFunction<FileInfoBD*, qint64>([](FileInfoBD* fi){return fi->m_fileInfo.size();});
+//        std::sort(subFolds.begin(), subFolds.end(), sortFunc);
+//    }else if(m_order.ordered_by == ORDERED_BY::TYPE)
+//    {
+//        auto sortFunc = genSortingFunction<FileInfoBD*, std::string>([](FileInfoBD* fi){return StringOps::toLower(fi->m_fileInfo.completeSuffix().toStdString());});
+//        std::sort(subFolds.begin(), subFolds.end(), sortFunc);
+//    }else if(m_order.ordered_by == ORDERED_BY::MOD_DATE)
+//    {
+//        auto sortFunc = genSortingFunction<FileInfoBD*, qint64>([](FileInfoBD* fi){return fi->m_fileInfo.lastModified().toMSecsSinceEpoch();});
+//        std::sort(subFolds.begin(), subFolds.end(), sortFunc);
+//    }
 
     m_sortedFoldPaths_incl_hidden.reserve(subFolds.size());
     m_sortedFoldPaths_no_hidden.reserve(subFolds.size()); // nicht schaedlich, wenn mehr reserviert als spater tats. belegt wird -> std::vector::size() gibt dann lediglich die tats. anzahl elemente an, nicht die anzahl, die in std::vector::reserve gesetzt wurde!
@@ -918,8 +922,12 @@ std::function<bool(T,T)> FileInfoBD::genSortingFunction(std::function<K(T)> char
 
 //-----------------------------------------------------
 
+#include <QThread>
 void FileInfoBD::revalFolderContent()
 {
+
+//    this->thread()->sleep(3);
+
     if(m_cancelled_revalidation)
         return;
 

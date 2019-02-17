@@ -10,7 +10,23 @@
 class Process: public QProcess
 {
 public:
+    explicit Process(QString program,
+                     QStringList params);
     explicit Process();
-    ~Process();
+
+    virtual ~Process() override;
+signals:
+public slots:
+    void start_Delayed();
+    void cancel();
+private:
+    void connectSignals();
+
+    //-----------------------------
+
+    QString m_program;
+    QStringList m_params;
+
+    bool m_cancelled = false;
 };
 #endif // PROCESS_H

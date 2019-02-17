@@ -44,8 +44,8 @@ namespace GraphicItemsBD
                  const QPoint& pos,
                  const QColor& gradCol1,
                  const QColor& gradCol2,
-                 const QColor& selectionCol1 = QColor(255,255,255),
-                 const QColor& selectionCol2 = QColor(255,255,255),
+                 const QColor& selectionCol1 = QColor(200,255,200),
+                 const QColor& selectionCol2 = QColor(200,255,200),
                  QGraphicsItem* parent = nullptr);
         virtual ~ButtonBD() override;
 
@@ -55,6 +55,7 @@ namespace GraphicItemsBD
 
         virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget) override;
         virtual void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
+        virtual void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) override;
         virtual void hoverEnterEvent(QGraphicsSceneHoverEvent *event) override;
         virtual void hoverLeaveEvent(QGraphicsSceneHoverEvent *event) override;
         virtual void hoverMoveEvent(QGraphicsSceneHoverEvent * event) override;
@@ -65,8 +66,11 @@ namespace GraphicItemsBD
         QColor m_gradCol2;
         QColor m_selectCol1;
         QColor m_selectCol2;
+//        QColor m_clickCol1 = QColor(200,255,200, 255);
+//        QColor m_clickCol2 = QColor(100,255,100, 255);
 
         bool mouIn = false;
+        bool mouClick = false;
         std::function<void()> m_callFunc;
 
         qint64 lastTmePrsd = QDateTime::currentMSecsSinceEpoch();
@@ -79,16 +83,18 @@ namespace GraphicItemsBD
                  const QPoint& pos,
                  const QColor& gradCol1,
                  const QColor& gradCol2,
-                 const QColor& selectionCol1 = QColor(255,255,255),
-                 const QColor& selectionCol2 = QColor(255,255,255),
+                 const QColor& selectionCol1 = QColor(200,255,200, 255),
+                 const QColor& selectionCol2 = QColor(200,255,200, 255),
                  const QColor& textCol = QColor(0,0,0),
                  QGraphicsItem* parent = nullptr);
 
         virtual ~TextRect() override;
 
         void setFont(const QFont& font);
+        QFont font() const;
 
         void setText(QString str, int paddingX = 2, int paddingY = 2);
+        void setTextColor(QColor textCol);
 
         void revalidateSize(float paddingX = 2, float paddingY = 2) override;
 

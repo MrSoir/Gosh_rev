@@ -122,6 +122,7 @@ void COPY_MOVE::CopyFilesHelper::run()
                 if(fi.exists())
                 {
                     absTarPath = STATIC_FUNCTIONS::askUserForNoneExistingFilePath(absTarPath);
+                    qDebug() << "absTarPath: " << absTarPath;
                     fi = QFileInfo(absTarPath);
                     if(absTarPath.isEmpty() || fi.exists())
                     {
@@ -160,6 +161,11 @@ void COPY_MOVE::CopyFilesHelper::run()
     }
 
     emit finished();
+}
+
+void COPY_MOVE::CopyFilesHelper::receiveUserSelectedString(QString s)
+{
+
 }
 
 bool COPY_MOVE::CopyFilesHelper::deleteFile(SOURCE_TARGET::FileTree *tree)

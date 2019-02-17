@@ -1,5 +1,6 @@
 #include "staticfunctions_files.h"
 
+QThread* STATIC_FUNCTIONS::MAIN_THREAD = nullptr;
 
 unsigned long long STATIC_FUNCTIONS::evaluateFileCount(const std::vector<string> &paths)
 {
@@ -17,7 +18,9 @@ unsigned long long STATIC_FUNCTIONS::evaluateFileCount(const std::vector<string>
 // askUserForNoneExistingFilePath -> name ist irrefuehrend: path wird gegeben -> falls path existiert, wird lediglich vom user ein anderer fileName gefragt.
 // Directory des absFilePath bleibt erhalten!
 // falls ein Directory als path uebergeben wird, wird vom user ein directory-name verlangt, der noch nicht existiert, d.h.: basePath(path) + userDirName
-QString STATIC_FUNCTIONS::askUserForNoneExistingFilePath(const QString &path, std::function<bool (const QString&)> fileNameValidator)
+QString STATIC_FUNCTIONS::askUserForNoneExistingFilePath(const QString &path,
+                                                         std::function<bool (const QString&)> fileNameValidator,
+                                                         bool askForDir)
 {
     QFileInfo fi(path);
 
@@ -26,8 +29,6 @@ QString STATIC_FUNCTIONS::askUserForNoneExistingFilePath(const QString &path, st
 
     if(fi.exists())
     {
-        int cntr = 0, LOOP_MAX = 2;
-
         auto filePathValidator = [=](const QString& fileName){
             QString newAbsPath = tarBasePath + QDir::separator() + fileName;
             if( QFileInfo(newAbsPath).exists() )
@@ -36,25 +37,65 @@ QString STATIC_FUNCTIONS::askUserForNoneExistingFilePath(const QString &path, st
             return fileNameValidator(fileName);
         };
 
-        while(fi.exists())
-        {
-            QString newFileName = genStringGetterDialog( "File does already exist!",
-                                                         "'" + fi.fileName() + " does already exists - please choose another file name:",
-                                                         fi.fileName(),
-                                                         filePathValidator);
-            tarPath = PATH::getBasePath(tarPath) + QDir::separator() + newFileName;
+        QString newFileName = "";
+        QString s = askForDir ? "Directory" : "File";
+        StringGetterDialogCreator dialogCreator;
+        dialogCreator.moveToThread(QApplication::instance()->thread());
 
-            fi = QFileInfo(tarPath);
+        StringGetterDialog* dialog = dialogCreator.createDialog(s + " does already exist!",
+                                                                 QString("please select a %1 name").arg(s.toLower()),
+                                                                 "'" + fi.fileName() + " does already exists or contains invalid characters - please choose another " + s.toLower() + " name!",
+                                                                 fi.fileName(),
+                                                                 filePathValidator);
+        if(!dialog)
+            return QString("");
 
-            if(++cntr >= LOOP_MAX)
-                break;
-        }
-        return cntr < LOOP_MAX ? tarPath : "";
-    }else
+        QObject::connect(dialog, &StringGetterDialog::stringSelected, [&](const QString& s){
+            newFileName = s;
+        });
+
+        QMetaObject::invokeMethod(dialog, "show", Qt::QueuedConnection);
+
+//        dialog->exec();
+
+        qDebug() << "selected string: " << newFileName;
+
+        if(newFileName.isEmpty())
+            return QString("");
+
+        return PATH::getBasePath(tarPath) + QDir::separator() + newFileName;
+
+//        int cntr = 0, LOOP_MAX = 2;
+
+//        while(fi.exists())
+//        {
+//            QString s = askForDir ? "Directory" : "File";
+//            QString newFileName = genStringGetterDialog( s + " does already exist!",
+//                                                         "'" + fi.fileName() + " does already exists or contains invalid characters - please choose another " + s.toLower() + " name:",
+//                                                         fi.fileName(),
+//                                                         filePathValidator);
+//            tarPath = PATH::getBasePath(tarPath) + QDir::separator() + newFileName;
+
+//            fi = QFileInfo(tarPath);
+
+//            if(++cntr >= LOOP_MAX)
+//                break;
+//        }
+//        return cntr < LOOP_MAX ? tarPath : "";
+    }else{
         return path;
+    }
+}
+QString STATIC_FUNCTIONS::askUserForNoneExistingDirPath(const QString& path,
+                                                        std::function<bool(const QString& fileName)> dirNameValidator)
+{
+    return askUserForNoneExistingFilePath(path, dirNameValidator, true);
 }
 
-QString STATIC_FUNCTIONS::genStringGetterDialog(const QString &headline, const QString &message, const QString &initInput, std::function<bool (const QString &)> stringValidator)
+QString STATIC_FUNCTIONS::genStringGetterDialog(const QString &headline,
+                                                const QString &message,
+                                                const QString &initInput,
+                                                std::function<bool (const QString &)> stringValidator)
 {
     QString retVal = "";
 
@@ -81,42 +122,78 @@ QString STATIC_FUNCTIONS::genStringGetterDialog(const QString &headline, const Q
 
 //--------------------------------------------------------------------------------------------------
 
-Process* STATIC_FUNCTIONS::execPythonScript(const QString &scriptPath, const QVector<QString> &args, bool waitForFinished)
+Process* STATIC_FUNCTIONS::execPythonScript(const QString &scriptPath,
+                                            const QVector<QString> &args,
+                                            bool waitForFinished,
+                                            bool execute)
 {
-    Process* p = new Process();
-    QStringList params;
+    QVector<QString> params;
 
-    params << scriptPath;
+    params.push_back( scriptPath );
     for(const auto& arg: args)
-        params << arg;
+        params.push_back( arg );
 
-
-    QString scriptDir = QFileInfo(scriptPath).path();
-//    p->setWorkingDirectory(scriptDir); // setWorkingDirectory verlangt einen absoluten path. scriptPath ist abund zu aber ein relativer und damit schlaegt setWorkingDirectory fehl -> da nicht relevant nur eine unnoetige zusaetzliche fehlerquelle
-
-    p->start("python", params);
-    if(waitForFinished)
-    {
-        p->waitForFinished(-1);
-//        QString p_stdout = p->readAll();
-//        qDebug() << p_stdout;
-        return nullptr;
-    }else
-        return p;
+    return execCommand(QString("python"),
+                       params,
+                       waitForFinished,
+                       execute);
 }
 
-Process* STATIC_FUNCTIONS::execPythonScript(const string &scriptPath, const std::vector<string> &args, bool waitForFinished)
+Process* STATIC_FUNCTIONS::execPythonScript(const string &scriptPath,
+                                            const std::vector<string> &args,
+                                            bool waitForFinished,
+                                            bool execute)
 {
     QVector<QString> q_args;
     for(const auto& arg: args)
         q_args.push_back(QString::fromStdString(arg));
 
-    return execPythonScript(QString::fromStdString(scriptPath), q_args, waitForFinished);
+    return execPythonScript(QString::fromStdString(scriptPath),
+                            q_args,
+                            waitForFinished,
+                            execute);
 }
 
-Process *STATIC_FUNCTIONS::execCommand(const QString &program, const QVector<QString> &args, bool waitForFinished)
+//---------------------
+
+Process* STATIC_FUNCTIONS::executeDotNetScript(const QString& scriptPath,
+                                               const QVector<QString>& args,
+                                               bool waitForFinished,
+                                               bool execute)
 {
-    Process* p = new Process();
+    QVector<QString> params;
+
+    params.push_back( scriptPath );
+    for(const auto& arg: args)
+        params.push_back( arg );
+
+    return execCommand(QString("dotnet"),
+                       params,
+                       waitForFinished,
+                       execute);
+}
+
+Process* STATIC_FUNCTIONS::executeDotNetScript(const string &scriptPath,
+                                               const std::vector<string> &args,
+                                               bool waitForFinished,
+                                               bool execute)
+{
+    QVector<QString> q_args;
+    for(const auto& arg: args)
+        q_args.push_back(QString::fromStdString(arg));
+
+    return executeDotNetScript(QString::fromStdString(scriptPath),
+                               q_args,
+                               waitForFinished,
+                               execute);
+}
+//---------------------
+
+Process* STATIC_FUNCTIONS::execCommand(const QString &program,
+                                       const QVector<QString> &args,
+                                       bool waitForFinished,
+                                       bool execute)
+{
     QStringList params;
 
     for(const auto& arg: args)
@@ -127,23 +204,35 @@ Process *STATIC_FUNCTIONS::execCommand(const QString &program, const QVector<QSt
         s = s.append("  " + arg);
     qDebug() << s;
 
-    p->start(program, params);
+
     if(waitForFinished)
     {
+        Process* p = new Process();
+        p->start(program, params);
         p->waitForFinished(-1);
-//        QString p_stdout = p->readAll();
-//        qDebug() << p_stdout;
         return nullptr;
     }else
+    {
+        Process* p = new Process(program, params);
+        if(execute)
+        {
+            p->start_Delayed();
+        }
         return p;
+    }
 }
-Process* STATIC_FUNCTIONS::execCommand(const std::string& program, const std::vector<std::string>& args, bool waitForFinished)
+Process* STATIC_FUNCTIONS::execCommand(const std::string& program,
+                                       const std::vector<std::string>& args,
+                                       bool waitForFinished,
+                                       bool execute)
 {
     QVector<QString> q_args;
     for(const auto& arg: args)
         q_args.push_back(QString::fromStdString(arg));
 
-    return execCommand(QString::fromStdString(program), q_args, waitForFinished);
+    return execCommand(QString::fromStdString(program),
+                       q_args, waitForFinished,
+                       execute);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -581,4 +670,3 @@ bool STATIC_FUNCTIONS::copyFile(const string &absSourcePath, const string &absTa
 {
     return copyFile(QString::fromStdString(absSourcePath), QString::fromStdString(absTarPath));
 }
-

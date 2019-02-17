@@ -84,7 +84,7 @@ namespace StaticFunctions {
 
     void showInfoDialog(const QString& str, const QString& title);
 
-    QFont getGoshFont(int fontSize = 8, int weight = QFont::Bold);
+    QFont getGoshFont(int fontSize = 8, int weight = QFont::Normal);
     QColor getGoshBlueColor();
 
     QString getFileType(const QString& fileName);

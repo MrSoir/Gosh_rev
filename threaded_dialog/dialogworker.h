@@ -25,8 +25,9 @@ public slots:
 
     virtual void launchDialog() = 0;
     virtual void execute() override;
-protected:
+
     virtual void finish();
+protected:
 
 private:
 };

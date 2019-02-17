@@ -120,15 +120,20 @@ void DirReplaceRootWorker::run()
 
         emit replaceRoot(new_root, deleteOldRoot);
     }else{
-        qDebug() << "\nDirReplaceRootWorker::run - m_current_rootDir == nullptr - Default-Constructor!!!\n";
+        // m_current_rootDir == nullptr -> eg. DirManager on initialization -> DirManager::m_root == nullptr!:
+        FileInfoBD* new_root = new FileInfoBD(m_new_root_path);
+        new_root->elapse();
+        if(m_threadToMoveObjectsTo)
+            new_root->moveToThread_rec(m_threadToMoveObjectsTo);
+        emit replaceRoot(new_root, false);
     }
     emit finished(false);
 }
 
 void DirReplaceRootWorker::workBeforeLaunchThread()
 {
-
-    m_current_rootDir->moveAbsParentToThread(m_thread);
+    if(m_current_rootDir && m_thread)
+        m_current_rootDir->moveAbsParentToThread(m_thread);
 }
 
 FileInfoBD* DirReplaceRootWorker::findSubDirInDir(FileInfoBD *dir, std::string path)

@@ -104,7 +104,7 @@ void SearchMenuBD::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
         if(str.isEmpty()){
             str = QString("no match!");
         }
-         str.prepend("--").append("--");
+//         str.prepend("--").append("--");
 
         QFont font = StaticFunctions::getGoshFont(12);
         painter->setFont(font);

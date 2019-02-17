@@ -7,9 +7,8 @@ FileManager::FileManager(std::string root_path,
       WidgetCreator(),
 
       m_root_path(root_path),
-      m_dir_manager(new DirManager(root_path)),
-//      m_dir_manager(nullptr),
-      m_tree(m_dir_manager ? m_dir_manager->getTree() : nullptr),
+      m_dir_manager(new DirManager()),
+      m_tree(nullptr),
 
       m_tasks_queue(new FileQueue()),
 
@@ -48,7 +47,7 @@ FileManager::FileManager(std::string root_path,
 FileManager::~FileManager()
 {
     qDebug() << "~FileManager";
-    disconnectSiganls();
+    disconnectSiganls(); // wird bereits in clos() disconnected!
 
     delete m_searcher; m_searcher = nullptr;
     delete m_selector; m_selector = nullptr;
@@ -103,6 +102,14 @@ void FileManager::setRoot_QDir(QDir dir)
     setRoot(dir.absolutePath().toStdString());
 }
 
+void FileManager::cancelDeepSearch()
+{
+    if(m_executingDeepSearch)
+    {
+        emit cancelDeepSearch_dm();
+    }
+}
+
 void FileManager::saveGraphicsViewVBarValue(int value)
 {
     m_graphicsViewHBarValueBackup = value;
@@ -124,7 +131,9 @@ void FileManager::setRoot(const std::string& rootPath)
 }
 
 void FileManager::close()
-{
+{    
+    disconnectSiganls();
+
     clearEntryContainers();
 
     if(m_dir_manager)
@@ -521,6 +530,9 @@ void FileManager::unzipSelectedContent()
         auto filePathToZip = m_selector->getLastSelectedEntry();
         if(filePathToZip.empty())
             return;
+        bool isZipFile = StaticFunctions::isZippedFile(QFileInfo(QString::fromStdString(filePathToZip)));
+        if(!isZipFile)
+            return;
 
         ZIP::UnZipFile* unzipWorker = new ZIP::UnZipFile(filePathToZip);
         emit addQueueTask(unzipWorker);
@@ -653,22 +665,40 @@ void FileManager::requestFileViewerRevalidation(int_bd firstEntryToDispl, int_bd
 
 void FileManager::deepSearch(QString key_word)
 {
+    if(m_executingDeepSearch)
+    {
+        qDebug() << "FileManager::deepSearch -> already executing deep search!";
+        return;
+    }
+
+    m_executingDeepSearch = true;
     emit deepSearch_dm(key_word.toStdString(), true);
+    revalidateViewer_metaData_hlpr();
 }
 
 void FileManager::dirChanged_dm(DirManagerInfo* changedDir)
 {
+    if(!m_tree)
+    {
+        delete changedDir;
+        return;
+    }
+
     m_tree->replaceContents(changedDir);
     revalidateTree();
 }
 
 void FileManager::treeChanged_dm(DirManagerInfo* entireTree)
 {
+    if(!entireTree)
+        return;
+
     replaceTree(entireTree);
 }
 
 void FileManager::deepSearchFinished_dm(std::vector<string> matchingPaths, string keyword)
 {
+    m_executingDeepSearch = false;
     if(m_searcher)
     {
         m_searcher->setSearched(keyword, matchingPaths);
@@ -719,6 +749,8 @@ void FileManager::connectSignals()
         connect(m_dir_manager, &DirManager::dirChanged,                 this, &FileManager::dirChanged_dm,                          Qt::QueuedConnection);
         connect(m_dir_manager, &DirManager::treeChanged,                this, &FileManager::treeChanged_dm,                         Qt::QueuedConnection);
         connect(m_dir_manager, &DirManager::deepSearchFinished,         this, &FileManager::deepSearchFinished_dm,                  Qt::QueuedConnection);
+
+        connect(this, &FileManager::cancelDeepSearch_dm, m_dir_manager, &DirManager::cancelDeepSearch);
 
         connect(this, SIGNAL(elapse_dm(std::string)),                   m_dir_manager, SLOT(elapse(std::string)),                   Qt::QueuedConnection);
         connect(this, SIGNAL(elapse_dm(std::vector<std::string>)),      m_dir_manager, SLOT(elapse(std::vector<std::string>)),      Qt::QueuedConnection);
@@ -780,6 +812,9 @@ void FileManager::disconnectSiganls()
         disconnect(m_dir_manager, &DirManager::treeChanged, this, &FileManager::treeChanged_dm);
         disconnect(m_dir_manager, &DirManager::deepSearchFinished, this, &FileManager::deepSearchFinished_dm);
 
+        disconnect(this, &FileManager::cancelDeepSearch_dm, m_dir_manager, &DirManager::cancelDeepSearch);
+
+
         disconnect(this, SIGNAL(elapse_dm(std::string)), m_dir_manager, SLOT(elapse(std::string)));
         disconnect(this, SIGNAL(elapse_dm(std::vector<std::string>)), m_dir_manager, SLOT(elapse(std::vector<std::string>)));
 
@@ -807,8 +842,7 @@ void FileManager::disconnectSiganls()
         disconnect(this, &FileManager::deepSearch_dm, m_dir_manager, &DirManager::deepSearch);
 
         disconnect(this, &FileManager::rootDirChanged, m_dir_manager, &DirManager::rootDirChanged);
-    }else
-        qDebug() << "trying to DISconnect m_dir_manager -> nullptr! [root_path: "  << QString::fromStdString(m_root_path) << "]";
+    }
 }
 
 void FileManager::connectViewer(GraphicsView* viewer)
@@ -838,6 +872,7 @@ void FileManager::connectViewer(GraphicsView* viewer)
         connect(viewer, &GraphicsView::selectContent,       m_selector, &FileSelector::select_QString, Qt::QueuedConnection);
 
         // GraphicsView -> FileManager:
+        connect(viewer, &GraphicsView::cancelDeepSearch_SGNL, this, &FileManager::cancelDeepSearch);
         connect(viewer, &GraphicsView::setRootFolder, this, &FileManager::setRoot_QDir, Qt::QueuedConnection);
         connect(viewer, &GraphicsView::deepSearch, this, &FileManager::deepSearch, Qt::QueuedConnection);
         connect(viewer, &GraphicsView::elapseAllFoldersOfDepthId, this, &FileManager::elapseAllFoldersOfDepthId, Qt::QueuedConnection);
@@ -910,6 +945,7 @@ void FileManager::disconnectViewer(GraphicsView* viewer)
         disconnect(viewer, &GraphicsView::selectContent,       m_selector, &FileSelector::select_QString);
 
         // GraphicsView -> FileManager:
+        connect(viewer, &GraphicsView::cancelDeepSearch_SGNL, this, &FileManager::cancelDeepSearch);
         disconnect(viewer, &GraphicsView::setRootFolder, this, &FileManager::setRoot_QDir);
         disconnect(viewer, &GraphicsView::deepSearch, this, &FileManager::deepSearch);
         disconnect(viewer, &GraphicsView::elapseAllFoldersOfDepthId, this, &FileManager::elapseAllFoldersOfDepthId);
@@ -1091,9 +1127,9 @@ ViewerData FileManager::generateViewerData()
                 bool searched = m_searcher->isSearched(path);
                 bool searchFocused = searched && m_searcher->isFocused(path);
 
-                if(searched)
-                    qDebug() << "path: " << QString::fromStdString(path)
-                             << "   isSearchFocused: " << searchFocused;
+//                if(searched)
+//                    qDebug() << "path: " << QString::fromStdString(path)
+//                             << "   isSearchFocused: " << searchFocused;
 
                 // entweder ist es ein dir:
                 if(m_folders_colpsd.find(path) != m_folders_colpsd.end())
@@ -1301,11 +1337,18 @@ void FileManager::replaceTree(DirManagerInfo* tree)
 
     m_tree = tree;
 
-    revalidateTree();
+    if(m_tree)
+        revalidateTree();
 }
 
 void FileManager::revalidateTree()
 {
+    if(!m_tree)
+    {
+        qDebug() << "FileManager::revalidateTree - m_tree is nullptr!!!";
+        return;
+    }
+
     clearEntryContainers();
 
     int_bd* cntr = new int_bd(0);
@@ -1464,7 +1507,6 @@ int_bd FileManager::displayedFileCount() const
 
 int_bd FileManager::indexCurSearchResult() const
 {
-    qDebug() << "indexCurSearchResult: " << m_searcher->indexCurSearchResult();
     return m_searcher->indexCurSearchResult();
 }
 
@@ -1486,6 +1528,11 @@ bool FileManager::includeHiddenFiles() const
 bool FileManager::inSearchMode() const
 {
     return m_searcher->inSearchMode();
+}
+
+bool FileManager::executingDeepSearch() const
+{
+    return m_executingDeepSearch;
 }
 
 bool FileManager::foldersSelected() const

@@ -34,20 +34,21 @@ void GraphicItemsBD::GraphicsItemBD::paint(QPainter* painter,
                                            QWidget* widget)
 {
     Q_UNUSED(option)
-    if(!painter->isActive() && widget)
+    if(!painter->isActive())
     {
+        qDebug() << "\nGraphicsItemBD::paint - painter is NOT active -> activating painter!!!\n";
         painter->begin(widget);
     }
 }
 
 
 GraphicItemsBD::ButtonBD::ButtonBD(const QSize& size,
-         const QPoint& pos,
-         const QColor& gradCol1,
-         const QColor& gradCol2,
-         const QColor& selectionCol1,
-         const QColor& selectionCol2,
-         QGraphicsItem* parent)
+                                   const QPoint& pos,
+                                   const QColor& gradCol1,
+                                   const QColor& gradCol2,
+                                   const QColor& selectionCol1,
+                                   const QColor& selectionCol2,
+                                   QGraphicsItem* parent)
     : GraphicsItemBD(size, pos, parent),
       m_gradCol1(gradCol1),
       m_gradCol2(gradCol2),
@@ -55,12 +56,10 @@ GraphicItemsBD::ButtonBD::ButtonBD(const QSize& size,
       m_selectCol2(selectionCol2)
 {
     setAcceptHoverEvents(true);
-//        revalidateSize();
 }
 
 GraphicItemsBD::ButtonBD::~ButtonBD()
 {
-//    qDebug() << "in ButtonBD.DEstructor";
     m_callFunc = nullptr;
 }
 
@@ -86,7 +85,10 @@ void GraphicItemsBD::ButtonBD::paint(QPainter *painter, const QStyleOptionGraphi
     painter->setClipRect(rct);
 
     QColor grad1, grad2;
-    if(mouIn){
+    if(mouClick){
+        grad1 = QColor(255,0,0);
+        grad2 = QColor(100,0,0);
+    }else if(mouIn){
         grad1 = m_selectCol1;
         grad2 = m_selectCol2;
     }else{
@@ -94,17 +96,31 @@ void GraphicItemsBD::ButtonBD::paint(QPainter *painter, const QStyleOptionGraphi
         grad2 = m_gradCol2;
     }
 
+    QRectF backRctPnt = QRectF(this->pos(), rct.size());
+
     StaticFunctions::paintRect(painter, rct, grad1, grad2);
 
 //    painter->end();
 }
 void GraphicItemsBD::ButtonBD::mousePressEvent(QGraphicsSceneMouseEvent *event){
+    Q_UNUSED(event)
+
     if(m_callFunc)
         m_callFunc();
 
-//    emit clicked();
+    mouClick = true;
 
-    QGraphicsItem::mousePressEvent(event);
+    update();
+
+    //    QGraphicsItem::mousePressEvent(event);
+}
+
+void GraphicItemsBD::ButtonBD::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
+{
+    Q_UNUSED(event)
+
+    mouClick = false;
+    update();
 }
 void GraphicItemsBD::ButtonBD::hoverEnterEvent(QGraphicsSceneHoverEvent *event){
     Q_UNUSED(event)
@@ -122,14 +138,14 @@ void GraphicItemsBD::ButtonBD::hoverMoveEvent(QGraphicsSceneHoverEvent * event){
 
 
 GraphicItemsBD::TextRect::TextRect(QString str,
-         const QSize& size,
-         const QPoint& pos,
-         const QColor& gradCol1,
-         const QColor& gradCol2,
-         const QColor& selectionCol1,
-         const QColor& selectionCol2,
-         const QColor& textCol,
-         QGraphicsItem* parent)
+                                   const QSize& size,
+                                   const QPoint& pos,
+                                   const QColor& gradCol1,
+                                   const QColor& gradCol2,
+                                   const QColor& selectionCol1,
+                                   const QColor& selectionCol2,
+                                   const QColor& textCol,
+                                   QGraphicsItem* parent)
     : ButtonBD(size, pos, gradCol1, gradCol2, selectionCol1, selectionCol2, parent),
       m_str(str),
       m_textCol(textCol),
@@ -148,10 +164,21 @@ void GraphicItemsBD::TextRect::setFont(const QFont &font)
     m_font = font;
 }
 
+QFont GraphicItemsBD::TextRect::font() const
+{
+    return m_font;
+}
+
 void GraphicItemsBD::TextRect::setText(QString str, int paddingX, int paddingY)
 {
     m_str = str;
     revalidateSize(paddingX, paddingY);
+}
+
+void GraphicItemsBD::TextRect::setTextColor(QColor col)
+{
+    m_textCol = col;
+    update();
 }
 
 void GraphicItemsBD::TextRect::revalidateSize(float paddingX, float paddingY)
@@ -171,11 +198,34 @@ void GraphicItemsBD::TextRect::paint(QPainter *painter, const QStyleOptionGraphi
 
     auto rct = boundingRect();
 
-    StaticFunctions::paintTextRect(painter, m_str,
-                  rct,
-                  QColor(0,0,0, 0), QColor(0,0,0, 0),
-                  m_textCol,
-                  m_font);
+    if(m_str.contains('\n'))
+    {
+        auto strings = m_str.split('\n');
+        qreal str_cnt = static_cast<qreal>(strings.length());
+        QFontMetrics fm(m_font);
+        qreal f_height = static_cast<qreal>(fm.height());
+        qreal padding = 2.0;
+        qreal offsCnt = (strings.length() % 2) == 0 ? (str_cnt-1.0) / 2.0 : str_cnt / 2.0;
+        qreal yOffs = rct.center().y() - (f_height) * offsCnt;
+        for(int i=0; i < strings.length(); ++i)
+        {
+            auto s = strings[i];
+            qreal s_width = fm.width(s);
+            qreal x_p = rct.center().x() - s_width * 0.5;
+
+            painter->setFont(m_font);
+            painter->setPen(m_textCol);
+            painter->drawText(QPointF(x_p,yOffs + fm.ascent()*0.5), s);
+
+            yOffs += f_height + padding;
+        }
+    }else{
+        StaticFunctions::paintTextRect(painter, m_str,
+                      rct,
+                      QColor(0,0,0, 0), QColor(0,0,0, 0),
+                      m_textCol,
+                      m_font);
+    }
 
 
 //    painter->end();

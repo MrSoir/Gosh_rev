@@ -76,6 +76,7 @@ public:
     int_bd searchResultsCount() const;
     bool includeHiddenFiles() const;
     bool inSearchMode() const;
+    bool executingDeepSearch() const;
     bool foldersSelected() const;
     bool filesSelected() const;
     bool selectionContainsZipFiles() const;
@@ -145,6 +146,8 @@ signals:
 
     void sortAllDirs_dm(Order order);
 
+    void cancelDeepSearch_dm();
+
 public slots:
     void setRoot(const std::string& rootPath);
     void close();
@@ -163,6 +166,8 @@ public slots:
 
     // GrahpicsView -> FileManager:
     void setRoot_QDir(QDir dir); // setRoot(QDir) <- muss mit SIGNAL(...) - SLOT(...) connected werden!!!
+
+    void cancelDeepSearch();
 
     void saveGraphicsViewVBarValue(int value);
     void saveGraphicsViewHBarValue(int value);
@@ -325,6 +330,8 @@ private:
 
     FileSearcher* m_searcher;
     FileSelector* m_selector;
+
+    bool m_executingDeepSearch = false;
 };
 
 #endif // FILEMANAGER_H

@@ -22,6 +22,7 @@
 #include "pathmanipulation.h"
 #include "staticfunctions.h"
 #include "process.h"
+#include "dialogs/stringgetterdialog.h"
 
 class FileInfoBD;
 
@@ -39,9 +40,10 @@ enum OS
 
 //----------------------------------------------------------------------------------
 
-
 namespace STATIC_FUNCTIONS
 {
+    extern QThread* MAIN_THREAD;
+
     static QMimeDatabase MIME_DATA_BASE;
 
 //----------------------------------------------------------------------------------
@@ -75,18 +77,48 @@ namespace STATIC_FUNCTIONS
     // askUserForNoneExistingFilePath -> name ist irrefuehrend: path wird gegeben -> falls path existiert, wird lediglich vom user ein anderer fileName gefragt.
     // Directory des absFilePath bleibt erhalten!
     // falls ein Directory als path uebergeben wird, wird vom user ein directory-name verlangt, der noch nicht existiert, d.h.: basePath(path) + userDirName
-    QString askUserForNoneExistingFilePath(const QString& path, std::function<bool(const QString& fileName)> fileNameValidator = [](const QString& fileName){Q_UNUSED(fileName) return true;});
+    QString askUserForNoneExistingFilePath(const QString& path,
+                                           std::function<bool(const QString& fileName)> fileNameValidator = [](const QString& fileName){return !fileName.contains(QDir::separator());},
+                                           bool askForDir = false);
+    QString askUserForNoneExistingDirPath(const QString& path, std::function<bool(const QString& fileName)> dirNameValidator = [](const QString& fileName){ return !fileName.contains('.') && !fileName.contains(QDir::separator());});
 
     QString genStringGetterDialog(const QString &headline,
                                   const QString &message,
                                   const QString& initInput,
                                   std::function<bool (const QString &)> stringValidator = [](const QString& s){Q_UNUSED(s)return true;});
 
-    Process* execPythonScript(const QString& scriptPath, const QVector<QString>& args, bool waitForFinished = true);
-    Process* execPythonScript(const std::string& scriptPath, const std::vector<std::string>& args, bool waitForFinished = true);
+//----------------------------------------------------------------------------------
 
-    Process* execCommand(const QString& program, const QVector<QString>& args, bool waitForFinished = true);
-    Process* execCommand(const std::string& program, const std::vector<std::string>& args, bool waitForFinished = true);
+    Process* execPythonScript(const QString& scriptPath,
+                              const QVector<QString>& args,
+                              bool waitForFinished = true,
+                              bool execute = true);
+    Process* execPythonScript(const std::string& scriptPath,
+                              const std::vector<std::string>& args,
+                              bool waitForFinished = true,
+                              bool execute = true);
+
+    //---------------------
+
+    Process* executeDotNetScript(const QString& scriptPath,
+                                 const QVector<QString>& args,
+                                 bool waitForFinished = true,
+                                 bool execute = true);
+    Process* executeDotNetScript(const std::string& scriptPath,
+                                 const std::vector<std::string>& args,
+                                 bool waitForFinished = true,
+                                 bool execute = true);
+
+    //---------------------
+
+    Process* execCommand(const QString& program,
+                         const QVector<QString>& args,
+                         bool waitForFinished = true,
+                         bool execute = true);
+    Process* execCommand(const std::string& program,
+                         const std::vector<std::string>& args,
+                         bool waitForFinished = true,
+                         bool execute = true);
 
 //----------------------------------------------------------------------------------
 

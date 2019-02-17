@@ -110,7 +110,8 @@ SOURCES += \
     threadtestworker.cpp \
     dialogs/openwithdialog.cpp \
     dialogs/openwithgraphicsview.cpp \
-    file_handling_src/viewerdata.cpp
+    file_handling_src/viewerdata.cpp \
+    dialogs/stringgetterdialog.cpp
 
 HEADERS += \
          mainwindow.h \
@@ -199,7 +200,8 @@ HEADERS += \
     threadtestworker.h \
     dialogs/openwithdialog.h \
     dialogs/openwithgraphicsview.h \
-    file_handling_src/viewerdata.h
+    file_handling_src/viewerdata.h \
+    dialogs/stringgetterdialog.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

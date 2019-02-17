@@ -34,9 +34,9 @@ public:
                         QObject *parent = nullptr);
     explicit DirManager(FileInfoBD* root_dir,
                         QObject *parent = nullptr);
-    virtual ~DirManager() override;
+    explicit DirManager(QObject *parent = nullptr);
 
-    DirManagerInfo* getTree() const;
+    virtual ~DirManager() override;
 
 signals:
     void dirChanged(DirManagerInfo* changedDir);
@@ -54,9 +54,12 @@ signals:
     void addDirToWatcher(std::string dir_path);
     void addDirsToWatcher(std::vector<std::string> dir_paths);
     void clearWatcherPaths();
+
+    void cancelDeepSearch_SGNL();
 public slots:    
     void deepSearch(std::string keyword,
                     bool includeHiddenFiles);
+    void cancelDeepSearch();
 
     void elapse(std::string path);
     void elapse(std::vector<std::string> paths);
@@ -133,7 +136,7 @@ private:
 
     DirFileSystemWatcher* m_watcher;
 
-    bool m_closed;
+    bool m_closed = false;
 
     QThread* m_thread;
 };

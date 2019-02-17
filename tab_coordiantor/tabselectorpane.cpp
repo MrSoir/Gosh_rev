@@ -300,7 +300,7 @@ void TabSelectorPane::createTab(int x, int id)
 
 TabRect* TabSelectorPane::createTabRect(QPoint pos, const int id, QString tabLabel)
 {
-    QFont font = StaticFunctions::getGoshFont(8);
+    QFont font = StaticFunctions::getGoshFont(10, QFont::Bold);
 
     QColor col1    = (id == m_curActiveTabId) ? m_activeCol1 : m_tabCol1;
     QColor col2    = (id == m_curActiveTabId) ? m_activeCol2 : m_tabCol2;

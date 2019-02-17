@@ -21,6 +21,11 @@ namespace PATH
 
     //-----------------------------------------------------------------------
 
+    QString getJointBasePath(const QString& path1, const QString& path2);
+    QString getJointBasePath(const std::string& path1, const std::string& path2);
+
+    //-----------------------------------------------------------------------
+
     QString getRelPathFragment(const QString& absPath, const QString& basePath);
     QString getRelPathFragment(const QFileInfo& fi, const QString& basePath);
 

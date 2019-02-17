@@ -95,6 +95,24 @@ QString PATH::getFileNameWithoutExtension(const QString &absPath)
     return fileName.left(fn_sz - sf_sz);
 }
 
+QString PATH::getJointBasePath(const QString& path1, const QString& path2)
+{
+    QString base1 = path1.length() <  path2.length() ? getBasePath(path1) : getBasePath(path2);
+    QString base2 = path1.length() >= path2.length() ? getBasePath(path1) : getBasePath(path2);
+    if(base1.isEmpty() || base2.isEmpty())
+    {
+        return "";
+    }
+    while(base1 != base2 || base1.isEmpty())
+    {
+        base1 = getBasePath(base1);
+    }
+    return base1;
+}
+QString PATH::getJointBasePath(const std::string& path1, const std::string& path2)
+{
+    return getJointBasePath(QString::fromStdString(path1), QString::fromStdString(path2));
+}
 QString PATH::getBasePath(const std::string &path)
 {
     return getBasePath(QString::fromStdString(path));

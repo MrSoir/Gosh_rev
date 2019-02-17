@@ -15,12 +15,10 @@ TabCoordinatorPane::TabCoordinatorPane(TabCoordinator* tc,
       m_tabPane(nullptr),
       m_tabPaneScrollOffsetX(0)
 {
-    revalidate();
 }
 
 TabCoordinatorPane::~TabCoordinatorPane()
 {
-    m_mainLayout = nullptr;
     deleteMainLayout();
 }
 
@@ -81,9 +79,16 @@ void TabCoordinatorPane::keyPressEvent(QKeyEvent *event)
     }
 }
 
+void TabCoordinatorPane::resizeEvent(QResizeEvent *event)
+{
+    revalidate();
+
+    QWidget::resizeEvent(event);
+}
+
 void TabCoordinatorPane::clearLayout()
 {
-    if(m_tabPane != nullptr)
+    if(m_tabPane)
     {
         m_tabPaneScrollOffsetX = m_tabPane->getScrollOffsetX();
     }

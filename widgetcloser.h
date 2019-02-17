@@ -24,7 +24,7 @@ public slots:
     void closeWidget();
 
 protected:
-    bool m_closed;
+    bool m_closed = false;
 };
 
 //-----------------------------------------------------------------------

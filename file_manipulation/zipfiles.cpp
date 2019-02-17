@@ -1,25 +1,49 @@
 #include "zipfiles.h"
 
 
-Process* ZIP::zipFiles(const QVector<QString>& filePathsToZip, const QString& tarZipFilePath)
+Process* ZIP::zipFiles(QVector<QString> filePathsToZip,
+                       QString zipFileBasePath,
+                       QString tarZipFilePath)
 {
-    QString relScriptPath("scripts/zip_files.py");
+    QString relScriptPath("scripts/zip_files.dll");
     QString absScriptPath = QFileInfo(relScriptPath).absoluteFilePath();
 
     QVector<QString> scriptArgs;
 
-    scriptArgs.push_back(QString("-z"));
-    for(const auto& path: filePathsToZip)
-        scriptArgs.push_back(path);
+    scriptArgs.append(tarZipFilePath);
+    scriptArgs.append(zipFileBasePath);
+    for(const auto& srcPath: filePathsToZip)
+    {
+        scriptArgs.append(srcPath);
+    }
 
-    scriptArgs.push_back(QString("-t"));
-    scriptArgs.push_back(tarZipFilePath);
-
-    return STATIC_FUNCTIONS::execPythonScript(absScriptPath, scriptArgs, false);
+    return STATIC_FUNCTIONS::executeDotNetScript(absScriptPath, scriptArgs, false, false);
 }
 
-Process* ZIP::zipFiles(const std::vector<string>& filePathsToZip, const string& tarZipFilePath)
+Process* ZIP::zipFiles(const std::vector<string>& filePathsToZip,
+                       const std::string& zipFileBasePath,
+                       const string& tarZipFilePath)
 {
+    QVector<QString> q_filePathsToZip;
+    for(const auto& path: filePathsToZip)
+        q_filePathsToZip.push_back( QString::fromStdString(path) );
+
+    return zipFiles(q_filePathsToZip,
+                    QString::fromStdString(zipFileBasePath),
+                    QString::fromStdString(tarZipFilePath));
+}
+
+Process* ZIP::zipFiles(QVector<QString> filePathsToZip,
+                       QString tarZipFilePath)
+{
+    QString zipBasePath = evalZipBasePath(filePathsToZip);
+    return zipFiles(filePathsToZip, zipBasePath, tarZipFilePath);
+}
+
+Process* ZIP::zipFiles(const std::vector<string> &filePathsToZip,
+                       const string &tarZipFilePath)
+{
+
     QVector<QString> q_filePathsToZip;
     for(const auto& path: filePathsToZip)
         q_filePathsToZip.push_back( QString::fromStdString(path) );
@@ -27,88 +51,211 @@ Process* ZIP::zipFiles(const std::vector<string>& filePathsToZip, const string& 
     return zipFiles(q_filePathsToZip, QString::fromStdString(tarZipFilePath));
 }
 
+QString ZIP::evalZipBasePath(const QVector<QString>& filePathsToZip)
+{
+    if(filePathsToZip.size() == 0)
+    {
+        return QString("");
+    }else if(filePathsToZip.size() == 1)
+    {
+        return filePathsToZip[0];
+    }else{
+        QString basePath = PATH::getBasePath(filePathsToZip[0]);
+        for(int i = 1; i < filePathsToZip.size(); ++i)
+        {
+            basePath = PATH::getJointBasePath(basePath, filePathsToZip[i]);
+        }
+        return basePath;
+    }
+}
+
+
+
 //---------------------------------
 
-Process* ZIP::unzipFile(const QString& zipFilePath, const QString& tarUnzipPath)
+Process* ZIP::unZipFile(const QString& zipFilePath, const QString& tarUnzipPath)
 {
-    QString relScriptPath("scripts/unzip_file.py");
+    QString relScriptPath("scripts/unzip_file.dll");
     QString absScriptPath = QFileInfo(relScriptPath).absoluteFilePath();
 
     QVector<QString> scriptArgs;
 
-    scriptArgs.push_back(QString("-z"));
-    scriptArgs.push_back(zipFilePath);
+    scriptArgs.append(zipFilePath);
+    scriptArgs.append(tarUnzipPath);
 
-    if( !tarUnzipPath.isEmpty() )
-    {
-        scriptArgs.push_back(QString("-t"));
-        scriptArgs.push_back(tarUnzipPath);
-    }
-
-    return STATIC_FUNCTIONS::execPythonScript(absScriptPath, scriptArgs, false);
+    return STATIC_FUNCTIONS::executeDotNetScript(absScriptPath, scriptArgs, false, false);
 }
-Process* ZIP::unzipFile(const std::string& zipFilePath, const std::string& tarUnzipPath)
+Process* ZIP::unZipFile(const std::string& zipFilePath, const std::string& tarUnzipPath)
 {
-    return unzipFile(QString::fromStdString(zipFilePath), QString::fromStdString(tarUnzipPath));
+    return unZipFile(QString::fromStdString(zipFilePath), QString::fromStdString(tarUnzipPath));
 }
 
 //---------------------------------------------------------
 
-ZIP::ZipFiles::ZipFiles(std::vector<std::string> pathsToZip,
-                        std::string tarPath)
-    : ProgressDialogWorker(pathsToZip.size()),
+ZIP::ZipHelper::ZipHelper(QObject *parent)
+    : QObject(parent),
+      m_cancelled(false),
+      m_process(nullptr)
+{
+    connect(this, &ZipHelper::cancelled, this, &ZipHelper::deleteLater);
+    connect(this, &ZipHelper::finished,  this, &ZipHelper::deleteLater);
+}
+
+ZIP::ZipHelper::ZipHelper(const ZIP::ZipHelper &h)
+    : QObject(h.parent()),
+      m_cancelled(h.m_cancelled),
+      m_process(h.m_process)
+{
+    connect(this, &ZipHelper::cancelled, this, &ZipHelper::deleteLater);
+    connect(this, &ZipHelper::finished,  this, &ZipHelper::deleteLater);
+}
+
+ZIP::ZipHelper::ZipHelper()
+    : QObject(nullptr),
+      m_cancelled(false),
+      m_process(nullptr)
+{
+    connect(this, &ZipHelper::finished,  this, &ZipHelper::deleteLater);
+}
+
+ZIP::ZipHelper::~ZipHelper()
+{
+    qDebug() << "~ZipHelper";
+}
+
+void ZIP::ZipHelper::cancel()
+{
+    m_cancelled = true;
+    emit cancelled();
+}
+
+void ZIP::ZipHelper::connectAndExecuteProcess()
+{
+    if(m_process)
+    {
+        connect(m_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &ZipHelper::zipProcessedFinished);
+        connect(this, &ZipHelper::cancelled, m_process, &Process::cancel);
+        m_process->start_Delayed();
+    }else{
+        qDebug() << "ZipHelper::connectAndExecuteProcess -> m_process is nullptr!!!";
+        emit finished();
+    }
+}
+
+void ZIP::ZipHelper::zipProcessedFinished()
+{
+    emit finished();
+}
+
+//---------------------------------------------
+
+ZIP::ZipFilesHelper::ZipFilesHelper(string absTarZipFilePath,
+                                    std::vector<string> absSrcPaths,
+                                    QObject *parent)
+    : ZipHelper(parent),
+      m_absTarZipFilePath(absTarZipFilePath),
+      m_absSrcPaths(absSrcPaths)
+{
+}
+
+ZIP::ZipFilesHelper::ZipFilesHelper(const ZipFilesHelper &h)
+    : ZipHelper(h.parent()),
+      m_absTarZipFilePath(h.m_absTarZipFilePath),
+      m_absSrcPaths(h.m_absSrcPaths)
+{
+}
+
+ZIP::ZipFilesHelper::ZipFilesHelper()
+    : ZipHelper(nullptr),
+      m_absTarZipFilePath(""),
+      m_absSrcPaths(std::vector<std::string>())
+{
+}
+
+ZIP::ZipFilesHelper::~ZipFilesHelper()
+{
+}
+
+void ZIP::ZipFilesHelper::run()
+{
+    m_process = zipFiles(m_absSrcPaths,
+                         m_absTarZipFilePath);
+    connectAndExecuteProcess();
+}
+
+//---------------------------------------------
+
+ZIP::UnZipHelper::UnZipHelper(string absSrcZipFilePath,
+                              string absTarZipFilePath,
+                              QObject *parent)
+    : ZipHelper(parent),
+      absSrcZipFilePath(absSrcZipFilePath),
+      absTarZipFilePath(absTarZipFilePath)
+{
+}
+
+ZIP::UnZipHelper::UnZipHelper(const ZIP::UnZipHelper &h)
+    : ZipHelper(h.parent()),
+      absSrcZipFilePath(h.absSrcZipFilePath),
+      absTarZipFilePath(h.absTarZipFilePath)
+{
+}
+
+ZIP::UnZipHelper::UnZipHelper()
+    : ZipHelper(nullptr),
+      absSrcZipFilePath(""),
+      absTarZipFilePath("")
+{
+}
+
+ZIP::UnZipHelper::~UnZipHelper()
+{
+}
+
+void ZIP::UnZipHelper::run()
+{
+    m_process = unZipFile(absSrcZipFilePath,
+                          absTarZipFilePath);
+    connectAndExecuteProcess();
+}
+
+//---------------------------------------------------------
+
+ZIP::ZipFiles::ZipFiles(const std::vector<std::string>& pathsToZip,
+                        const std::string& tarPath)
+    : ZipFileBase(),
       m_pathsToZip(pathsToZip),
-      m_tarPath(tarPath),
-      m_zipProcess(nullptr)
+      m_tarPath(tarPath)
 {
 }
 
 ZIP::ZipFiles::ZipFiles()
-    : ProgressDialogWorker(),
+    : ZipFileBase(),
       m_pathsToZip(std::vector<std::string>()),
-      m_tarPath(""),
-      m_zipProcess(nullptr)
+      m_tarPath("")
 {
 }
 
 ZIP::ZipFiles::ZipFiles(const ZIP::ZipFiles &zf)
-    : ProgressDialogWorker(zf),
+    : ZipFileBase(zf),
       m_pathsToZip(zf.m_pathsToZip),
-      m_tarPath(zf.m_tarPath),
-      m_zipProcess(zf.m_zipProcess)
+      m_tarPath(zf.m_tarPath)
 {
-}
-
-ZIP::ZipFiles &ZIP::ZipFiles::operator=(const ZIP::ZipFiles &zf)
-{
-    ProgressDialogWorker::operator=(zf);
-    m_pathsToZip = zf.m_pathsToZip;
-    m_tarPath = zf.m_tarPath;
-    m_zipProcess = zf.m_zipProcess;
-    return *this;
 }
 
 ZIP::ZipFiles::~ZipFiles()
 {
-    if(m_zipProcess)
-    {
-        if(m_zipProcess->isOpen())
-        {
-            m_zipProcess->kill();
-        }
-        delete m_zipProcess;
-    }
+    qDebug() << "~ZipFiles";
 }
 
 void ZIP::ZipFiles::run()
 {
-    zipFiles();
-    finish();
+    this->zipFiles();
 }
 
 void ZIP::ZipFiles::zipFiles()
 {
-    QVector<QString> validFilesToZip;
+    std::vector<std::string> validFilesToZip;
 
     for(const auto& path: m_pathsToZip)
     {
@@ -116,9 +263,9 @@ void ZIP::ZipFiles::zipFiles()
 
         QFileInfo fi(q_path);
 
-        if(fi.exists())
+        if(fi.exists() && !q_path.isEmpty())
         {
-            validFilesToZip.push_back(q_path);
+            validFilesToZip.push_back(path);
         }else
         {
             qDebug() << "'" << fi.fileName() << "' does not exists - won't be zipped!";
@@ -130,89 +277,123 @@ void ZIP::ZipFiles::zipFiles()
 
     if(validFilesToZip.size() > 0 && !validTarZipPath.isEmpty())
     {
-        m_zipProcess = ZIP::zipFiles(validFilesToZip, validTarZipPath);
+        m_helper = new ZipFilesHelper(validTarZipPath.toStdString(),
+                                      validFilesToZip);
+        connectHelper();
+        m_helper->run();
     }else{
         qDebug() << "ZIP::ZipFiles::run: validFilesToZip.size: " << validFilesToZip.size() << " validTarZipPath: '" << validTarZipPath << "'";
+        finish();
     }
 }
 
 //---------------------------------------------------------
 
-ZIP::UnZipFile::UnZipFile(string zipFilePath, string unZipTarPath)
-    : ProgressDialogWorker(1),
+ZIP::UnZipFile::UnZipFile(const std::string& zipFilePath,
+                          const std::string& unZipTarPath)
+    : ZipFileBase(),
       m_zipFilePath(zipFilePath),
-      m_unZipTarPath(unZipTarPath),
-      m_zipProcess(nullptr)
+      m_unZipTarDirPath(unZipTarPath)
 {
 }
 
 ZIP::UnZipFile::UnZipFile()
-    : ProgressDialogWorker(),
+    : ZipFileBase(),
       m_zipFilePath(""),
-      m_unZipTarPath(""),
-      m_zipProcess(nullptr)
+      m_unZipTarDirPath("")
 {
 }
 
 ZIP::UnZipFile::UnZipFile(const ZIP::UnZipFile &uzf)
-    : ProgressDialogWorker(uzf),
+    : ZipFileBase(uzf),
       m_zipFilePath(uzf.m_zipFilePath),
-      m_unZipTarPath(uzf.m_unZipTarPath),
-      m_zipProcess(uzf.m_zipProcess)
+      m_unZipTarDirPath(uzf.m_unZipTarDirPath)
 {
 }
 
-ZIP::UnZipFile& ZIP::UnZipFile::operator=(const ZIP::UnZipFile &uzf)
-{
-    ProgressDialogWorker::operator=(uzf);
-    m_zipFilePath = uzf.m_zipFilePath;
-    m_unZipTarPath = uzf.m_unZipTarPath;
-    m_zipProcess = uzf.m_zipProcess;
-    return *this;
-}
 
 ZIP::UnZipFile::~UnZipFile()
 {
-    if(m_zipProcess)
-    {
-        if(m_zipProcess->isOpen())
-        {
-            m_zipProcess->kill();
-        }
-        delete m_zipProcess;
-    }
 }
 
 void ZIP::UnZipFile::run()
 {
-    unZipFile();
-    finish();
+    this->unZipFile();
 }
 
 void ZIP::UnZipFile::unZipFile()
 {
     QString q_zipFilePath = QString::fromStdString(m_zipFilePath);
 
-    QString validUnZipTarDir = getTargetZipFilePath();
+    QString validUnZipTarPath = getTargetUnZipDirPath();
 
     QFileInfo fi(q_zipFilePath);
-    if( fi.exists() && !validUnZipTarDir.isEmpty() )
+    if( fi.exists() && !validUnZipTarPath.isEmpty() )
     {
-        m_zipProcess = ZIP::unzipFile(q_zipFilePath, validUnZipTarDir);
+        m_helper = new UnZipHelper(m_zipFilePath, validUnZipTarPath.toStdString());
+        connectHelper();
     }else{
-        qDebug() << "ZIP::UnZipFile::run: zipFilePath does not exists! -> '" << fi.fileName() << "' |   validUnZipTarDir: " << validUnZipTarDir;
+        qDebug() << "ZIP::UnZipFile::run: zipFilePath does not exists! -> '" << fi.fileName() << "' |   validUnZipTarDir: " << validUnZipTarPath;
+        finish();
     }
 }
 
-QString ZIP::UnZipFile::getTargetZipFilePath()
+QString ZIP::UnZipFile::getTargetUnZipDirPath()
 {
-    if(m_unZipTarPath.empty())
+    if(m_unZipTarDirPath.empty())
     {
-        QString tarZipPath = PATH::join(PATH::getBasePath(m_zipFilePath), "zipped.zip");
-        return StaticFunctions::getUniqueFileName(tarZipPath);
+        auto baseFileName = PATH::getFileNameWithoutExtension(QString::fromStdString(m_zipFilePath));
+        QString tarZipPath = PATH::join(PATH::getBasePath(m_zipFilePath), baseFileName);
+        return STATIC_FUNCTIONS::askUserForNoneExistingDirPath(tarZipPath);
     }else{
-        QString q_unZipTarPath = QString::fromStdString(m_unZipTarPath);
-        return STATIC_FUNCTIONS::askUserForNoneExistingFilePath(q_unZipTarPath); // falls q_unZipTarPath nicht existiert, gibt askUserForNoneExistingFilePath q_unZipTarPath unveraendert zurueck!
+        QString q_unZipTarPath = QString::fromStdString(m_unZipTarDirPath);
+        return STATIC_FUNCTIONS::askUserForNoneExistingDirPath(q_unZipTarPath);
     }
 }
 
+//-------------------------------------------------------------------------------------------------
+
+ZIP::ZipFileBase::ZipFileBase()
+    : ProgressDialogWorker(),
+      m_helper(nullptr)
+{
+}
+
+ZIP::ZipFileBase::ZipFileBase(const ZIP::ZipFileBase &zf)
+    : ProgressDialogWorker(),
+      m_helper(zf.m_helper)
+{
+}
+
+ZIP::ZipFileBase::~ZipFileBase()
+{
+}
+
+void ZIP::ZipFileBase::helperFinished()
+{
+    this->finish();
+}
+
+void ZIP::ZipFileBase::finish()
+{
+    disconnectHelper();
+    ProgressDialogWorker::finish();
+}
+
+void ZIP::ZipFileBase::connectHelper()
+{
+    if(m_helper)
+        return;
+    connect(this, &ZipFileBase::cancelSGNL, m_helper, &UnZipHelper::cancel, Qt::DirectConnection);
+    connect(this, &ZipFileBase::cancelSGNL, this, &ZipFileBase::finish);
+    connect(m_helper, &ZipFilesHelper::finished, this, &ZipFileBase::helperFinished);
+}
+
+void ZIP::ZipFileBase::disconnectHelper()
+{
+    if(m_helper)
+        return;
+    disconnect(this, &ZipFileBase::cancelSGNL, m_helper, &UnZipHelper::cancel);
+    disconnect(this, &ZipFileBase::cancelSGNL, this, &ZipFileBase::finish);
+    disconnect(m_helper, &ZipFilesHelper::finished, this, &ZipFileBase::helperFinished);
+}

@@ -40,7 +40,8 @@ DirManager::DirManager(FileInfoBD* root_dir,
       m_path_fileName(std::unordered_map<std::string, std::string>()),
       m_queue(new DirManagerQueue()),
       m_watcher(new DirFileSystemWatcher()),
-      m_closed(false)
+      m_closed(false),
+      m_thread(new QThread)
 {
     // m_root muss zuerst elapsed werden, erst danach darf ert via createThread der thread erstellt werden,
     // da sonst die sub_folders von m_root im anderen thread erstellt werden
@@ -57,6 +58,29 @@ DirManager::DirManager(FileInfoBD* root_dir,
     revalidateDirStructure();
 }
 
+DirManager::DirManager(QObject* parent)
+    : QObject(parent),
+      m_root(nullptr),
+      m_root_path(""),
+      m_path_to_dir(std::unordered_map<std::string, FileInfoBD*>()),
+      m_path_fileName(std::unordered_map<std::string, std::string>()),
+      m_queue(new DirManagerQueue()),
+      m_watcher(new DirFileSystemWatcher()),
+      m_closed(false),
+      m_thread(new QThread)
+{
+    // m_root muss zuerst elapsed werden, erst danach darf ert via createThread der thread erstellt werden,
+    // da sonst die sub_folders von m_root im anderen thread erstellt werden
+    // -> dann kann aber nicht mehr sub_folder.setParent(m_root) mehr aufgerufen werden
+    // das ist aber wiederum wichtig, denn wenn QObject.moveToThread(QThread) aufgerufen wird,
+    // dann werden die member-variablen des QObject's nur auch zum thread gewechselt, wenn als
+    // parent der member-variablen das QOjbect gesetzt ist!!!
+
+    createThread();
+
+    connectSignals();
+}
+
 DirManager::~DirManager()
 {
     qDebug() << "~DirManager";
@@ -64,11 +88,6 @@ DirManager::~DirManager()
     {
         m_root->close();
     }
-}
-
-DirManagerInfo* DirManager::getTree() const
-{
-    return genTreeFromRoot();
 }
 
 void DirManager::deepSearch(std::string keyword, bool includeHiddenFiles)
@@ -81,7 +100,13 @@ void DirManager::deepSearch(std::string keyword, bool includeHiddenFiles)
                                                           includeHiddenFiles,
                                                           m_thread);
     connect(worker, &DirDeepSearchWorker::deepSearchFinished, this, &DirManager::deepSearchFinished, Qt::QueuedConnection);
+    connect(this, &DirManager::cancelDeepSearch_SGNL, worker, &DirDeepSearchWorker::cancel, Qt::DirectConnection);
     emit addWorker(worker);
+}
+
+void DirManager::cancelDeepSearch()
+{
+    emit cancelDeepSearch_SGNL();
 }
 
 void DirManager::elapse(std::string path)
@@ -250,7 +275,7 @@ void DirManager::cdUP()
 
 void DirManager::revalidateDirStructure()
 {
-    if(m_closed)
+    if(m_closed || !m_root)
         return;
 
     clearContainers();
@@ -263,7 +288,11 @@ void DirManager::revalidateDirStructure()
 
 //    addDirsToWatcher_helpr(); wird nun von registerDirStructure_hlpr uebernommen, daher auskommentiert!!!
 
-    emit treeChanged(genTreeFromRoot());
+    auto* new_tree = genTreeFromRoot();
+    if(new_tree)
+    {
+        emit treeChanged(new_tree);
+    }
     emit dirStructureRevalidated();
 }
 
@@ -315,7 +344,7 @@ void DirManager::replaceRoot(FileInfoBD* newRoot, bool deleteOldRoot)
 {
     FileInfoBD* old_root = m_root;
     m_root = newRoot;
-    if(deleteOldRoot)
+    if(deleteOldRoot && old_root)
     {
         old_root->close();
     }
@@ -390,6 +419,9 @@ void DirManager::delete_hlpr(std::vector<FiBDDeletor*> dirsToDelete)
 
 DirManagerInfo* DirManager::genTreeFromRoot() const
 {
+    if(!m_root)
+        return nullptr;
+
     return new DirManagerInfo(m_root);
 }
 
@@ -407,10 +439,18 @@ void DirManager::createThread()
 }
 void DirManager::moveMembersToThread()
 {
+    if( !m_thread )
+    {
+        qDebug() << "DirManager::moveMembersToThread - m_thread == nullptr!!!";
+        return;
+    }
     this->moveToThread(m_thread);
-    m_root->moveAbsParentToThread(m_thread);
-    m_queue->moveToThread(m_thread);
-    m_watcher->moveToThread(m_thread);
+    if(m_root)
+        m_root->moveAbsParentToThread(m_thread);
+    if(m_queue)
+        m_queue->moveToThread(m_thread);
+    if(m_watcher)
+        m_watcher->moveToThread(m_thread);
 }
 
 

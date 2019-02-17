@@ -20,8 +20,9 @@ public:
 
     explicit FileManagerInfo(const FileManagerInfo& fmi);
 
-    FileManagerInfo* operator=(FileManagerInfo* fmi);
     FileManagerInfo& operator=(const FileManagerInfo& fmi);
+
+//    virtual ~FileManagerInfo() override;
 
     QString curRootPath() const;
     QString curFocusedSearchPath() const;
@@ -35,6 +36,7 @@ public:
 
     bool includeHiddenFiles() const;
     bool inSearchMode() const;
+    bool executingDeepSearch() const;
     bool singleFolderSelected() const;
     bool foldersSelected() const;
     bool filesSelected() const;
@@ -74,6 +76,7 @@ private:
 
     bool m_includeHiddenFiles;
     bool m_inSearchMode;
+    bool m_executingDeepSearch;
     bool m_foldersSelected;
     bool m_filesSelected;
     bool m_selctnCntnsZpdFle;

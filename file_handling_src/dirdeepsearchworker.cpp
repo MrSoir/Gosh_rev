@@ -257,7 +257,7 @@ DirDeepSearchHelper::DirDeepSearchHelper(std::string keyword,
 
 DirDeepSearchHelper::~DirDeepSearchHelper()
 {
-    qDebug() << "~DirDeepSearchHelper";
+//    qDebug() << "~DirDeepSearchHelper";
 }
 
 void DirDeepSearchHelper::run()

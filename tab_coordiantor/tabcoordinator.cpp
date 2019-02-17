@@ -23,7 +23,6 @@ QWidget* TabCoordinator::createWidget()
     QVector<QDir> labels = generateLabels();
 
     TabCoordinatorPane* tabCoordinatorPane = new TabCoordinatorPane(this, m_curWindowId, labels);
-
     connectTCPane(tabCoordinatorPane);
 
     return tabCoordinatorPane;
@@ -41,9 +40,11 @@ void TabCoordinator::setFullScreen()
 
     qDebug() << "TabCoordinator::setFullScreen not implemented!!!";
 
-    if(m_isFullScreen){
+    if(m_isFullScreen)
+    {
 
-    }else{
+    }else
+    {
 
     }
 }
@@ -92,7 +93,11 @@ void TabCoordinator::removeTab(int id)
         if(m_curWindowId >= id)
         {
             m_curWindowId = m_curWindowId-1 < 0 ? 0 : m_curWindowId-1;
+            m_currentlyDisplWindow = m_windows[m_curWindowId];
             setTab(m_curWindowId);
+        }else{
+            emit revalidateTabCoordinatorPane();
+            revalidateLabels();
         }
     }
 }

@@ -497,6 +497,7 @@ int main(int argc, char *argv[])
 //    deleteTest();
 
     a.thread()->setObjectName(QString("MAIN_APP_THREAD"));
+    STATIC_FUNCTIONS::MAIN_THREAD = a.thread();
 
     setStyles(a);
 

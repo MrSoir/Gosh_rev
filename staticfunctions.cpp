@@ -16,7 +16,9 @@ bool StaticFunctions::altPressed()
 QFont StaticFunctions::getGoshFont(int fontSize, int weight)
 {
 //    return QFont("Helvetica [Cronyx]", fontSize, weight);
-    return QFont("FreeMono", fontSize, weight);
+//    return QFont("FreeMono", fontSize, weight);
+    return QFont("MathJax_Fraktur", fontSize, weight);
+
 }
 
 QColor StaticFunctions::getGoshBlueColor()

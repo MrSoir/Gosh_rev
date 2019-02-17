@@ -59,8 +59,9 @@ public slots:
     void updateTabLabels(QVector<QDir> tabLabels);
     void activeTabIdChanged(int id);
 protected:
-    void keyPressEvent(QKeyEvent *event) override;
+    virtual void keyPressEvent(QKeyEvent *event) override;
 
+    virtual void resizeEvent(QResizeEvent* event) override;
 private:
     void setCentralWidget();
 

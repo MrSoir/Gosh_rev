@@ -87,5 +87,6 @@ private:
     QString m_str;
     QColor m_textCol1, m_textCol2;
     QFont m_font;
+    QColor m_closeXCol_hover = QColor(255,100,100);
 };
 #endif // TABRECT_H

@@ -8,8 +8,6 @@ GraphicsView::GraphicsView(FileManagerInfo* fmi,
                            int zoomFactor,
                            QWidget* parent)
     : QGraphicsView(parent),
-//      WidgetCloser(),
-
       m_scene(new QGraphicsScene()),
       m_fontSize(zoomFactor),
       m_isLoading(false),
@@ -18,8 +16,6 @@ GraphicsView::GraphicsView(FileManagerInfo* fmi,
       m_fileMangrInfo(fmi),
       m_entriesToRender(entriesToRender.data)
 {
-//    qDebug() << "GraphicsView::Constructor";
-
     connect(this, &GraphicsView::update_SGNL, this, &GraphicsView::revalidate);
 
     revalFileManagerMetaData();
@@ -68,8 +64,6 @@ GraphicsView::GraphicsView(FileManagerInfo* fmi,
     this->verticalScrollBar();
     connect(this->verticalScrollBar(),   &QScrollBar::valueChanged,  this, &GraphicsView::vScrollValueChanged);
     connect(this->horizontalScrollBar(), &QScrollBar::valueChanged,  this, &GraphicsView::hScrollValueChanged);
-
-    update_SGNL();
 
     setHBarValue(hBarValue);
     setVBarValue(vBarValue);
@@ -403,6 +397,7 @@ void GraphicsView::setFileManager_MetaData(FileManagerInfo* fmi)
 void GraphicsView::revalFileManagerMetaData()
 {
     m_fileCount = m_fileMangrInfo->displayedFileCount();
+    m_showCancelBtn = m_fileMangrInfo->executingDeepSearch();
     revalFirstAndLastDisplayedFI();
 }
 
@@ -424,15 +419,12 @@ int GraphicsView::getHScrollBarValue()
 
 void GraphicsView::receiveFileViewers(ViewerData new_files)
 {
-//    qDebug() << "GraphicsView::receiveFileViewers -  new_files:" << new_files.size();
     m_entriesToRender = new_files.data;
     emit update_SGNL();
 }
 
 void GraphicsView::receiveFileManagerMetaData(FileManagerInfo* fmi)
 {
-//    qDebug() << "GraphicsView::receiveFileManagerMetaData";
-
     setFileManager_MetaData(fmi);
 
     emit update_SGNL();
@@ -441,10 +433,9 @@ void GraphicsView::receiveFileManagerMetaData(FileManagerInfo* fmi)
 void GraphicsView::receiveFileManagerData(ViewerData new_files,
                                           FileManagerInfo *fmi)
 {
-//    qDebug() << "GraphicsView::receiveFileManagerData";
-
     m_entriesToRender = new_files.data;
     setFileManager_MetaData(fmi);
+
     emit update_SGNL();
 }
 
@@ -1251,7 +1242,7 @@ void GraphicsView::rePaintCanvas()
                     .arg(QDir::separator())
                     .arg("root_scld.png");
             QPixmap directory_pixmap = QPixmap(directory_pixmap_path);
-            GraphicItemsBD::PixmapRect* rotSlctr = new GraphicItemsBD::PixmapRect(directory_pixmap, QSize(50, 50),
+            GraphicItemsBD::PixmapRect* rotSlctr = new GraphicItemsBD::PixmapRect(directory_pixmap, m_rootSelSize,
                        QPoint(0,0),
                        QColor(255,255,255, 0),QColor(255,255,255, 0),
                        QColor(255,0,200, 255), QColor(255,200,200, 255));
@@ -1261,9 +1252,49 @@ void GraphicsView::rePaintCanvas()
             rotSlctr->setPosition(QPoint(p_x, getViewportYOffset()));
             m_graphicsGroup->addToGroup(rotSlctr);
         }
+        if(m_showCancelBtn)
+        {
+            paintCancelCurrentThreadWorker();
+        }
     }
 
     m_scene->update();
+}
+
+void GraphicsView::paintCancelCurrentThreadWorker()
+{
+    if(m_fileMangrInfo)
+    {
+        QString cnclBtnText("");
+        if(m_fileMangrInfo->executingDeepSearch())
+        {
+            cnclBtnText = QString("cancel\ndeep search");
+        }
+        if( !cnclBtnText.isEmpty() )
+        {
+            GraphicItemsBD::TextRect* cnclBtn = new GraphicItemsBD::TextRect(cnclBtnText,
+                                                                             m_cancelBtnSize,
+                                                                             QPoint(0,0),
+                                                                             QColor(255,100,100),
+                                                                             QColor(255,100,100)/*,
+                                                                             QColor(255,50,50),
+                                                                             QColor(255,50,50)*/);
+            cnclBtn->setTextColor(QColor(255,255,255));
+            QFont f = cnclBtn->font();
+            f.setBold(true);
+            cnclBtn->setSize(m_cancelBtnSize);
+            auto p_x = static_cast<int>( static_cast<int>(this->viewport()->width() - cnclBtn->boundingRect().width()) * 0.5);
+            auto p_y = static_cast<int>(this->viewport()->height() - cnclBtn->boundingRect().height() - 4);
+            cnclBtn->setPos(QPointF(p_x, p_y));
+            cnclBtn->setCallFunction([=](){cancelDeepSearch();});
+            m_graphicsGroup->addToGroup(cnclBtn);
+        }
+    }
+}
+
+void GraphicsView::cancelDeepSearch()
+{
+    emit cancelDeepSearch_SGNL();
 }
 
 void GraphicsView::setWaitingBarSizeAndPos()

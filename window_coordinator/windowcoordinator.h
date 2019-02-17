@@ -90,6 +90,9 @@ private:
     QStringList m_initPath = QStandardPaths::standardLocations(QStandardPaths::StandardLocation::DocumentsLocation);
     QString m_curFocusedRootPath;
 
-    QString m_starup_res_path;};
+    QString m_starup_res_path;
+
+    bool m_closed = false;
+};
 
 #endif // WINDOWCOORDINATOR_H
