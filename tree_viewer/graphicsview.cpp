@@ -16,7 +16,10 @@ GraphicsView::GraphicsView(FileManagerInfo* fmi,
       m_fileMangrInfo(fmi),
       m_entriesToRender(entriesToRender.data)
 {
-    connect(this, &GraphicsView::update_SGNL, this, &GraphicsView::revalidate);
+    connect(this, &GraphicsView::update_SGNL, this, &GraphicsView::revalidate, Qt::QueuedConnection); // muss QueueConnection sein, da sonst z.B. MenuBar den close-button besitzt
+                                                                                                      // -> wenn das MenuBar indirekt den befehl erteilt, sich selbst zu deleten,
+                                                                                                      // wird ein objekt geloescht, in dem noch operationen durchgefuehrt werden ->
+                                                                                                      // programm schmiert ab!!!r
 
     revalFileManagerMetaData();
 
@@ -520,7 +523,7 @@ void GraphicsView::paintTopRectangle(const QPointF& center, const QSize& size)
     m_upperRect->closeSubpath();
 
     QGraphicsPathItem* painterPthItm = new QGraphicsPathItem();
-    painterPthItm->setBrush(QBrush(StaticFunctions::getGoshBlueColor()));
+    painterPthItm->setBrush(QBrush(StaticFunctions::getGoshLimeColor()));
     painterPthItm->setPen(QPen(QColor(0,0,0,100), 1, Qt::SolidLine));
     painterPthItm->setPath(*m_upperRect);
 
@@ -553,6 +556,8 @@ void GraphicsView::addMenuBar(){
     menu_caller->setFunction(QString("buttonFunction6"), terminalFunc);
     menu_caller->setFunction(QString("buttonFunction7"), incognitoFunc);
     menu_caller->setFunction(QString("buttonFunction8"), closeMenuBarFunc);
+
+    m_menuBar->closeOnMouseExit(closeMenuBarFunc);
 
     QString incognitoImageFileName = m_fileMangrInfo->includeHiddenFiles() ? tr("incognito.png") : tr("incognito_NOT.png");
 

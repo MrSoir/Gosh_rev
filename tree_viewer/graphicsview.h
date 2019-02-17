@@ -306,7 +306,7 @@ private:
     MenuBar* m_contBar = nullptr;
 
     QPainterPath* m_upperRect = nullptr;
-    int m_upperRectWidth = 40;
+    int m_upperRectWidth = 70;
     QPoint* m_mouseP = nullptr;
 
     void closeAllSubMenus();

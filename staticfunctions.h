@@ -86,6 +86,7 @@ namespace StaticFunctions {
 
     QFont getGoshFont(int fontSize = 8, int weight = QFont::Normal);
     QColor getGoshBlueColor();
+    QColor getGoshLimeColor();
 
     QString getFileType(const QString& fileName);
     QString getFileTypeWithDot(const QString& fileName);

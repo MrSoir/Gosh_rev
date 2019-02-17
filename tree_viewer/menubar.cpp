@@ -30,6 +30,12 @@ MenuBar::~MenuBar(){
     m_groupingFunc = nullptr;
 }
 
+void MenuBar::closeOnMouseExit(std::function<void()> closeCaller)
+{
+    m_closeCaller = closeCaller;
+    m_closeOnMouseExit = true;
+}
+
 void MenuBar::setPosition(QPoint position){
     m_centerOrientation += position;
 }
@@ -304,6 +310,22 @@ void MenuBar::hoverMoveEvent(QGraphicsSceneHoverEvent * event){
     if(updt)
         update();
     //        return QGraphicsItem::hoverEnterEvent(event);
+}
+
+void MenuBar::hoverLeaveEvent(QGraphicsSceneHoverEvent *event)
+{
+    Q_UNUSED(event)
+
+    if(m_closeOnMouseExit)
+    {
+        if(m_closeCaller)
+            m_closeCaller();
+    }else{
+        for(std::size_t i=0; i < m_buttons.size(); i++){
+            m_mouInBtns[i] = false;
+        }
+        update();
+    }
 }
 
 int MenuBar::groupCount()

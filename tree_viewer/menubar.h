@@ -35,6 +35,8 @@ public:
             QGraphicsItem* parent = nullptr);
     virtual ~MenuBar() override;
 
+    void closeOnMouseExit(std::function<void()> closeCaller);
+
     virtual void setPosition(QPoint position) override;
 
     virtual QRectF boundingRect() const override;
@@ -49,8 +51,9 @@ public:
 
     GraphicItemsBD::ORIENTATION orientation();
 protected:
-    void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
-    void hoverMoveEvent(QGraphicsSceneHoverEvent* event) override;
+    virtual void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
+    virtual void hoverMoveEvent(QGraphicsSceneHoverEvent* event) override;
+    virtual void hoverLeaveEvent(QGraphicsSceneHoverEvent *event) override;
 private:
 
     int groupCount();
@@ -98,6 +101,9 @@ private:
     qint64 lastTmePrsd = Q_INT64_C(0);
 
     GraphicItemsBD::ORIENTATION m_orientation = GraphicItemsBD::ORIENTATION::HORIZONTAL;
+
+    bool m_closeOnMouseExit = false;
+    std::function<void()> m_closeCaller = nullptr;
 };
 
 #endif // MENUBAR_H

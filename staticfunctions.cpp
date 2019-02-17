@@ -25,6 +25,10 @@ QColor StaticFunctions::getGoshBlueColor()
 {
     return QColor(180,180,255,90);
 }
+QColor StaticFunctions::getGoshLimeColor()
+{
+    return QColor(150,255,150,90);
+}
 
 //--------------------------------------------------------------
 
