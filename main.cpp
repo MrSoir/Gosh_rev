@@ -7,6 +7,7 @@
 #include <QVector>
 #include <QSize>
 #include <QDebug>
+#include <QMetaType>;
 
 #include <string>
 #include <vector>
@@ -20,6 +21,7 @@
 #include "file_handling_src/dirmanagerinfo.h"
 #include "file_handling_src/dirdeepsearchworker.h"
 #include "file_handling_src/viewerdata.h"
+#include "file_handling_src/previewiconloader.h"
 
 #include "file_manipulation/copyfiles.h"
 #include "file_manipulation/createentry.h"
@@ -173,6 +175,11 @@ Q_DECLARE_METATYPE(QSize*);
 Q_DECLARE_METATYPE(QPixmap);
 Q_DECLARE_OPAQUE_POINTER(QPixmap*);
 Q_DECLARE_METATYPE(QPixmap*);
+
+Q_DECLARE_METATYPE(PreviewIcon);
+Q_DECLARE_OPAQUE_POINTER(PreviewIcon*);
+Q_DECLARE_METATYPE(PreviewIcon*);
+
 //-----------------------------------
 Q_DECLARE_METATYPE(QThread::Priority);
 Q_DECLARE_OPAQUE_POINTER(QThread::Priority*);
@@ -232,8 +239,14 @@ Q_DECLARE_METATYPE(std::vector<FileInfoBD>);
 Q_DECLARE_METATYPE(std::vector<FileInfoBD*>);
 Q_DECLARE_METATYPE(std::vector<DirManagerInfo>);
 Q_DECLARE_METATYPE(std::vector<DirManagerInfo*>);
+
 Q_DECLARE_METATYPE(std::vector<FiBDViewer>);
 Q_DECLARE_METATYPE(std::vector<FiBDViewer*>);
+typedef std::unordered_map<long long,FiBDViewer>  Map_LongLong_FiBDViewer;
+typedef std::unordered_map<long long,FiBDViewer*> Map_LongLong_FiBDViewerPntr;
+Q_DECLARE_METATYPE(Map_LongLong_FiBDViewer);
+Q_DECLARE_METATYPE(Map_LongLong_FiBDViewerPntr);
+
 Q_DECLARE_METATYPE(std::vector<QFileInfo*>);
 Q_DECLARE_METATYPE(std::vector<FileMimeTypeHandler>);
 Q_DECLARE_METATYPE(std::vector<FileMimeTypeHandler*>);
@@ -267,6 +280,14 @@ Q_DECLARE_METATYPE(std::vector<QSize>);
 Q_DECLARE_METATYPE(std::vector<QSize*>);
 Q_DECLARE_METATYPE(std::vector<QPixmap>);
 Q_DECLARE_METATYPE(std::vector<QPixmap*>);
+
+Q_DECLARE_METATYPE(std::vector<PreviewIcon>);
+Q_DECLARE_METATYPE(std::vector<PreviewIcon*>);
+typedef std::unordered_map<std::string, PreviewIcon>  Map_string_PreviewIcon;
+typedef std::unordered_map<std::string, PreviewIcon*> Map_string_PreviewIconPntr;
+Q_DECLARE_METATYPE(Map_string_PreviewIcon);
+Q_DECLARE_METATYPE(Map_string_PreviewIconPntr);
+
 Q_DECLARE_METATYPE(std::vector<QThread::Priority>);
 Q_DECLARE_METATYPE(std::vector<QThread::Priority*>);
 Q_DECLARE_METATYPE(std::vector<std::string>);
@@ -285,6 +306,8 @@ Q_DECLARE_METATYPE(std::vector<QDateTime>);
 Q_DECLARE_METATYPE(std::vector<QDateTime*>);
 Q_DECLARE_METATYPE(std::vector<DirDeepSearchWorker>);
 Q_DECLARE_METATYPE(std::vector<DirDeepSearchWorker*>);
+
+
 
 
 void setStyles(QApplication& app)
@@ -365,10 +388,9 @@ void registerTypes()
     qRegisterMetaType<ViewerData*>();
     qRegisterMetaType<DirDeepSearchWorker>();
     qRegisterMetaType<DirDeepSearchWorker*>();
-    qRegisterMetaType<std::vector<std::string>>();
-    qRegisterMetaType<std::unordered_map<long long,FiBDViewer>>();
 
     // register containers:
+    qRegisterMetaType<std::vector<std::string>>();
     qRegisterMetaType<std::vector<DirectoryStack>>();
     qRegisterMetaType<std::vector<DirectoryStack*>>();
     qRegisterMetaType<std::vector<FileInfoBD>>();
@@ -410,6 +432,8 @@ void registerTypes()
     qRegisterMetaType<std::vector<QSize*>>();
     qRegisterMetaType<std::vector<QPixmap>>();
     qRegisterMetaType<std::vector<QPixmap*>>();
+    qRegisterMetaType<std::vector<PreviewIcon>>();
+    qRegisterMetaType<std::vector<PreviewIcon*>>();
     qRegisterMetaType<std::vector<QThread::Priority>>();
     qRegisterMetaType<std::vector<QThread::Priority*>>();
     qRegisterMetaType<std::vector<std::string>>();
@@ -428,6 +452,12 @@ void registerTypes()
     qRegisterMetaType<std::vector<QDateTime*>>();
     qRegisterMetaType<std::vector<DirDeepSearchWorker>>();
     qRegisterMetaType<std::vector<DirDeepSearchWorker*>>();
+
+    // register maps:
+    qRegisterMetaType<Map_string_PreviewIcon>();
+    qRegisterMetaType<Map_string_PreviewIconPntr>();
+    qRegisterMetaType<Map_LongLong_FiBDViewer>();
+    qRegisterMetaType<Map_LongLong_FiBDViewerPntr>();
 }
 
 std::vector<std::string> getCopyPaths()

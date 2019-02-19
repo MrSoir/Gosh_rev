@@ -78,6 +78,8 @@ public:
     void setInitDraggingFunction(std::function<void(QString)> func);
     void setDropFunction(std::function<void(QString)> func);
 
+    void setPreviewIcon(QPixmap pi);
+
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event);
     void mouseDoubleClickEvent(QGraphicsSceneMouseEvent * event);
@@ -163,6 +165,8 @@ private:
     QColor m_searchFocusedCol = QColor(160,160,255,   255);
 
     QColor m_backgrColInUse = m_backgroundColor;
+
+    QPixmap m_previewIcon;
 };
 
 

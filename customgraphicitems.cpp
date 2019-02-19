@@ -374,7 +374,8 @@ void GraphicItemsBD::IconAndLabelItem::paint(QPainter* painter,
         pixmap = QPixmap(m_pixmapPath);
     }
 
-    pixmap = pixmap.scaled(QSize(static_cast<int>(pixmapEdge), static_cast<int>(pixmapEdge)));
+    pixmap = pixmap.scaled(QSize(static_cast<int>(pixmapEdge), static_cast<int>(pixmapEdge)),
+                           Qt::IgnoreAspectRatio, Qt::FastTransformation);
     painter->drawPixmap(pixmapRect,
                         pixmap,
                         pixmap.rect());

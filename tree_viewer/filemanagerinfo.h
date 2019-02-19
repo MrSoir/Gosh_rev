@@ -6,6 +6,11 @@
 #include <QDebug>
 #include <QString>
 
+#include <unordered_map>
+#include <unordered_set>
+#include <string>
+#include <QPixmap>
+
 #define int_bd long long
 
 class FileManager;
@@ -22,7 +27,7 @@ public:
 
     FileManagerInfo& operator=(const FileManagerInfo& fmi);
 
-//    virtual ~FileManagerInfo() override;
+    virtual ~FileManagerInfo() override;
 
     QString curRootPath() const;
     QString curFocusedSearchPath() const;
@@ -42,27 +47,17 @@ public:
     bool filesSelected() const;
     bool selectionContainsZippedFile() const;
     bool depthIdElapsed(int id) const;
+
+    QPixmap getPreviewIcon(const QString& path);
+    QPixmap getPreviewIcon(const std::string& path);
+    bool containsPreviewIcon(const QString& path);
+    bool containsPreviewIcon(const std::string& path);
+
+    const std::unordered_map<std::string, QPixmap>& getPreviewIcons() const;
+
 signals:
     void revalidateTreeViewer();
-//public slots:
-//    void curRootChanged(QString rootPath);
-//    void curSearchResultChanged(QString curSearRslt);
 
-//    void maxDepthChanged(int n);
-//    void selectionCountChanged(int n);
-//    void displayedFileCountChanged(int n);
-//    void indexOfCurrentSearchResultChanged(int n);
-//    void searchIndexChanged(int n);
-//    void searchResultsCountChanged(int n);
-
-//    void includeHiddenFilesChanged(bool b);
-//    void inSearchModeChanged(bool b);
-//    void singleFolderSelectedChanged(bool b);
-//    void foldersSelectedChanged(bool b);
-//    void filesSelectedChanged(bool b);
-//    void selectionContainsZippedFileChanged(bool b);
-
-//    void depthIdElapsedChanged(QVector<bool> v);
 private:
     QString m_curRootPath;
     QString m_curSearchRslt;
@@ -82,6 +77,8 @@ private:
     bool m_selctnCntnsZpdFle;
 
     std::vector<bool> m_depthIdElapsed;
+
+    std::unordered_map<std::string, QPixmap> m_previewIcons;
 };
 
 #endif // FILEMANAGERINFO_H

@@ -235,7 +235,10 @@ void GraphicsFile::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
                   static_cast<int>(d_height*fctr),
                   static_cast<int>(d_height*fctr));
 
-    QPixmap iconPixmap = StaticFunctions::getFilePixmap(m_fiv.path(), iconRct.size());
+    QPixmap iconPixmap = m_previewIcon.isNull()
+                        ?  StaticFunctions::getFilePixmap(m_fiv.path(), iconRct.size())
+                        : m_previewIcon.scaled(iconRct.size(), Qt::IgnoreAspectRatio, Qt::FastTransformation);
+//    QPixmap iconPixmap = StaticFunctions::getFilePixmap(m_fiv.path(), iconRct.size());
     painter->drawPixmap(iconRct, iconPixmap);//icon.pixmap(iconRct.size()));
 
     QFont txtFont(StaticFunctions::getGoshFont(m_fontSize, QFont::Normal));
@@ -472,6 +475,14 @@ void GraphicsFile::setInitDraggingFunction(std::function<void (QString)> func)
 void GraphicsFile::setDropFunction(std::function<void(QString)> func)
 {
     m_dropFunc = func;
+}
+
+void GraphicsFile::setPreviewIcon(QPixmap pi)
+{
+    if(pi.isNull())
+        return;
+
+    m_previewIcon = pi;
 }
 
 

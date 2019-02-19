@@ -38,7 +38,10 @@ FileManager::FileManager(std::string root_path,
                                   &m_entries_order_colpsd,
                                   &m_path_fileNames_colpsd,
                                   &m_folder_paths_colpsd,
-                                  this))
+                                  this)),
+
+      m_previewIconSize(QSize(30,30)),
+      m_prevIcnLoadr(PreviewIconLoader(m_previewIconSize))
 {
     connectSignals();
 
@@ -59,6 +62,8 @@ FileManager::~FileManager()
         delete m_tree;
 
     delete m_dirStack; m_dirStack = nullptr;
+
+    m_prevIcnLoadr.close();
 }
 
 void FileManager::test()
@@ -661,6 +666,8 @@ void FileManager::requestFileViewerRevalidation(int_bd firstEntryToDispl, int_bd
     m_frstDispFile = firstEntryToDispl;
     m_lastDispFile = lastEntryToDisp;
 
+    loadPreviewIconsOfCurrentlyDisplayedEntries();
+
     revalidateViewer_entries_hlpr();
 }
 
@@ -674,6 +681,11 @@ void FileManager::deepSearch(QString key_word)
 
     m_executingDeepSearch = true;
     emit deepSearch_dm(key_word.toStdString(), true);
+    revalidateViewer_metaData_hlpr();
+}
+
+void FileManager::newPreviewIconsLoaded()
+{
     revalidateViewer_metaData_hlpr();
 }
 
@@ -723,6 +735,12 @@ void FileManager::setRoot_hlpr(string rootPath, bool addToDirStack)
 
 void FileManager::connectSignals()
 {
+    // PreviewIconLoader:
+        // PreviewIconLoader -> FileManager
+    connect(&m_prevIcnLoadr, &PreviewIconLoader::newIconsLoaded, this, &FileManager::newPreviewIconsLoaded);
+        // FileManager -> PreviewIconLoader:
+    connect(this, SIGNAL(loadIcons_SGNL(std::unordered_set<std::string>)), &m_prevIcnLoadr, SLOT(loadIcons(std::unordered_set<std::string>)));
+
     if(m_tasks_queue)
     {
         connect(this, &FileManager::addQueueTask,          m_tasks_queue, &FileQueue::addTask);
@@ -1484,6 +1502,11 @@ void FileManager::revalidateTree_hlpr(DirManagerInfo* entry,
     }
 }
 
+void FileManager::loadPreviewIconsOfCurrentlyDisplayedEntries()
+{
+//    emit loadIcons_SGNL(getCurrentlyDisplayedFilePaths());
+}
+
 //----------------------------------------------------------
 
 QString FileManager::curRootPath() const
@@ -1559,4 +1582,29 @@ bool FileManager::selectionContainsZipFiles() const
 std::vector<bool> FileManager::depthIdElapsed() const
 {
     return std::vector<bool>(m_depthId_elapsed.begin(), m_depthId_elapsed.end());
+}
+
+std::unordered_map<string, QPixmap> FileManager::getPreviewIcons() const
+{
+    return m_prevIcnLoadr.getPreviewIconsMap(getCurrentlyDisplayedFilePaths());
+}
+
+// OBACHT: getCurrentlyDisplayedFilePaths sucht NUR Files - nicht Directories/Folders!!!
+std::unordered_set<string> FileManager::getCurrentlyDisplayedFilePaths() const
+{
+    std::unordered_set<string> curDisplFiles;
+    for(auto i=m_frstDispFile; i <= m_lastDispFile; ++i)
+    {
+        auto it = m_order_entries_colpsd.find(i);
+        if(it != m_order_entries_colpsd.end())
+        {
+            auto path = it->second;
+            // check if path is not a folder -> only files
+            if(m_folder_paths_colpsd.find(path) == m_folder_paths_colpsd.end())
+            {
+                curDisplFiles.insert(path);
+            }
+        }
+    }
+    return curDisplFiles;
 }

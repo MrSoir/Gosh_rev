@@ -32,6 +32,8 @@
 #include"dirmanager.h"
 #include "dirmanagerinfo.h"
 #include "directorystack.h"
+#include "previewiconloader.h"
+#include "previewicon.h"
 
 #include "tree_viewer/graphicsview.h"
 #include "tree_viewer/directoryselectionpane.h"
@@ -81,6 +83,9 @@ public:
     bool filesSelected() const;
     bool selectionContainsZipFiles() const;
     std::vector<bool> depthIdElapsed() const;
+    std::unordered_map<std::string, QPixmap> getPreviewIcons() const;
+
+    std::unordered_set<std::string> getCurrentlyDisplayedFilePaths() const;
 
 signals:
     void addPathToFileWatcher(std::string path);
@@ -147,6 +152,10 @@ signals:
     void sortAllDirs_dm(Order order);
 
     void cancelDeepSearch_dm();
+
+
+    // PreviewIconLoader:
+    void loadIcons_SGNL(const std::unordered_set<std::string>&);
 
 public slots:
     void setRoot(const std::string& rootPath);
@@ -231,6 +240,8 @@ public slots:
     // searching:   (depSearch wird hier direkt vom fileManager gehandelt, alles andere uebernimmt direkt der FileSearcher)
     void deepSearch(QString key_word);
 
+    // PreviewIconLoader:
+    void newPreviewIconsLoaded();
 
 
     // DirManager -> FileManager:
@@ -278,6 +289,8 @@ private:
                           int_bd* cntr_clpsd,
                           int depthId,
                           int* maxDepthId);
+
+    void loadPreviewIconsOfCurrentlyDisplayedEntries();
 
     void printEntries();
 
@@ -330,6 +343,9 @@ private:
 
     FileSearcher* m_searcher;
     FileSelector* m_selector;
+
+    QSize m_previewIconSize;
+    PreviewIconLoader m_prevIcnLoadr;
 
     bool m_executingDeepSearch = false;
 };

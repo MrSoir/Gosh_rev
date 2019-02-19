@@ -108,7 +108,8 @@ void InfoDialog::addPixmapToGridPane(const QString& pictureFileName,
                                          QGridLayout *layout)
 {
     QPixmap pixmap(StaticFunctions::getPictureResourceFromFileName(pictureFileName));
-    pixmap = pixmap.scaled(m_iconBtnSize);
+    pixmap = pixmap.scaled(m_iconBtnSize,
+                           Qt::IgnoreAspectRatio, Qt::FastTransformation);
 
     QLabel* lbl = new QLabel();
     lbl->setPixmap(pixmap);

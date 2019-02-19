@@ -261,7 +261,8 @@ QPixmap STATIC_FUNCTIONS::getPixmapFromPDF(const QString& path, QSize imageSize)
     QFileInfo fi(tmpTarFilePath);
     if(fi.exists())
     {
-        return QPixmap(tmpTarFilePath).scaled(imageSize);
+        return QPixmap(tmpTarFilePath).scaled(imageSize,
+                                              Qt::IgnoreAspectRatio, Qt::FastTransformation);
     }
 
     return QPixmap();
@@ -669,4 +670,43 @@ bool STATIC_FUNCTIONS::copyFile(const QString &absSourcePath, const QString &abs
 bool STATIC_FUNCTIONS::copyFile(const string &absSourcePath, const string &absTarPath)
 {
     return copyFile(QString::fromStdString(absSourcePath), QString::fromStdString(absTarPath));
+}
+
+//-------------------------------------------------------------------------------
+
+QPixmap STATIC_FUNCTIONS::loadPreviewIcon(const string& file_path,
+                                          const QSize &size)
+{
+    return loadPreviewIcon(QString::fromStdString(file_path), size);
+}
+
+QPixmap STATIC_FUNCTIONS::loadPreviewIcon(const QString &file_path,
+                                          const QSize &size)
+{
+    if(SUPPORTED_IMAGE_FORMATS.find(QFileInfo(file_path).completeSuffix().toStdString()) == SUPPORTED_IMAGE_FORMATS.end())
+        return QPixmap();
+
+    QPixmap p(file_path);
+    if(p.isNull())
+    {
+        return p;
+    }
+    auto loadedSize = p.size().width() * p.size().height();
+    if(loadedSize == 0)
+    {
+        qDebug() << "0-size image: " << file_path;
+        return QPixmap();
+    }
+    return p.scaled(size,
+                    Qt::IgnoreAspectRatio, Qt::FastTransformation);
+}
+
+std::unordered_set<string> STATIC_FUNCTIONS::evalSupportedImageFileTypes()
+{
+    std::unordered_set<std::string> supportedImgeFileTypes;
+    for(auto imf: QImageReader::supportedImageFormats())
+    {
+        supportedImgeFileTypes.emplace(imf.toStdString());
+    }
+    return supportedImgeFileTypes;
 }

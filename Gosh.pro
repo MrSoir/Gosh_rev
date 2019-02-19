@@ -111,7 +111,10 @@ SOURCES += \
     dialogs/openwithdialog.cpp \
     dialogs/openwithgraphicsview.cpp \
     file_handling_src/viewerdata.cpp \
-    dialogs/stringgetterdialog.cpp
+    dialogs/stringgetterdialog.cpp \
+    file_handling_src/previewicon.cpp \
+    file_handling_src/previewiconloaderworker.cpp \
+    file_handling_src/previewiconloader.cpp
 
 HEADERS += \
          mainwindow.h \
@@ -201,7 +204,10 @@ HEADERS += \
     dialogs/openwithdialog.h \
     dialogs/openwithgraphicsview.h \
     file_handling_src/viewerdata.h \
-    dialogs/stringgetterdialog.h
+    dialogs/stringgetterdialog.h \
+    file_handling_src/previewicon.h \
+    file_handling_src/previewiconloaderworker.h \
+    file_handling_src/previewiconloader.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

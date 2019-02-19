@@ -1058,7 +1058,8 @@ void GraphicsView::rePaintCanvas()
 
             QString cancelPixmapPath = StaticFunctions::getPictureResourceFromFileName("cancel.png");
             QPixmap cancelPixmap(cancelPixmapPath);
-            cancelPixmap = cancelPixmap.scaled(QSize(300,300));
+            cancelPixmap = cancelPixmap.scaled(QSize(300,300),
+                                               Qt::IgnoreAspectRatio, Qt::FastTransformation);
 
             auto view_pix_width = static_cast<double>(this->viewport()->width()-cancelPixmap.width());
             auto x_pos = view_pix_width * 0.5;
@@ -1326,6 +1327,13 @@ void GraphicsView::paintFileInfo(const FiBDViewer& fiv, int_bd rowId, int_bd col
                                         caller,
                                         sortCaller,
                                         m_fontSize);
+    if( !fiv.isFolder() )
+    {
+        if(m_fileMangrInfo->containsPreviewIcon(fiv.path()))
+        {
+            gf->setPreviewIcon(m_fileMangrInfo->getPreviewIcon(fiv.path()));
+        }
+    }
     gf->setDetailsTextColor(QColor(0,0,0, 150));
     gf->setDropFunction([=](QString dropStr){
         emit paste(dropStr, fiv.q_path());

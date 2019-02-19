@@ -134,7 +134,8 @@ void PixMapGetter::generatePixmap()
     QFileInfo fi(q_path);
     if( STATIC_FUNCTIONS::isSupportedImage(m_path))
     {
-        m_pixmap = QPixmap(q_path).scaled(m_pixmapSize);
+        m_pixmap = QPixmap(q_path).scaled(m_pixmapSize,
+                                          Qt::IgnoreAspectRatio, Qt::FastTransformation);
     }else if( STATIC_FUNCTIONS::isPDF(m_path) )
     {
 
