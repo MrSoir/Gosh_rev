@@ -506,25 +506,50 @@ void FileManager::zipSelectedContent()
         {
             // tarPath ermitteln: logik: sofern alle eintraege in demselben ordner sind, werden die dateien in eine datei im selben ordner gezippt. sind die dateien auf versch. ordner verteilt, werden sie im m_root_path gezippt
             std::string tarPath = m_root_path;
-            QString basePath = PATH::getBasePath(entries_vec[0]);
-            bool alleFilesInSameFolder = true;
-            for(std::size_t i=1; i < entries_vec.size(); ++i)
+
+            QString zipFileBaseName;
+            if(entries_vec.size() == 1)
             {
-                QString curBasePath = PATH::getBasePath(entries_vec[i]);
-                if(curBasePath != basePath)
+                QFileInfo fi(QString::fromStdString(entries_vec[0]));
+                if( !fi.baseName().isEmpty() )
                 {
-                    alleFilesInSameFolder = false;
-                    break;
+                    zipFileBaseName = fi.baseName();
                 }
             }
-            if(alleFilesInSameFolder)
-                tarPath = basePath.toStdString();
+            if(zipFileBaseName.isEmpty())
+            {
+                zipFileBaseName = "zipped_files";
+            }
 
-            tarPath = PATH::join(tarPath, "zipped.zip");
-            tarPath = STATIC_FUNCTIONS::getUniqueFilePath("tarPath").toStdString();
+            QString sharedBasePath = PATH::getBasePath(entries_vec[0]);
 
-            ZIP::ZipFiles* zipWorker = new ZIP::ZipFiles(entries_vec, tarPath);
-            emit addQueueTask(zipWorker);
+            if( !sharedBasePath.isEmpty() )
+            {
+                for(std::size_t i=1; i < entries_vec.size(); ++i)
+                {
+                    auto q_curSrcPath = QString::fromStdString(entries_vec[i]);
+                    auto curBasePath = PATH::getBasePath(q_curSrcPath);
+                    sharedBasePath = PATH::getJointDirectory(sharedBasePath, curBasePath);
+                    if( sharedBasePath.isEmpty() )
+                    {
+                        break;
+                    }
+                }
+            }
+            if( !sharedBasePath.isEmpty() )
+            {
+                tarPath = sharedBasePath.toStdString();
+            }
+
+
+            tarPath = PATH::join(tarPath, QString("%1.zip").arg(zipFileBaseName).toStdString());
+            tarPath = STATIC_FUNCTIONS::getUniqueFilePath(QString::fromStdString(tarPath)).toStdString();
+
+//            STATIC_FUNCTIONS::ZipFiles(tarPath, sharedBasePath.toStdString(), entries_vec);
+            STATIC_FUNCTIONS::ZipFiles(tarPath, "None", entries_vec);
+
+//            ZIP::ZipFiles* zipWorker = new ZIP::ZipFiles(entries_vec, tarPath);
+//            emit addQueueTask(zipWorker);
         }
     }
 }
@@ -540,8 +565,10 @@ void FileManager::unzipSelectedContent()
         if(!isZipFile)
             return;
 
-        ZIP::UnZipFile* unzipWorker = new ZIP::UnZipFile(filePathToZip);
-        emit addQueueTask(unzipWorker);
+        STATIC_FUNCTIONS::UnZipFile(filePathToZip);
+
+//        ZIP::UnZipFile* unzipWorker = new ZIP::UnZipFile(filePathToZip);
+//        emit addQueueTask(unzipWorker);
     }
 }
 
@@ -1576,7 +1603,8 @@ bool FileManager::filesSelected() const
 
 bool FileManager::selectionContainsZipFiles() const
 {
-    return false;
+    const auto selection = m_selector->getSelectedEntries();
+    return selection.size() == 1 && StaticFunctions::isZippedFile(QFileInfo(QString::fromStdString(*(selection.begin()))));
 }
 
 std::vector<bool> FileManager::depthIdElapsed() const

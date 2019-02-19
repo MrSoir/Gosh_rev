@@ -21,8 +21,12 @@ namespace PATH
 
     //-----------------------------------------------------------------------
 
-    QString getJointBasePath(const QString& path1, const QString& path2);
+    QString getJointBasePath(const QString& path1, const QString& path2, std::function<QString(const QString& path)> getBasePathFunc = [](const auto& path){return getBasePath(path);});
     QString getJointBasePath(const std::string& path1, const std::string& path2);
+
+
+    QString getJointDirectory(const QString& path1, const QString& path2);
+    QString getJointDirectory(const std::string& path1, const std::string& path2);
 
     //-----------------------------------------------------------------------
 

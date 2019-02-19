@@ -122,6 +122,56 @@ QString STATIC_FUNCTIONS::genStringGetterDialog(const QString &headline,
 
 //--------------------------------------------------------------------------------------------------
 
+void STATIC_FUNCTIONS::ZipFiles(const string &targetZipFilePath,
+                                const string &zipBaseDirPath,
+                                const std::vector<string> &srcFilesToZip)
+{
+    QString program;
+    QVector<QString> args;
+
+    #ifdef __linux__
+    program = QString("dotnet");
+    args.push_back(QString("scripts%1zip_files.dll").arg(QDir::separator()));
+    #elif _WIN32
+    program =  QString("scripts%1zipFiles.exe").arg(QDir::separator());
+    #else
+    #endif
+    args.push_back(QString::fromStdString(targetZipFilePath));
+    args.push_back(QString::fromStdString(zipBaseDirPath));
+    for(const auto& srcPath: srcFilesToZip)
+    {
+        args.push_back(QString::fromStdString(srcPath));
+    }
+
+    execCommand(program, args, false, true);
+}
+
+void STATIC_FUNCTIONS::UnZipFile(const string &absZipFilePath,
+                                 const string &tarExtractionDir)
+{
+    QString program;
+    QVector<QString> args;
+
+    #ifdef __linux__
+    program = QString("dotnet");
+    args.push_back( QString("scripts%1unzip_file.dll").arg(QDir::separator()));
+    #elif _WIN32
+    program =  QString("scripts%1unZipFile.exe").arg(QDir::separator());
+    #else
+    #endif
+
+    args.push_back(QString::fromStdString(absZipFilePath));
+    if( !tarExtractionDir.empty() )
+    {
+        args.push_back(QString::fromStdString(tarExtractionDir));
+    }
+
+    execCommand(program, args, false, true);
+}
+
+
+//---------------------
+
 Process* STATIC_FUNCTIONS::execPythonScript(const QString &scriptPath,
                                             const QVector<QString> &args,
                                             bool waitForFinished,
@@ -133,7 +183,7 @@ Process* STATIC_FUNCTIONS::execPythonScript(const QString &scriptPath,
     for(const auto& arg: args)
         params.push_back( arg );
 
-    return execCommand(QString("python"),
+    return execCommand(QString("scripts%1python").arg(QDir::separator()),
                        params,
                        waitForFinished,
                        execute);
@@ -167,7 +217,7 @@ Process* STATIC_FUNCTIONS::executeDotNetScript(const QString& scriptPath,
     for(const auto& arg: args)
         params.push_back( arg );
 
-    return execCommand(QString("dotnet"),
+    return execCommand(QString("scripts%1dotnet").arg(QDir::separator()),
                        params,
                        waitForFinished,
                        execute);
@@ -710,3 +760,5 @@ std::unordered_set<string> STATIC_FUNCTIONS::evalSupportedImageFileTypes()
     }
     return supportedImgeFileTypes;
 }
+
+

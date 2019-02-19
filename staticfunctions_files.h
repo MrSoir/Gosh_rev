@@ -100,6 +100,14 @@ namespace STATIC_FUNCTIONS
 
 //----------------------------------------------------------------------------------
 
+    void ZipFiles(const std::string& targetZipFilePath,
+                  const std::string& zipBaseDirPath,
+                  const std::vector<std::string>& srcFilesToZip);
+    void UnZipFile(const std::string& absZipFilePath,
+                   const std::string& tarExtractionDir = "");
+
+    //---------------------
+
     Process* execPythonScript(const QString& scriptPath,
                               const QVector<QString>& args,
                               bool waitForFinished = true,

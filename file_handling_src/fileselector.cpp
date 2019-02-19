@@ -232,8 +232,9 @@ void FileSelector::clearSelection()
 
 void FileSelector::clearSelectionWithoutSignaling()
 {
-    m_selected_paths.clear();
-    m_selected_folders_paths.clear();
+//    m_selected_paths.clear();
+//    m_selected_folders_paths.clear();
+    clearContainers();
     clearSelectionVars();
     m_slct_key_word = "";
 }
@@ -365,8 +366,10 @@ void FileSelector::printSelection() const
 
 void FileSelector::clearContainers()
 {
-    m_selected_paths.clear();
-    m_selected_folders_paths.clear();
+//    m_selected_paths.clear();
+//    m_selected_folders_paths.clear();
+    std::unordered_set<std::string>().swap(m_selected_paths);
+    std::unordered_set<std::string>().swap(m_selected_folders_paths);
 }
 
 void FileSelector::clearSelectionVars()

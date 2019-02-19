@@ -95,24 +95,46 @@ QString PATH::getFileNameWithoutExtension(const QString &absPath)
     return fileName.left(fn_sz - sf_sz);
 }
 
-QString PATH::getJointBasePath(const QString& path1, const QString& path2)
+QString PATH::getJointBasePath(const QString& path1,
+                               const QString& path2,
+                               std::function<QString(const QString& path)> getBasePathFunc)
 {
-    QString base1 = path1.length() <  path2.length() ? getBasePath(path1) : getBasePath(path2);
-    QString base2 = path1.length() >= path2.length() ? getBasePath(path1) : getBasePath(path2);
+    QString base1 = path1.length() >  path2.length() ? getBasePathFunc(path1) : getBasePathFunc(path2);
+    QString base2 = path1.length() <= path2.length() ? getBasePathFunc(path1) : getBasePathFunc(path2);
     if(base1.isEmpty() || base2.isEmpty())
     {
-        return "";
+        return QString("");
     }
+    if(base1 == base2)
+    {
+        return base1;
+    }
+    int cntr = 0;
     while(base1 != base2 || base1.isEmpty())
     {
-        base1 = getBasePath(base1);
+        QString new_base1 = getBasePath(base1);
+        if(new_base1 == base1)
+            return QString("");
+        base1 = new_base1;
     }
     return base1;
 }
-QString PATH::getJointBasePath(const std::string& path1, const std::string& path2)
+QString PATH::getJointBasePath(const std::string& path1,
+                               const std::string& path2)
 {
-    return getJointBasePath(QString::fromStdString(path1), QString::fromStdString(path2));
+    return getJointBasePath(QString::fromStdString(path1),
+                            QString::fromStdString(path2));
 }
+QString PATH::getJointDirectory(const QString& path1, const QString& path2)
+{
+    return getJointBasePath(path1, path2, [](const auto& path){return getDirFromPath(path);});
+}
+QString PATH::getJointDirectory(const std::string& path1, const std::string& path2)
+{
+    return getJointDirectory(QString::fromStdString(path1), QString::fromStdString(path2));
+
+}
+
 QString PATH::getBasePath(const std::string &path)
 {
     return getBasePath(QString::fromStdString(path));
