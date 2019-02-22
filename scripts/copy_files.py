@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Wed Dec 26 14:25:07 2018
+Created on Wed Feb 20 13:57:02 2019
 
 @author: hippo
 """
@@ -14,62 +14,208 @@ import sys, traceback
 import argparse
 import time
 import concurrent.futures
+import threading
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
-class CopyFrame(wx.Frame):
+import static_functions
+from static_functions import UserAnswer
 
-    def __init__(self, parent, title, source_paths, target_path):
-        super(CopyFrame, self).__init__(parent, title=title,size=(350, 130),style=wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER)
-        self.Centre()
-        self.SetIcon(wx.Icon(getPicturePath('MrSoirIcon_cursor.png')))
+from progress_dialog_widget import ProgressFrame
+
+from worker import Worker, WorkerDirEntry
+
+
+class CopyFiles(Worker):
+    def __init__(self, source_paths, target_path, progress_dialog=None):
+        super().__init__(progress_dialog)
         
-        self.source_paths = source_paths
+        self.source_paths = list()
+        for source_path in source_paths:
+            self.source_paths.append( WorkerDirEntry.createWorkerDirFromPath(source_path) )
+            
         self.target_path = target_path
+        self.__cancelled = False
+                
+    def executeThreaded(self):
+        print('executeThreaded')
+        self.copyFilesThreaded()
+            
+    def copyFilesThreaded(self):
+        print('copyFilesThreaded')
+        self.executor = ThreadPoolExecutor(max_workers=4)
+        self.executor.submit(self.copyFiles)
+    
+    def copyFiles(self):
+        print('copyFiles - starting to copy files...')
+        success = self.copyFiles_hlpr()
         
-        #panel = wx.Panel(self, wx.ID_ANY)
+        print('copyFiles - success: ', success)
         
-        vbox = wx.BoxSizer(wx.VERTICAL)
-        self.SetSizer(vbox)
+        if self.progress_dialog:
+            wx.CallAfter(self.progress_dialog.close)
+            
         
-        self.gauge = wx.Gauge(self, range = 100, size = (250, 25), style= wx.GA_HORIZONTAL) 
-        self.gauge.SetValue(30)
-        vbox.Add(self.gauge, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 5) 
-        
-        self.info_lbl = wx.StaticText(self,label = "copying files...", style=wx.GA_HORIZONTAL ) 
-        vbox.Add(self.info_lbl, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 5) 
-        
-        self.cncl_btn = wx.Button(self, label="cancel") 
-        vbox.Add(self.cncl_btn, 0, wx.EXPAND)
-        
-        self.cncl_btn.Bind(wx.EVT_BUTTON, self.onCancelClicked)
-        
-        def startCopying(self):
-        
-    def updateGauge(self, value):
-        self.gauge.SetValue(value)
-        
-    def incrementGauge(self):
-        self.gauge.SetValue(self.gauge.GetValue() + 1)
-        
-    def startCopying(self):
-        self.updateGauge(0)
-        executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
-        executor.submit(copyFiles, self.source_paths, self.target_path, self)
-        
-    def onCancelClicked(self, e):
-        self._cancelled = True
-        
-    def cancelled(self):
-        return self._cancelled
+            
+        if self.__cancelled:
+            return False
+        return success
 
-def print_test(sources, target, copy_frame):
-    time.sleep(2)
-    print('print_test... target: ', target)
-    copy_frame.updateGauge(30)
+    def copyFiles_hlpr(self):
+        print('in copyFiles_hlpr...')
+        self.updateProgDialLabel('process source files...')
+        self.entriesToProcess = static_functions.EntryCount(self.source_paths)
+        print('in copyFiles_hlpr 2...')
+        
+        # wenn der targetDirPath bereits existiert, dann:
+        #       1. user fragen ob der ordner geloescht werden soll oder
+        #       2. user nach einem neuen, nicht-existierenden ordnernamen fragen:
+        if os.path.exists(self.target_path):
+            tarDirName = static_functions.evalValidDirectoryName(self.target_path, self.progress_dialog)
+            if tarDirName is UserAnswer.CANCEL:
+                self.__cancelled = True
+                return False
+            elif tarDirName:
+                tarBaseDir = os.path.dirname(self.target_path)
+                if tarBaseDir:
+                    self.target_path = os.path.join(tarBaseDir, tarDirName)
+        
+        print('in copyFiles_hlpr 3...')
+        # self.target_path duefte jetzt nicht existieren (entweder hat ers nie ober user hat ihn loeschen lassen oder user hat 
+        # einen neuen zielordnernamen ausgewaehlt):
+        if not os.path.exists(self.target_path):
+            os.mkdir(self.target_path)
+            if not os.path.exists(self.target_path):
+                print("copyFiles_hlpr - target_path: '%s' does not exist and could not be created!" % self.target_path)
+                return False
+        
+        print('in copyFiles_hlpr 4...')
+        totalSuccess = True
+        for src_pth in self.source_paths: 
+            self.updateCurrentlyProcessedEntry(src_pth)
+            # copy file:
+            if os.path.isfile(src_pth):
+                totalSuccess = self.copyFile(src_pth) and totalSuccess
+                self.incrementProgress()
+            # deep-copy folder:
+            elif os.path.isdir(src_pth):
+                totalSuccess = self.copyDirectoryRec(src_pth) and totalSuccess
+                
+            if self.__cancelled:
+                return False
+        print('in copyFiles_hlpr 5...')
+        return totalSuccess
+    
+    def copyFile(self, absSrcFilePath):
+        time.sleep(2)
+        if not os.path.exists(absSrcFilePath):
+            return False
+        
+        fileName = os.path.basename(absSrcFilePath)
+        if not fileName:
+            return False
+        copiedFileSuccessfully = static_functions.copyFileAndAskUserIfAlreadyExists(absSrcFilePath, self.target_path, fileName, self.progress_dialog)
+        if copiedFileSuccessfully is UserAnswer.CANCEL:
+            self.__cancelled = True
+        return copiedFileSuccessfully
     
     
-def getPicturePath(fileName):
-    gosh_base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-    return os.path.abspath(os.path.join(os.path.join(gosh_base_dir, "pics"), fileName))
+    def copyDirectoryRec(self, srcDirPth):
+        time.sleep(2)
+        baseDirTargetPth = self.target_path
+        
+        if not os.path.exists(baseDirTargetPth):
+            print("copyDirectoryRec - baseDirTargetPth: '%s' does not exist!" % baseDirTargetPth)
+            return False
+        
+        dir_name = os.path.basename(srcDirPth)
+        tar_dir_name = dir_name
+
+        absTarDirPath = os.path.join(baseDirTargetPth, tar_dir_name)
+        
+        valid_tar_dirName = static_functions.evalValidSubDirName(baseDirTargetPth, tar_dir_name, self.progress_dialog)
+        
+        if valid_tar_dirName == UserAnswer.CANCEL:
+            self.__cancelled = True
+            return False
+        elif valid_tar_dirName:
+            absTarDirPath = os.path.join(baseDirTargetPth, valid_tar_dirName)
+            
+            if os.path.exists(absTarDirPath):
+                return False
+            else:
+                os.mkdir(absTarDirPath)
+                self.incrementProgress()
+                
+                if not os.path.exists(absTarDirPath):
+                    return False
+                
+                return self.copyDirectoryRec_hlpr(srcDirPth, absTarDirPath)
+        else:
+            return False
+        
+        # fallback-option:
+        return False
+    
+    def copyDirectoryRec_hlpr(self, srcDirPath, baseDirTargetPth):
+        time.sleep(2)
+        self.updateCurrentlyProcessedEntry(srcDirPath)
+        
+        (dirpath, dirnames, filenames) = static_functions.getEntriesInDirectory(srcDirPath)
+        successfully_created_subDirs = dict()
+        totalSuccess = True
+        for sub_dir in dirnames:
+            sub_dir = static_functions.evalValidSubDirName(baseDirTargetPth, sub_dir, self.progress_dialog)
+            if sub_dir is UserAnswer.CANCEL:
+                self.__cancelled = True
+                return False
+            elif sub_dir:
+                tarSubDirPath = os.path.join(baseDirTargetPth, sub_dir)
+                successfully_created_subDirs[sub_dir] = static_functions.createDirectory(tarSubDirPath)
+                totalSuccess = successfully_created_subDirs[sub_dir] and totalSuccess
+                self.incrementProgress()
+        for fn in filenames:
+            absSrcFilePath = os.path.join(dirpath, fn)
+            self.updateCurrentlyProcessedEntry(absSrcFilePath)
+            
+            copiesFileSuccessfully = static_functions.copyFileAndAskUserIfAlreadyExists(absSrcFilePath, baseDirTargetPth, fn, self.progress_dialog)
+            if copiesFileSuccessfully is UserAnswer.CANCEL:
+                self.__cancelled = True
+                return False
+            totalSuccess = copiesFileSuccessfully and totalSuccess
+            self.incrementProgress()
+            
+        for subdir in successfully_created_subDirs:
+            if successfully_created_subDirs[subdir]:
+                absSrcSubDirPath = os.path.join(srcDirPath, sub_dir)
+                absTarSubDirPath = os.path.join(baseDirTargetPth, sub_dir)
+                totalSuccess = self.copyDirectoryRec_hlpr(absSrcSubDirPath, absTarSubDirPath) and totalSuccess
+                
+        return totalSuccess
+            
+    def incrementProgress(self):
+        self.entriesAlrProcessed += 1
+        self.updateProgress()
+        
+    def updateProgress(self):
+        if self.progress_dialog:
+            progr = self.entriesAlrProcessed / self.entriesToProcess
+#            self.progress_dialog.updateGauge(progr)
+            
+    def updateProgDialLabel(self, txt):
+        self.setProgLabelThreadSafe(txt)
+            
+    def updateCurrentlyProcessedEntry(self, absPath):
+        if absPath:
+            baseName = os.path.basename(absPath)
+            self.setProgLabelThreadSafe(baseName)
+
+    def setProgLabelThreadSafe(self, txt):
+        if txt and self.progress_dialog:
+            pass
+#            wx.CallAfter(self.progress_dialog.updateInfoLabel, txt)
+                
+        
+#-----------------------------------------
 
 def createUniqueFilePath(tar_path, file_name):
     cntr = 1
@@ -82,82 +228,11 @@ def createUniqueFilePath(tar_path, file_name):
         cntr += 1
     return tar_file_path
 
-def moc
 
-def copyFiles(source_paths, target_path, copy_dialog):
-    try:
-        if not os.path.exists(target_path):
-            os.mkdir(target_path)
-    except:
-        print('error creating target_path')
-        print("-"*60)
-        traceback.print_exc()
-        print("-"*60)
-            
-    for sp in source_paths:
-        if copy_dialog.cancelled():
-            return
-        time.sleep(0.1)
-        file_name = os.path.basename(sp)
-        tar_entry_path = os.path.join(target_path, file_name)# createUniqueFilePath(target_path, file_name)
-        
-        if os.path.isdir(sp):
-            if os.path.exists(tar_entry_path):
-                override = onEntryExistsAskForOverride(tar_entry_path)
-                
-                if override:
-                    try:
-                        deleteFolderRec(tar_entry_path)
-                    except:
-                        print('error while copying files')
-                        print("-"*60)
-                        traceback.print_exc()
-                        print("-"*60)
-                        copy_dialog.incrementGauge()
-                else:
-                    tar_entry_path = createUniqueFilePath(target_path, file_name)
-                    
-            try:
-                os.mkdir(tar_entry_path)
-                copy_dialog.incrementGauge()
-                sub_entries = [os.path.join(sp, f) for f in os.listdir(sp)]
-                copyFiles(sub_entries, tar_entry_path, copy_dialog)
-            except:
-                print('error while copying files')
-                print("-"*60)
-                traceback.print_exc()
-                print("-"*60)
-                copy_dialog.incrementGauge()
-                
-        else:
-            if os.path.exists(tar_entry_path):
-                override = onEntryExistsAskForOverride(tar_entry_path)
-                
-                if override:
-                    try:
-                        deleteFile(tar_entry_path)
-                    except:
-                        print('error while copying files')
-                        print("-"*60)
-                        traceback.print_exc()
-                        print("-"*60)
-                        copy_dialog.incrementGauge()
-                else:
-                    tar_entry_path = createUniqueFilePath(target_path, file_name)
-                    
-            try:
-                shutil.copy2(sp, tar_entry_path)
-                copy_dialog.incrementGauge()
-            except:
-                print('error while copying files')
-                print("-"*60)
-                traceback.print_exc()
-                print("-"*60)
-                copy_dialog.incrementGauge()
-    copy_dialog.close
 
 def onEntryExistsAskForOverride(path):
     return true
+
 def deleteFolderRec(path):
     pass
 def deleteFile(path):
@@ -165,7 +240,7 @@ def deleteFile(path):
 # /home/hippo/Documents/ -> /home/hippo/Documents -> eleminiert unnoetige path-separator am ende eines file-paths
 
 def trimPathSeparator(pth):
-    if pth[-1] is os.path.sep:
+    if pth[-1] == os.path.sep:
         return pth[:-1]
     return pth
 
@@ -198,16 +273,6 @@ def checkForSelfContaintingFiles(source_paths, tar_path):
             invalid_paths.add(s)
     return source_paths - invalid_paths
 
-def evalEntriesCount(source_pths):
-    cntr = 0
-    for sp in source_pths:
-        if os.path.isdir(sp):
-            cntr += 1
-            sub_entries = [os.path.join(sp, f) for f in os.listdir(sp)]
-            cntr += evalEntriesCount(sub_entries)
-        else:
-            cntr += 1
-    return cntr
 
 def main():
     parser = argparse.ArgumentParser()
@@ -215,6 +280,16 @@ def main():
     parser.add_argument("-s", "--sources", help="source paths of the files to copy", nargs="*", required=True)
     parser.add_argument("-t", "--target", help="target path", required=True)
     args = parser.parse_args()
+        
+    if args.sources is not None:
+        print('sources are: ', args.sources)
+    else:
+        print('sources not set')
+                
+    if args.target is not None:
+        print('target are: ', args.target)
+    else:
+        print('target not set')
     
     sources = set(processPaths(args.sources))
     target  = trimPathSeparator(args.target)
@@ -224,22 +299,21 @@ def main():
     # parent-folder must not be copied into sub-folder
     sources = checkForSelfContaintingFiles(sources, target)
     
-    entries_cnt = evalEntriesCount(sources)
     
     print('sources: ', sources)
     print('target: ', target)
-    print('entries to copy: ', entries_cnt)
     
-    cf = CopyFrame(None, title='Sizing', source_paths=sources, target_path=target)
-    cf.gauge.SetRange(entries_cnt)
-    cf.updateGauge(0)
-    cf.Show()
-            
-    #copyFiles(sources, target, cf)
-    #print('finished copying files!')
+    pf = ProgressFrame(None, title='Copy Files')
     
+    worker = CopyFiles(sources, target, pf)
+    pf.setWorker(worker)
+    
+    pf.Show()
+    
+#    worker.copyFilesThreaded()
 
     app.MainLoop()
+    
 
 
 if __name__ == '__main__':
