@@ -246,11 +246,3 @@ def askUserIfHeWantsToReplaceFile(tarBaseDir, tarFileName, parent=None):
     message = "'%s' does already exist in directory\n'%s'\ndo you want to replace the file?" % (tarFileName, tarBaseDir)
     caption = "replace file?"
     return showYesNoCancelDialog(message, caption, parent)
-
-
-#--------------------
-    
-def showInfoMessage(message, caption='', parent=None):
-        dlg = wx.ScrolledMessageDialog(parent, message, caption)
-        dlg.ShowModal()
-        dlg.Destroy()

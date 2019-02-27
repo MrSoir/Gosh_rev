@@ -40,21 +40,9 @@ class Worker(wx.EvtHandler):
         self._cancelled = False
         self.entriesToProcess = 0
         self.entriesAlrProcessed = 0
-        self.workers = list()
-        self.finishedWorkers = list()
-        self._threaded = False
-        
-        self.TsDC = DialgCrtr.ThreadsafeDialogCreator(self)
-        self.Bind(EVT_DIALOG_REQUEST, self.replacePathResponse,   id=DialgCrtr.EVT_REPLACE_DIR_ID)
-        self.Bind(EVT_DIALOG_REQUEST, self.replacePathResponse,   id=DialgCrtr.EVT_REPLACE_FILE_ID)
-        self.Bind(EVT_DIALOG_REQUEST, self.receiveValidEntryName, id=DialgCrtr.EVT_VALID_DIR_NAME_ID)
-        self.Bind(EVT_DIALOG_REQUEST, self.receiveValidEntryName, id=DialgCrtr.EVT_VALID_FILE_NAME_ID)
-        
-    def _post__init__(self):
-        self.crntly_prcsd_wrkr = self.workers[0] if len(self.workers) > 0 else None
+        self.crntly_prcsd_wrkr = None
         
     def cancel(self):
-        print('worker - cancel!')
         self._cancelled = True
         
     def cancelled(self):
@@ -62,163 +50,10 @@ class Worker(wx.EvtHandler):
     
     def setProgressDialog(self, progress_dialog):
         self.progress_dialog = progress_dialog
-    
+        
     def executeThreaded(self):
-        self.copyFilesThreaded()
-            
-    def copyFilesThreaded(self):
-        print('copyFilesThreaded')
-        self._threaded = True
-        Thread(target=self.copyFiles, name='COPY_FILES_THREAD').start()
-#        self.copyFiles()
-    
-    def copyFiles(self):
-        self.evalEntryCount()
-        
-        self.copyCurrentWorkerEntry()
-    
-    def postProcessWorker(self, worker):
-        try:
-            worker.postProcessFunc(worker)
-        except:
-            pass
-        
-        
-    def __cancel(self):
-        self._cancelled = True
-        self.finish()
-        
-    
-    def evalEntryCount(self):
-        self.postMessage('processing...')
-        self.entriesToProcess = 0
-        for worker in self.workers:
-            self.entriesToProcess += worker.evalEntryCount()
-            
-    def copyCurrentWorkerEntry(self):
-        worker_entry = self.crntly_prcsd_wrkr
-                
-        if not worker_entry:
-            print('something went horribly wrong...')
-            return False
-
-        absSrcPath = worker_entry.getAbsSrcPath()
-        
-        self.updateCurrentlyProcessedEntry(absSrcPath)
-
-        if absSrcPath != self.target_path and not os.path.exists(absSrcPath):
-            print('copyWorkerEntry: absSrcPath "%s" does not exist!' % absSrcPath)
-            return False
-
-        absSrcPath    = worker_entry.getAbsSrcPath()
-        absTarBaseDir = worker_entry.getAbsTarBasePath()
-        tarEntryName  = worker_entry.tarEntryName
-            
-        absTarPath = os.path.join(absTarBaseDir, tarEntryName)
-        
-        print('absSrcPath: ', absSrcPath)
-        print('absTarPath: ', absTarPath)
-        
-#        srcIsDir  = self.crntly_prcsd_wrkr.isDir()
-#        srcIsFile = self.crntly_prcsd_wrkr.isFile()
-
-        # wenn absTarPath noch nicht existiert - einfach kopieren
-        if not os.path.exists(absTarPath):
-            success = self.crntly_prcsd_wrkr.getProcessFunc()(absSrcPath, absTarPath)
-            print('absTarPath does not exist - success: ', success)
-            self.finishCurrentWorkerEntry(success)
-        else:
-            """ falls absTarPath bereits exisitert, user fragen ob:
-                    1. absTarPath geloescht werden soll,
-                    2. falls nicht geloscht werden soll, user nach alternativem tarEntryName fragen:"""
-            self.askUserIfTarPathShouldBeReplaced(absTarBaseDir, tarEntryName)
-        
-
-    def askUserIfTarPathShouldBeReplaced(self, absTarBaseDir, tarEntryName):
-        print('askUserIfTarPathShouldBeReplaced: ', absTarBaseDir, '/', tarEntryName)
-        absTarPath = os.path.join(absTarBaseDir, tarEntryName)
-        if os.path.isfile(absTarPath):
-            wx.PostEvent(self.TsDC, DialgCrtr.DialogRequestEvent(DialgCrtr.EVT_ASK_REPLACE_FILE_ID, data=[absTarBaseDir, tarEntryName, self.progress_dialog]))
-        elif os.path.isdir(absTarPath):
-            wx.PostEvent(self.TsDC, DialgCrtr.DialogRequestEvent(DialgCrtr.EVT_ASK_REPLACE_DIR_ID,  data=[absTarBaseDir, tarEntryName, self.progress_dialog]))
-        else:
-            raise Exception('askUserIfTarPathShouldBeReplaced - absTarPath "%s" is neither a file nor a dir!' % absTarPath)
-    
-    def replacePathResponse(self, dialogReqstEvnt):
-        if self._threaded:
-            Thread(target=self.replacePathResponse_hlpr, args=(dialogReqstEvnt,), name='COPY_FILES_THREAD').start()
-        else:
-            self.replacePathResponse_hlpr(dialogReqstEvnt)
-            
-    def replacePathResponse_hlpr(self, dialogReqstEvnt):
-        replace = dialogReqstEvnt.data
-        if replace == wx.ID_CANCEL:
-            self.__cancel()
-            return
-            
-        if replace == wx.ID_YES:
-            if self.crntly_prcsd_wrkr:
-                absTarPath = self.crntly_prcsd_wrkr.getAbsTarPath()
-                if absTarPath and os.path.exists(absTarPath):
-                    static_functions.deleteEntry(absTarPath)
-                if os.path.exists(absTarPath):
-                    self.finishCurrentWorkerEntry(False)
-                else:
-                    absSrcPath = self.crntly_prcsd_wrkr.getAbsSrcPath()
-                    copied_successfully = self.crntly_prcsd_wrkr.getProcessFunc()(absSrcPath, absTarPath)                        
-                    self.finishCurrentWorkerEntry(copied_successfully)
-                return
-            else:
-                raise Exception('replacePathResponse - replcae==True -> bud self.crntly_prcsd_wrkr is invalid!!!')
-        elif wx.ID_NO:
-            self.askForAlternativeEntryName()
-        else:
-            raise ValueError('replacePathResponse - replace-value unbekannt!')
-    
-    def askForAlternativeEntryName(self):
-        if not self.crntly_prcsd_wrkr:
-            raise Exception('askForAlternativeEntryName - self.crntly_prcsd_wrkr is None!!!')
-    
-        baseTarDir = self.crntly_prcsd_wrkr.getAbsTarBasePath()
-        entryName = self.crntly_prcsd_wrkr.tarEntryName
-        isFile = self.crntly_prcsd_wrkr.isFile()
-        isDir = self.crntly_prcsd_wrkr.isDir()
-        if isFile:
-            wx.PostEvent(self.TsDC, DialgCrtr.DialogRequestEvent(DialgCrtr.EVT_ASK_VALID_FILE_NAME_ID, data=[baseTarDir, entryName, self.progress_dialog]))
-        elif isDir:
-            wx.PostEvent(self.TsDC, DialgCrtr.DialogRequestEvent(DialgCrtr.EVT_ASK_VALID_DIR_NAME_ID,  data=[baseTarDir, entryName, self.progress_dialog]))
-        else:
-            raise Exception("'%s' is neither a file nor a dir!!!" % self.crntly_prcsd_wrkr.getAbsTarPath())
-            
-    def receiveValidEntryName(self, dialogRqstEvnt):
-        if self._threaded:
-            Thread(target=self.receiveValidEntryName_hlpr, args=(dialogRqstEvnt,), name='COPY_FILES_THREAD').start()
-        else:
-            self.receiveValidEntryName_hlpr(dialogRqstEvnt)
-            
-    def receiveValidEntryName_hlpr(self, dialogRqstEvnt):
-        usrSlctedEntryName = dialogRqstEvnt.data
-        
-        if not usrSlctedEntryName:
-            # user selected wx.Cancel!!!:
-            self.__cancel()
-            return
-        
-        if not self.crntly_prcsd_wrkr:
-            raise Exception('receiveValidEntryName - self.crntly_prcsd_wrkr is None!!!')
-            
-        self.crntly_prcsd_wrkr.tarEntryName = usrSlctedEntryName
-        
-        absTarPath = self.crntly_prcsd_wrkr.getAbsTarPath()
-        absSrcPath = self.crntly_prcsd_wrkr.getAbsSrcPath()
-        
-        if os.path.exists(absTarPath):
-            print('receiveValidEntryName - received entryName "%s" that already exists!!!' % absTarPath)
-            self.finishCurrentWorkerEntry(False)
-        else:
-            success = self.crntly_prcsd_wrkr.getProcessFunc()(absSrcPath, absTarPath)
-            self.finishCurrentWorkerEntry(success)
-            
+        print('Worker.executeThreaded')
+        pass
 
     def finishCurrentWorkerEntry(self, success):
         worker = self.crntly_prcsd_wrkr
@@ -235,7 +70,6 @@ class Worker(wx.EvtHandler):
     def processNextWorkerEntry(self):
         if self._cancelled:
             self.finish()
-            return
             
         self.incrementProgress()
         
@@ -257,7 +91,7 @@ class Worker(wx.EvtHandler):
             self.finish()
             
     def finish(self):
-        print('CopyFiles.finish - cancelled: ', self._cancelled)
+        print('CopyFiles.finish - ', self._cancelled)
         totalSuccess = not self._cancelled
         if totalSuccess:
             for worker in self.workers:
@@ -287,15 +121,7 @@ class Worker(wx.EvtHandler):
             else:
                 wx.PostEvent(self.progress_dialog, DialgCrtr.DialogRequestEvent(EVT_MESSAGE_ID, data=absPath))
 
-    def postMessage(self, msg):
-        if self.progress_dialog:
-                wx.PostEvent(self.progress_dialog, DialgCrtr.DialogRequestEvent(EVT_MESSAGE_ID, data=msg))
-
-
 #-------------------------------------------------------------------
-
-
-
 
     
 @dataclass
@@ -341,21 +167,6 @@ class WorkerDirEntry:
     def setProcessFunc(self, func):
         self.__processFunc = func
     
-    #-------
-    
-    def reset(self):
-        self.parentWorkerDirEntry.reset() if self.parentWorkerDirEntry else self.reset_hlpr()
-        
-    def reset_hlpr(self):
-        self.__finished = False
-        self.__failed   = False
-        self.parentWorkerDirEntry.finishedWorkers.clear()
-        
-        for sub_worker in self.sub_workerDirEntries:
-            sub_worker.reset_hlpr()
-        for sub_worker in self.sub_workerFileEntries:
-            sub_worker.reset_hlpr()
-        
     #-------
     
     def setFinished(self, success):
@@ -476,23 +287,9 @@ class WorkerDirEntry:
         return self.parentWorkerDirEntry.getNext() if self.parentWorkerDirEntry else None 
     
     #-------
-    
-    def evalSubEntries(self):
-        absPath = self.getAbsSrcPath()
-        if os.path.exists(absPath) and os.path.isdir(absPath):
-            for entry in os.listdir(absPath):
-                absEntryPath = os.path.join(absPath, entry)
-                sub_workerEntry = WorkerDirEntry.createWorkerDirFromPath(baseDir=None, entryName=entry, parentWorkerDirEntry=self, processFunc=self.__processFunc)
-                if os.path.isdir(absEntryPath):
-                    self.sub_workerDirEntries.append( sub_workerEntry )
-                elif os.path.isfile(absEntryPath):
-                    self.sub_workerFileEntries.append( sub_workerEntry )
-    #-------
-    
+            
     @staticmethod
-    def createWorkerDirFromPath(baseDir, entryName='', parentWorkerDirEntry=None, tarBaseDir=None, tarEntryName=None, 
-                                processFunc=lambda absSrcPath, absTarPath: True,
-                                recursive=True):
+    def createWorkerDirFromPath(baseDir, entryName='', parentWorkerDirEntry=None, tarBaseDir=None, tarEntryName=None, processFunc=lambda absSrcPath, absTarPath: True):
         """ createWorkerDirFromPath kann foldengermassen aufgerufen werden:
                 1. mit 2 argumenten: baseDir + entryName = absPath
                 2. mit 1 argument:   baseDir = absPath """        
@@ -513,8 +310,14 @@ class WorkerDirEntry:
         we.__isFile = os.path.isfile(absPath)
         we.__isLink = os.path.islink(absPath)
         
-        if recursive:
-            we.evalSubEntries()
+        if os.path.exists(absPath) and os.path.isdir(absPath):
+            for entry in os.listdir(absPath):
+                absEntryPath = os.path.join(absPath, entry)
+                sub_workerEntry = WorkerDirEntry.createWorkerDirFromPath(baseDir=None, entryName=entry, parentWorkerDirEntry=we, processFunc=processFunc)
+                if os.path.isdir(absEntryPath):
+                    we.sub_workerDirEntries.append( sub_workerEntry )
+                elif os.path.isfile(absEntryPath):
+                    we.sub_workerFileEntries.append( sub_workerEntry )
                     
         return we
                 

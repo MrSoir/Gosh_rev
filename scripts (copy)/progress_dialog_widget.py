@@ -16,9 +16,6 @@ import time
 import concurrent.futures
 from threadsafeDialogCreator import DialogRequestEvent, EVT_DIALOG_REQUEST
 
-from button import Button, BDButtonEvent, EVT_BDButton, EVT_BDCLICKED_ID
-from progress_bar import ProgressBar, ProgBarEvent, EVT_VALUE_CHANGED_ID, EVT_LABEL_CHANGED_ID
-
 EVT_MESSAGE_ID  = wx.NewIdRef()
 EVT_PROGRESS_ID = wx.NewIdRef()
 EVT_FINISH_ID   = wx.NewIdRef()
@@ -27,12 +24,9 @@ EVT_FINISH_ID   = wx.NewIdRef()
 class ProgressFrame(wx.Frame):
 
     def __init__(self, parent, title, worker=None):
-        super(ProgressFrame, self).__init__(parent, title=title,size=(450, 130),style=wx.DEFAULT_FRAME_STYLE & wx.BORDER_SIMPLE & ~(wx.RESIZE_BORDER | wx.MAXIMIZE_BOX))
+        super(ProgressFrame, self).__init__(parent, title=title,size=(350, 150),style=wx.DEFAULT_FRAME_STYLE ^ wx.RESIZE_BORDER)
         self.Centre()
         self.SetIcon(wx.Icon(getPicturePath('MrSoirIcon_cursor.png')))
-        
-        self.FONT_NAME = 'Samantana'
-        self.SetFont(wx.Font(15,wx.FONTFAMILY_MODERN,wx.FONTSTYLE_NORMAL,wx.FONTWEIGHT_NORMAL, faceName=self.FONT_NAME)) 
         
         self.worker = worker
         
@@ -41,24 +35,24 @@ class ProgressFrame(wx.Frame):
         vbox = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(vbox)
         
-        self.progress_bar = ProgressBar(self, label="processing...", size=(60,60))
-        vbox.Add(self.progress_bar, 0, wx.EXPAND)
+        self.gauge = wx.Gauge(self, range = 100, size = (250, 25), style= wx.GA_HORIZONTAL) 
+        self.gauge.SetValue(0)
+        vbox.Add(self.gauge, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 5) 
         
-        self.cncl_btn = Button(self, label="cancel", size=(250, 40))
-        vbox.Add(self.cncl_btn, 0, wx.ALIGN_CENTER_HORIZONTAL)
-        self.SetBackgroundColour(wx.Colour(0,0,0))
+        self.info_lbl = wx.StaticText(self,label = "copying files...", style=wx.GA_HORIZONTAL ) 
+        vbox.Add(self.info_lbl, 0, wx.ALL|wx.EXPAND|wx.ALIGN_CENTER_HORIZONTAL, 5) 
+        
+        self.cncl_btn = wx.Button(self, label="cancel") 
+        vbox.Add(self.cncl_btn, 0, wx.EXPAND)
+        self.cncl_btn.Bind(wx.EVT_BUTTON, self.onCancelClicked)
+        
+        self.exe_btn = wx.Button(self, label="execute") 
+        vbox.Add(self.exe_btn, 0, wx.EXPAND)
+        self.exe_btn.Bind(wx.EVT_BUTTON, self.executeWorker)
         
         self.Bind(EVT_DIALOG_REQUEST, self.updateInfoLabel, id=EVT_MESSAGE_ID)
         self.Bind(EVT_DIALOG_REQUEST, self.updateGauge,     id=EVT_PROGRESS_ID)
         self.Bind(EVT_DIALOG_REQUEST, self.finish,          id=EVT_FINISH_ID)
-        
-        self.Bind(EVT_BDButton, self.OnCancelClicked, id=EVT_BDCLICKED_ID)
-        
-        self.SetBackgroundColour((0,0,0))
-        
-        vbox.FitInside(self)
-        
-        self._cancelled = False
         
     def setWorker(self, worker):
         self.worker = worker
@@ -66,22 +60,17 @@ class ProgressFrame(wx.Frame):
     def updateGauge(self, resultEvnt=None):
         if resultEvnt and resultEvnt.data:
             print('updateGauge: %s' % resultEvnt.data)
-            wx.PostEvent(self.progress_bar, ProgBarEvent(EVT_VALUE_CHANGED_ID, data=resultEvnt.data))
-#            self.progress_bar.SetValue(resultEvnt.data)
+            self.gauge.SetValue(resultEvnt.data)
         
     def incrementGauge(self):
-        wx.PostEvent(self.progress_bar, ProgBarEvent(EVT_VALUE_CHANGED_ID, data=self.progress_bar.GetValue() + 1))
-#        self.progress_bar.SetValue(self.progress_bar.GetValue() + 1)
+        self.gauge.SetValue(self.gauge.GetValue() + 1)
         
     def updateInfoLabel(self, resultEvnt=None):
         if resultEvnt and resultEvnt.data:
             print('updateInfoLabel: %s' % resultEvnt.data)
-            self.__setInfoLabel(resultEvnt.data)
-    def __setInfoLabel(self, txt):
-        wx.PostEvent(self.progress_bar, ProgBarEvent(EVT_LABEL_CHANGED_ID, data=txt))
-#        self.progress_bar.SetInfoLabel(txt)
+            self.info_lbl.SetLabel(resultEvnt.data)
         
-    def OnCancelClicked(self, e):
+    def onCancelClicked(self, e):
         self._cancelled = True
         if self.worker:
             self.worker.cancel()
@@ -90,9 +79,9 @@ class ProgressFrame(wx.Frame):
         return self._cancelled
     
     def finish(self, resultEvnt=None):
-        success = resultEvnt.data if resultEvnt else False
-        print('ProgressDialog.finish! - success: ', success)
-        self.__setInfoLabel('canceld!' if self._cancelled else 'finished!')
+        print('ProgressDialog.finish!')
+        if resultEvnt:
+            print('success: ', resultEvnt.data)
         self.close()
         
     def close(self, resultEvnt=None):
@@ -100,11 +89,14 @@ class ProgressFrame(wx.Frame):
         self.Destroy()
         
     def executeWorker(self, e):
+        print('executing worker...')
         if self.worker:
+            print('worker exists!')
             self.worker.executeThreaded()
 
 def print_test(sources, target, copy_frame):
     time.sleep(2)
+    print('print_test... target: ', target)
     copy_frame.updateGauge(30)
     
     
