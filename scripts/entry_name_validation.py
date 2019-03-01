@@ -13,6 +13,9 @@ def invalidWindowsCharacters():
 def invalidWindowsFileNames():
     return ('CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4', 'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9')
 
+#----------------------------------------
+    # validation functions:
+
 def isValidFileName(base_dir, file_name):
     # wenns kein valider dir_name ist, ist es auch kein valider file_name!:
     if not isValidDirectoryName(base_dir, file_name):
@@ -37,6 +40,9 @@ def isValidDirectoryName(base_dir, dir_name):
         if invalid_char in dir_name:
             return False
     return True
+
+#--------------------------------
+    # Warning message functions:
 
 def invalidFileNameWarning(basename, file_name):
     if not file_name or not file_name.strip():

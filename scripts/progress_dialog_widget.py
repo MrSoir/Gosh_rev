@@ -27,7 +27,7 @@ EVT_FINISH_ID   = wx.NewIdRef()
 class ProgressFrame(wx.Frame):
 
     def __init__(self, parent, title, worker=None):
-        super(ProgressFrame, self).__init__(parent, title=title,size=(450, 130),style=wx.DEFAULT_FRAME_STYLE & wx.BORDER_SIMPLE & ~(wx.RESIZE_BORDER | wx.MAXIMIZE_BOX))
+        super(ProgressFrame, self).__init__(parent, title=title,size=(450, 110),style=wx.DEFAULT_FRAME_STYLE & wx.BORDER_SIMPLE & ~(wx.RESIZE_BORDER | wx.MAXIMIZE_BOX))
         self.Centre()
         self.SetIcon(wx.Icon(getPicturePath('MrSoirIcon_cursor.png')))
         

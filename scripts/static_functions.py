@@ -16,6 +16,9 @@ import sys, traceback
 from collections.abc import Iterable
 from enum import Enum
 
+from replace_entry_dialog import ReplaceEntryDialog
+from valid_entry_name_dialog import ValidEntryNameDialog
+
 import input_dialog
 import entry_name_validation
 
@@ -87,7 +90,7 @@ def copyFile(absSrcPath, absTarPath):
         return False
     
 def copyEntry(absSrcPath, absTarPath):
-    time.sleep(2)
+#    time.sleep(2)
     print('\nin copyEntry - thread: ', threading.current_thread().name, '\n')
     if not absSrcPath or not absTarPath:
         return False
@@ -137,17 +140,19 @@ def showInputDialog(parent, message, caption, initVal):
     dlg.Destroy()
     return retVal
 
-def deleteDir(absDirPath):
+def deleteDir(absDirPath, recursive=True):
     if not absDirPath or absDirPath == os.sep or  (not os.path.isdir(absDirPath)): # Linux-Base_Directory '/' must not be delted!!
         return False
-    try:
-        for root, dirs, files in os.walk(absDirPath, topdown=False):
-            for name in files:
-                os.remove(os.path.join(root, name))
-            for name in dirs:
-                os.rmdir(os.path.join(root, name))
-    except:
-        return False
+    
+    if recursive:
+        try:
+            for root, dirs, files in os.walk(absDirPath, topdown=False):
+                for name in files:
+                    os.remove(os.path.join(root, name))
+                for name in dirs:
+                    os.rmdir(os.path.join(root, name))
+        except:
+            return False
     
     os.rmdir(absDirPath)
     
@@ -163,43 +168,50 @@ def deleteFile(absFilePath):
         return False
     return not os.path.exists(absFilePath)
 
-def deleteEntry(absFilePath):
+def deleteEntry(absFilePath, recursive=True):
     if not absFilePath or not os.path.exists(absFilePath):
         return False
     
     if os.path.isfile(absFilePath):
         return deleteFile(absFilePath)
     elif os.path.isdir(absFilePath):
-        return deleteDir(absFilePath)
+        return deleteDir(absFilePath, recursive=recursive)
     return False
+    
+#-------
            
             
 def askForValidFileName(base_dir, init_file_name, parent=None):
-    return askForValidEntryName(base_dir=base_dir,
-                                init_entry_name=init_file_name,
-                                isValidEntryNameFunc=entry_name_validation.isValidFileName,
-                                invalidEntryNameWarningFunc=entry_name_validation.invalidFileNameWarning,
-                                entryType='File',
-                                parent=parent)
+    return askForValidEntryName(base_dir, init_file_name, parent)
+#    return askForValidEntryName(base_dir=base_dir,
+#                                init_entry_name=init_file_name,
+#                                isValidEntryNameFunc=entry_name_validation.isValidFileName,
+#                                invalidEntryNameWarningFunc=entry_name_validation.invalidFileNameWarning,
+#                                entryType='File',
+#                                parent=parent)
     
 def askForValidDirectoryName(base_dir, init_dir_name, parent=None):
-    return askForValidEntryName(base_dir=base_dir,
-                                init_entry_name=init_dir_name,
-                                isValidEntryNameFunc=entry_name_validation.isValidDirectoryName,
-                                invalidEntryNameWarningFunc=entry_name_validation.invalidDirectoryNameWarning,
-                                entryType='Folder',
-                                parent=parent)
+    return askForValidEntryName(base_dir, init_dir_name, parent)
+#    return askForValidEntryName(base_dir=base_dir,
+#                                init_entry_name=init_dir_name,
+#                                isValidEntryNameFunc=entry_name_validation.isValidDirectoryName,
+#                                invalidEntryNameWarningFunc=entry_name_validation.invalidDirectoryNameWarning,
+#                                entryType='Folder',
+#                                parent=parent)
     
-def askForValidEntryName(base_dir, init_entry_name, isValidEntryNameFunc, invalidEntryNameWarningFunc, entryType='Folder', parent=None):
-    validatorFunc = lambda dir_name: isValidEntryNameFunc(base_dir, dir_name)
-    warningFunc   = lambda dir_name: invalidEntryNameWarningFunc(base_dir, dir_name)
-    message = 'select a %s name:' % entryType.lower()
-    dlg = input_dialog.InputDialog(message=message, init_val=init_entry_name, validatorFunc=validatorFunc, warningFunc=warningFunc, parent=parent, title='Select a %s Name' % entryType)
+def askForValidEntryName(base_dir, init_entry_name, parent=None):#isValidEntryNameFunc, invalidEntryNameWarningFunc, entryType='Folder', parent=None):
+#    validatorFunc = lambda dir_name: isValidEntryNameFunc(base_dir, dir_name)
+#    warningFunc   = lambda dir_name: invalidEntryNameWarningFunc(base_dir, dir_name)
+#    message = 'select a %s name:' % entryType.lower()
+#    dlg = input_dialog.InputDialog(message=message, init_val=init_entry_name, validatorFunc=validatorFunc, warningFunc=warningFunc, parent=parent, title='Select a %s Name' % entryType)
+    dlg = ValidEntryNameDialog(init_entry_name, base_dir, parent=parent)
     result = dlg.ShowModal()
     if result == wx.ID_OK:
         selectedEntryName = dlg.getText()
         return selectedEntryName
     elif result == wx.ID_CANCEL:
+        return None
+    else:
         return None
     
 def evalValidDirectoryName(absTarDirPath, parent=None):
@@ -238,19 +250,22 @@ def evalValidEntryName(tarDir, entryName, aksForReplacementFunc, askForNewEntryN
     return None
 
 def askUserIfHeWantsToReplaceDir(tarBaseDir, tarDirName, parent=None):
-    message = "'%s' does already exist in directory\n'%s'\ndo you want to replace the folder?" % (tarDirName, tarBaseDir)
-    caption = "replace folder?"
-    return showYesNoCancelDialog(message, caption, parent)
+        return ReplaceEntryDialog(tarDirName, tarBaseDir, parent=parent).ShowModal()
+#    message = "'%s' does already exist in directory\n'%s'\ndo you want to replace the folder?" % (tarDirName, tarBaseDir)
+#    caption = "replace folder?"
+#    return showYesNoCancelDialog(message, caption, parent)
 
 def askUserIfHeWantsToReplaceFile(tarBaseDir, tarFileName, parent=None):
-    message = "'%s' does already exist in directory\n'%s'\ndo you want to replace the file?" % (tarFileName, tarBaseDir)
-    caption = "replace file?"
-    return showYesNoCancelDialog(message, caption, parent)
-
+    return ReplaceEntryDialog(tarFileName, tarBaseDir, parent=parent).ShowModal()
+#    message = "'%s' does already exist in directory\n'%s'\ndo you want to replace the file?" % (tarFileName, tarBaseDir)
+#    caption = "replace file?"
+#    return showYesNoCancelDialog(message, caption, parent)
 
 #--------------------
     
+
 def showInfoMessage(message, caption='', parent=None):
-        dlg = wx.ScrolledMessageDialog(parent, message, caption)
-        dlg.ShowModal()
-        dlg.Destroy()
+    import wx.lib.dialogs.ScrolledMessageDialog
+    dlg = wx.lib.dialogs.ScrolledMessageDialog(parent, message, caption)
+    dlg.ShowModal()
+    dlg.Destroy()

@@ -19,7 +19,17 @@ from worker import Worker, WorkerDirEntry
 from copy_files import CopyFiles
 
 import wx
+import wx.lib.newevent as NE
+
 from progress_dialog_widget import ProgressFrame
+
+#---------------------------------------------------------
+
+MoveFileEvent, EVT_MoveFile = NE.NewCommandEvent()
+
+EVT_AFTER_MOVING_EVENT_ID = wx.NewIdRef()
+EVT_AFTER_BACKUP_COPYING_EVENT_ID = wx.NewIdRef()
+
 
 class MoveFiles(Worker):
     def __init__(self, source_paths, target_path, progress_dialog=None):
@@ -29,58 +39,86 @@ class MoveFiles(Worker):
         self.source_paths = source_paths
         self.target_path  = target_path
         
-        target_worker = self.workers[0]
-        self.workers = list()
-        self.workers.append(target_worker)
         for source_path in source_paths:
             self.workers.append( WorkerDirEntry.createWorkerDirFromPath(source_path, tarBaseDir=target_path, processFunc=static_functions.moveEntry,recursive=False) )
-
-        self.callOnFinished = self.callAfterMoving
+#            self.workers.append( WorkerDirEntry.createWorkerDirFromPath(source_path, tarBaseDir=target_path, processFunc=lambda src, tar: False,recursive=False) )
         
-    def callAfterMoving(self):
-        if self._threaded:
-            Thread(target=self.callAfterMoving_hlpr).start()
-        else:
-            self.callAfterMoving_hlpr()
+#        self.callOnFinished = self.callAfterMoving
+        self.callOnFinished = lambda totalSuccess: wx.PostEvent(self, MoveFileEvent(EVT_AFTER_MOVING_EVENT_ID, data=totalSuccess))
+        
+        self.Bind(EVT_MoveFile, self.callAfterMoving,           EVT_AFTER_MOVING_EVENT_ID)
+        self.Bind(EVT_MoveFile, self.callAfterCopyBackupWorker, EVT_AFTER_BACKUP_COPYING_EVENT_ID)
+
+        self._post__init__()
+        
+        self.name = "MoveFiles"
+        
+    def printWorker(self, worker, indent='\t'):
+        print(indent, worker.getAbsSrcPath(), '\tparent: ', 'None' if not worker.parentWorkerDirEntry else worker.parentWorkerDirEntry.entryName)
+        for file_worker in worker.sub_workerFileEntries:
+#            print('\nfile_worker: ', file_worker, '\n')
+            self.printWorker(file_worker, indent+'\ŧ')
+        for dir_worker in worker.sub_workerDirEntries:
+            self.printWorker(dir_worker, indent+'\ŧ')
             
-    def callAfterMoving_hlpr(self):
+    def callAfterMoving(self, event):
+        totalSuccess = event.data
+        print('\ncallAfterMoving\n')
+        
+        if self._threaded:
+            Thread(target=self.callAfterMoving_hlpr, args=(totalSuccess,)).start()
+        else:
+            self.callAfterMoving_hlpr(totalSuccess)
+            
+    def callAfterMoving_hlpr(self, totalSuccess):
         if self._cancelled:
             self.finish()
         else:
             self.postMessage('processing...')
             
             failedMovementWorkers = list()
-            for finishedWorker in self.finishedWorkers:
-                succeeded = finishedWorker.evalSuccess()
+            for fw in self.finishedWorkers:
+                succeeded = fw.evalSuccess()
                 if not succeeded:
-                    finishedWorker.evalSubEntries()
-                    failedMovementWorkers.append(finishedWorker)
-            for failedMovementWorker in failedMovementWorkers:
-                failedMovementWorker.reset()
+                    fw.evalSubEntries()
+                    fw.setProcessFunc(static_functions.copyEntry)
+                    fw.reset()
+                    failedMovementWorkers.append(fw)
+
             if len(failedMovementWorkers) > 0:
-                self.copy_worker = CopyFiles(self.source_paths, self.target_path, self.progress_dialog)
-                self.copy_worker.workers = failedMovementWorker
-                self.copy_worker.callOnFinished = self.callAfterCopyBackupWorker
+                print('\nfailedWorkers:')
+                for fw in failedMovementWorkers:
+                    self.printWorker(fw)
+                    print()
+                print('threaded: ', self._threaded)
+                self.setWorkers(failedMovementWorkers)
+#                self.callOnFinished = self.callAfterCopyBackupWorker
+                self.callOnFinished = lambda totalSuccess: wx.PostEvent(self, MoveFileEvent(EVT_AFTER_BACKUP_COPYING_EVENT_ID, data=totalSuccess))
                 if self._threaded:
-                    self.copy_worker.copyFilesThreaded()
+                    self.copyFilesThreaded()
                 else:
-                    self.copy_worker.copyFiles()
+                    self.copyFiles()
             else:
                 self.finish()
     
-    def callAfterCopyBackupWorker(self, succeeded):
+    def callAfterCopyBackupWorker(self, event):
+        succeeded = event.data
         if self._threaded:
             Thread(target=self.callAfterCopyBackupWorker_hlpr, args=(succeeded,)).start()
         else:
             self.callAfterCopyBackupWorker_hlpr(succeeded)
             
     def callAfterCopyBackupWorker_hlpr(self, succeeded):
+        print('MoveFiles::callAfterCopyBackupWorker_hlpr - succeeded: ', succeeded)
+        
+        self.resetOnFinishedCaller()
+        
         if self._cancelled:
             self.finish()
         else:
             workers_failedToCopy = list()
             workers_failedToDeleteSrc = list()
-            for worker in self.copy_worker.workers:
+            for worker in self.workers:
                 worker_totalSuccess = worker.evalSuccess()
                 if worker_totalSuccess:
                     success = static_functions.deleteEntry(worker.getAbsSrcPath())
@@ -88,9 +126,12 @@ class MoveFiles(Worker):
                         workers_failedToDeleteSrc.append(worker)
                 else:
                     workers_failedToCopy.append(worker)
+                    
+            print('\nworkers_failedToCopy.len: ', len(workers_failedToCopy), '    workers_failedToDeleteSrc.len: ', len(workers_failedToDeleteSrc), '\n')
+
+#            if len(workers_failedToCopy) > 0 and len(workers_failedToDeleteSrc) > 0:
+#                self.showFailureMessage(workers_failedToCopy, workers_failedToDeleteSrc)
             
-            if len(workers_failedToCopy) > 0 and len(workers_failedToDeleteSrc) > 0:
-                self.showFailureMessage(workers_failedToCopy, workers_failedToDeleteSrc)
             self.finish()
     
     def showFailureMessage(self, workers_failedToCopy, workers_failedToDeleteSrc):
@@ -143,12 +184,13 @@ def main():
     
     pf = ProgressFrame(None, title='Copy Files')
     
-    worker = CopyFiles(sources, target, pf)
+    worker = MoveFiles(sources, target, pf)
     pf.setWorker(worker)
     
     pf.Show()
     
-#    worker.copyFilesThreaded()
+    worker.executeThreaded()
+#    worker.execute()
 
     app.MainLoop()
     

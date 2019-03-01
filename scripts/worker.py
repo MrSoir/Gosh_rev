@@ -32,6 +32,8 @@ from progress_dialog_widget import ProgressFrame, EVT_MESSAGE_ID, EVT_PROGRESS_I
 
 from path_func import *
 
+from replace_entry_dialog import EVT_SCIP_ID
+
 
 class Worker(wx.EvtHandler):
     def __init__(self, progress_dialog = None):
@@ -44,14 +46,30 @@ class Worker(wx.EvtHandler):
         self.finishedWorkers = list()
         self._threaded = False
         
+        self.name = "Worker"
+        
         self.TsDC = DialgCrtr.ThreadsafeDialogCreator(self)
         self.Bind(EVT_DIALOG_REQUEST, self.replacePathResponse,   id=DialgCrtr.EVT_REPLACE_DIR_ID)
         self.Bind(EVT_DIALOG_REQUEST, self.replacePathResponse,   id=DialgCrtr.EVT_REPLACE_FILE_ID)
         self.Bind(EVT_DIALOG_REQUEST, self.receiveValidEntryName, id=DialgCrtr.EVT_VALID_DIR_NAME_ID)
         self.Bind(EVT_DIALOG_REQUEST, self.receiveValidEntryName, id=DialgCrtr.EVT_VALID_FILE_NAME_ID)
         
+        self.resetOnFinishedCaller()
+        
+    def setWorkers(self, workers):
+        self.workers = workers
+        self.finishedWorkers.clear()
+        self.resetCurWorker()
+        print('Worker::setWorkers - self.workers.len: ', len(self.workers))
+        for i, w in enumerate(self.workers):
+            print('   worker[%s]: %s' % (i, w.getAbsSrcPath()))
+        print()
+        
+    def resetCurWorker(self):
+        self.crntly_prcsd_wrkr = self.workers[0].getFirstElementToProcess() if len(self.workers) > 0 else None # depends on worker.bottomUp() == True/False -> worker.getFirstElementToProcess()!!!
+        
     def _post__init__(self):
-        self.crntly_prcsd_wrkr = self.workers[0] if len(self.workers) > 0 else None
+        self.resetCurWorker()
         
     def cancel(self):
         print('worker - cancel!')
@@ -65,6 +83,9 @@ class Worker(wx.EvtHandler):
     
     def executeThreaded(self):
         self.copyFilesThreaded()
+        
+    def execute(self):
+        self.copyFiles()
             
     def copyFilesThreaded(self):
         print('copyFilesThreaded')
@@ -96,19 +117,24 @@ class Worker(wx.EvtHandler):
             self.entriesToProcess += worker.evalEntryCount()
             
     def copyCurrentWorkerEntry(self):
+        print('\ncopyCurrentWorkerEntry:\n')
         worker_entry = self.crntly_prcsd_wrkr
+        
+        print('\ncur_worker: ', str(self.crntly_prcsd_wrkr))
                 
         if not worker_entry:
             print('something went horribly wrong...')
-            return False
+            self.finish()
+            return
 
         absSrcPath = worker_entry.getAbsSrcPath()
         
         self.updateCurrentlyProcessedEntry(absSrcPath)
 
-        if absSrcPath != self.target_path and not os.path.exists(absSrcPath):
+        if not os.path.exists(absSrcPath) and worker_entry.srcMustExist():
             print('copyWorkerEntry: absSrcPath "%s" does not exist!' % absSrcPath)
-            return False
+            self.finishCurrentWorkerEntry(False)
+            return
 
         absSrcPath    = worker_entry.getAbsSrcPath()
         absTarBaseDir = worker_entry.getAbsTarBasePath()
@@ -123,26 +149,25 @@ class Worker(wx.EvtHandler):
 #        srcIsFile = self.crntly_prcsd_wrkr.isFile()
 
         # wenn absTarPath noch nicht existiert - einfach kopieren
-        if not os.path.exists(absTarPath):
-            success = self.crntly_prcsd_wrkr.getProcessFunc()(absSrcPath, absTarPath)
-            print('absTarPath does not exist - success: ', success)
-            self.finishCurrentWorkerEntry(success)
-        else:
+        if os.path.exists(absTarPath) and worker_entry.tarMustNotExist():
             """ falls absTarPath bereits exisitert, user fragen ob:
                     1. absTarPath geloescht werden soll,
                     2. falls nicht geloscht werden soll, user nach alternativem tarEntryName fragen:"""
             self.askUserIfTarPathShouldBeReplaced(absTarBaseDir, tarEntryName)
+        else:
+            success = self.crntly_prcsd_wrkr.getProcessFunc()(absSrcPath, absTarPath)
+            print("copied '%s' to '%s' - success: %s" % (absSrcPath, absTarPath, success))
+            self.finishCurrentWorkerEntry(success)
+
         
 
     def askUserIfTarPathShouldBeReplaced(self, absTarBaseDir, tarEntryName):
         print('askUserIfTarPathShouldBeReplaced: ', absTarBaseDir, '/', tarEntryName)
         absTarPath = os.path.join(absTarBaseDir, tarEntryName)
-        if os.path.isfile(absTarPath):
-            wx.PostEvent(self.TsDC, DialgCrtr.DialogRequestEvent(DialgCrtr.EVT_ASK_REPLACE_FILE_ID, data=[absTarBaseDir, tarEntryName, self.progress_dialog]))
-        elif os.path.isdir(absTarPath):
+        if os.path.isdir(absTarPath):
             wx.PostEvent(self.TsDC, DialgCrtr.DialogRequestEvent(DialgCrtr.EVT_ASK_REPLACE_DIR_ID,  data=[absTarBaseDir, tarEntryName, self.progress_dialog]))
         else:
-            raise Exception('askUserIfTarPathShouldBeReplaced - absTarPath "%s" is neither a file nor a dir!' % absTarPath)
+            wx.PostEvent(self.TsDC, DialgCrtr.DialogRequestEvent(DialgCrtr.EVT_ASK_REPLACE_FILE_ID, data=[absTarBaseDir, tarEntryName, self.progress_dialog]))
     
     def replacePathResponse(self, dialogReqstEvnt):
         if self._threaded:
@@ -155,7 +180,7 @@ class Worker(wx.EvtHandler):
         if replace == wx.ID_CANCEL:
             self.__cancel()
             return
-            
+        
         if replace == wx.ID_YES:
             if self.crntly_prcsd_wrkr:
                 absTarPath = self.crntly_prcsd_wrkr.getAbsTarPath()
@@ -170,11 +195,14 @@ class Worker(wx.EvtHandler):
                 return
             else:
                 raise Exception('replacePathResponse - replcae==True -> bud self.crntly_prcsd_wrkr is invalid!!!')
-        elif wx.ID_NO:
+        elif replace == wx.ID_NO:
             self.askForAlternativeEntryName()
+        elif replace == EVT_SCIP_ID:
+            print('\nskip\n')
+            self.skipCurrentWorkerEntry()
         else:
             raise ValueError('replacePathResponse - replace-value unbekannt!')
-    
+        
     def askForAlternativeEntryName(self):
         if not self.crntly_prcsd_wrkr:
             raise Exception('askForAlternativeEntryName - self.crntly_prcsd_wrkr is None!!!')
@@ -182,13 +210,11 @@ class Worker(wx.EvtHandler):
         baseTarDir = self.crntly_prcsd_wrkr.getAbsTarBasePath()
         entryName = self.crntly_prcsd_wrkr.tarEntryName
         isFile = self.crntly_prcsd_wrkr.isFile()
-        isDir = self.crntly_prcsd_wrkr.isDir()
+#        isDir = self.crntly_prcsd_wrkr.isDir()
         if isFile:
             wx.PostEvent(self.TsDC, DialgCrtr.DialogRequestEvent(DialgCrtr.EVT_ASK_VALID_FILE_NAME_ID, data=[baseTarDir, entryName, self.progress_dialog]))
-        elif isDir:
-            wx.PostEvent(self.TsDC, DialgCrtr.DialogRequestEvent(DialgCrtr.EVT_ASK_VALID_DIR_NAME_ID,  data=[baseTarDir, entryName, self.progress_dialog]))
         else:
-            raise Exception("'%s' is neither a file nor a dir!!!" % self.crntly_prcsd_wrkr.getAbsTarPath())
+            wx.PostEvent(self.TsDC, DialgCrtr.DialogRequestEvent(DialgCrtr.EVT_ASK_VALID_DIR_NAME_ID,  data=[baseTarDir, entryName, self.progress_dialog]))
             
     def receiveValidEntryName(self, dialogRqstEvnt):
         if self._threaded:
@@ -218,15 +244,40 @@ class Worker(wx.EvtHandler):
         else:
             success = self.crntly_prcsd_wrkr.getProcessFunc()(absSrcPath, absTarPath)
             self.finishCurrentWorkerEntry(success)
-            
-
+    
+    def skipCurrentWorkerEntry(self):
+        worker = self.crntly_prcsd_wrkr
+        if not worker:
+            warning_msg = 'finishCurrentWorkerEntry - self.crntly_prcsd_wrkr is None!!!'
+            print(warning_msg)
+            self.finish()
+            return
+        self.__setWorkerFinishedFlagRec(worker)
+        self.postProcessWorker(worker)
+        self.incrementProgress(worker.evalEntryCount())
+        self.processNextWorkerEntry()
+        
+    def __setWorkerFinishedFlagRec(self, worker):
+        worker.setFinished(True)
+        self.finishedWorkers.append(worker)
+        for sub_worker in worker.sub_workerDirEntries:
+            self.__setWorkerFinishedFlagRec(sub_worker)
+        for sub_worker in worker.sub_workerFileEntries:
+            self.__setWorkerFinishedFlagRec(sub_worker)
+    
     def finishCurrentWorkerEntry(self, success):
         worker = self.crntly_prcsd_wrkr
         if not worker:
-            raise Exception('finishCurrentWorkerEntry - self.crntly_prcsd_wrkr is None!!!')
+            warning_msg = 'finishCurrentWorkerEntry - self.crntly_prcsd_wrkr is None!!!'
+            print(warning_msg)
+            self.finish()
+            return
+        
         worker.setFinished(success)
-        self.finishedWorkers.append( worker)
+        self.finishedWorkers.append( worker )
         self.postProcessWorker(worker)
+        self.incrementProgress()
+
         if not success and worker.abortIfFailed():
             self.__cancel()
         else:
@@ -236,8 +287,6 @@ class Worker(wx.EvtHandler):
         if self._cancelled:
             self.finish()
             return
-            
-        self.incrementProgress()
         
         if self.crntly_prcsd_wrkr:
             self.crntly_prcsd_wrkr = self.crntly_prcsd_wrkr.getNext()
@@ -246,32 +295,39 @@ class Worker(wx.EvtHandler):
         if not self.crntly_prcsd_wrkr:
             for worker in self.workers:
                 if worker not in self.finishedWorkers:
-                    self.crntly_prcsd_wrkr = worker
+                    self.crntly_prcsd_wrkr = worker.getFirstElementToProcess() # depends on worker.bottomUp() == True/False -> worker.getFirstElementToProcess()!!!
                     break
         
         if self.crntly_prcsd_wrkr:
+            print('\nWorker::processNextWorkerEntry - next worker found -> absSrcPath: %s' % self.crntly_prcsd_wrkr.getAbsSrcPath())
             msg = "copying '%s'" % self.crntly_prcsd_wrkr.entryName
             wx.PostEvent(self.progress_dialog, DialgCrtr.DialogRequestEvent(EVT_MESSAGE_ID, data=msg))
             self.copyCurrentWorkerEntry()
         else:
+            print('\nWorker::processNextWorkerEntry - no next worker found -> finishing...')
             self.finish()
             
     def finish(self):
-        print('CopyFiles.finish - cancelled: ', self._cancelled)
+        print('\nWorker::finish - cancelled: ', self._cancelled, '   name: ', self.name)
         totalSuccess = not self._cancelled
         if totalSuccess:
             for worker in self.workers:
                 totalSuccess = worker.evalSuccess() and totalSuccess
                 if not totalSuccess:
                     break
-        try:
-            self.callOnFinished(totalSuccess)
-        except:
-            wx.PostEvent(self.progress_dialog, DialgCrtr.DialogRequestEvent(EVT_FINISH_ID, data=totalSuccess))
+        print('\ntidyUpBeforFinish')
+        self.tidyUpBeforeFinish()
+        print('\ncalling callOnFinished')
+        self.callOnFinished(totalSuccess)
         
+    def tidyUpBeforeFinish(self):
+        pass
+
+    def resetOnFinishedCaller(self):
+        self.callOnFinished = lambda totalSuccess: wx.PostEvent(self.progress_dialog, DialgCrtr.DialogRequestEvent(EVT_FINISH_ID, data=totalSuccess))
         
-    def incrementProgress(self):
-        self.entriesAlrProcessed += 1
+    def incrementProgress(self, incrmnt=1):
+        self.entriesAlrProcessed += incrmnt
         self.updateProgress()
         
     def updateProgress(self):
@@ -322,16 +378,60 @@ class WorkerDirEntry:
     
     __abortIfFailed: bool = False
     
+    __bottomUp: bool = False
+    
+    __srcMustExist: bool = True
+    __tarMustNotExist: bool = True
+    
     #-------
     
     def __post_init__(self):
         self.__processFunc = lambda absSrcPath, absTarPath: True
+        if not self.tarEntryName:
+            self.tarEntryName = self.entryName
         
+    #-------
+    
+    def setSrcMustExist(self, mustExst=False):
+        self.__srcMustExist = mustExst
+    def srcMustExist(self):
+        return self.__srcMustExist
+    
+    def setTarMustNotExist(self, mustNotExst=False):
+        self.__tarMustNotExist = mustNotExst
+    def tarMustNotExist(self):
+        return self.__tarMustNotExist
+    
+    #-------
+    def setBottomUp(self, btmUp=True):
+        self.__bottomUp = btmUp
+        for sub_worker in self.sub_workerDirEntries:
+            sub_worker.setBottomUp()
+        for sub_worker in self.sub_workerFileEntries:
+            sub_worker.setBottomUp()
+    def bottomUp(self):
+        return self.__bottomUp
+    
+    def getFirstElementToProcess(self):
+        if self.__bottomUp:
+           return self.getAbsChild()
+        else:
+             return self.getAbsParent()
+    
+    def getAbsParent(self):
+        return self.parentWorkerDirEntry.getAbsParent() if self.parentWorkerDirEntry else self
+    def getAbsChild(self):
+        if len(self.sub_workerDirEntries) > 0:
+            return self.sub_workerDirEntries[0].getAbsChild()
+        elif len(self.sub_workerFileEntries) > 0:
+            return self.sub_workerFileEntries[0].getAbsChild()
+        else:
+            return self
     #-------
     
     def abortIfFailed(self):
         return self.__abortIfFailed
-    def setAbortIfFailed(self, abortIfFailed):
+    def setAbortIfFailed(self, abortIfFailed=True):
         self.__abortIfFailed = abortIfFailed
     
     #-------
@@ -340,6 +440,10 @@ class WorkerDirEntry:
         return self.__processFunc
     def setProcessFunc(self, func):
         self.__processFunc = func
+        for sub_worker in self.sub_workerDirEntries:
+            sub_worker.setProcessFunc(func)
+        for sub_worker in self.sub_workerFileEntries:
+            sub_worker.setProcessFunc(func)
     
     #-------
     
@@ -349,7 +453,7 @@ class WorkerDirEntry:
     def reset_hlpr(self):
         self.__finished = False
         self.__failed   = False
-        self.parentWorkerDirEntry.finishedWorkers.clear()
+        self.finishedWorkers.clear()
         
         for sub_worker in self.sub_workerDirEntries:
             sub_worker.reset_hlpr()
@@ -430,34 +534,31 @@ class WorkerDirEntry:
     #-------
     
     def getAbsSrcPath(self):
-        baseDir = self.baseDir if self.baseDir else self.parentWorkerDirEntry.getAbsSrcPath()
+        baseDir = self.getAbsSrcBasePath()
         entryName = self.entryName
         return os.path.join(baseDir, entryName)
     
     def getAbsSrcBasePath(self):
-        return self.baseDir if self.baseDir else self.parentWorkerDirEntry.getAbsSrcPath()
+        return self.baseDir if self.baseDir else (self.parentWorkerDirEntry.getAbsSrcPath() if self.parentWorkerDirEntry else '')
     
     #-------
     
     def getAbsTarPath(self):
-        tarBaseDir = self.tarBaseDir if self.tarBaseDir else self.parentWorkerDirEntry.getAbsTarPath()
+        tarBaseDir = self.getAbsTarBasePath()
         tarEntryName = self.tarEntryName
-        if tarBaseDir:
-            return os.path.join(tarBaseDir, tarEntryName)
-        else:
-            return None
+        return os.path.join(tarBaseDir, tarEntryName)
         
     def getAbsTarBasePath(self):
-        return self.tarBaseDir if self.tarBaseDir else self.parentWorkerDirEntry.getAbsTarPath()
+        return self.tarBaseDir if self.tarBaseDir else (self.parentWorkerDirEntry.getAbsTarPath() if self.parentWorkerDirEntry else '')
     
     #-------
     
     def getRelTarPath(self):
-        relTarBaseDir = '' if self.tarBaseDir else self.parentWorkerDirEntry.getRelTarPath()
+        relTarBaseDir = self.getRelTarBasePath()
         tarEntryName = self.tarEntryName
         return os.path.join(relTarBaseDir, tarEntryName)
     def getRelTarBasePath(self):
-        return '' if self.tarBaseDir else self.parentWorkerDirEntry.getRelTarPath()
+        return '' if self.tarBaseDir else (self.parentWorkerDirEntry.getRelTarPath() if self.parentWorkerDirEntry else '')
     
     #-------
     
@@ -466,15 +567,32 @@ class WorkerDirEntry:
             
     
     def getNext(self):
-        if not self.__failed:
+        if not (self.finished() or self.failed()):
+            # wenn der aktuelle worker noch nicht fertig ist, gar nicht erst in der struktur suchen (egal ob bottomUp oder nicht):
+            return self
+        
+        if self.__bottomUp:
+            return self.getNext_SubEntry_BottomUp_hlpr(self.parentWorkerDirEntry)
+        else:
             for subDirWorker in self.sub_workerDirEntries:
                 if subDirWorker not in self.finishedWorkers:
                     return subDirWorker
             for subFileWorker in self.sub_workerFileEntries:
                 if subFileWorker not in self.finishedWorkers:
                     return subFileWorker
-        return self.parentWorkerDirEntry.getNext() if self.parentWorkerDirEntry else None 
-    
+            return self.parentWorkerDirEntry.getNext() if self.parentWorkerDirEntry else None 
+        
+    def getNext_SubEntry_BottomUp_hlpr(self, worker):
+        if not worker:
+            return None
+        for subDirWorker in worker.sub_workerDirEntries:
+            if subDirWorker not in worker.finishedWorkers:
+                return worker.getNext_SubEntry_BottomUp_hlpr(subDirWorker)
+        for subFileWorker in worker.sub_workerFileEntries:
+            if subFileWorker not in worker.finishedWorkers:
+                return worker.getNext_SubEntry_BottomUp_hlpr(subFileWorker)
+        return worker.parentWorkerDirEntry if worker.finished() or worker.failed() else worker
+                
     #-------
     
     def evalSubEntries(self):
@@ -517,6 +635,16 @@ class WorkerDirEntry:
             we.evalSubEntries()
                     
         return we
-                
+    
+    #-------
+    
+    def __str__(self):
+#        sub_dirs = ''
+#        for i, sub in enumerate(self.sub_workerDirEntries):
+#            sub_dirs += sub.entryName + (' | '  if i < len(self.sub_workerDirEntries)-1 else '')
+#        sub_files = ''
+#        for i, sub in enumerate(self.sub_workerFileEntries):
+#            sub_files += sub.entryName + (' | '  if i < len(self.sub_workerFileEntries)-1 else '')
+        return "src: %s\ttar: %s" % (self.getAbsSrcPath(), self.getAbsTarPath())
 
     

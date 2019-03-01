@@ -7,29 +7,49 @@ Created on Sat Dec 29 21:05:29 2018
 """
 
 
-import wx 
-from progress_bar import ProgressBar
-from button import Button
+import os
+import os.path
+import zipfile
 
+def getEntries(absp):
+    entries = list()
+    for baseDir, sub_dirs, files in os.walk(absp):     
+        for sub_dir in sub_dirs:
+            entries.append(os.path.join(baseDir, sub_dir))
+        for file in files:
+            entries.append(os.path.join(baseDir, file))
+    return entries
 
-class Mywin(wx.Frame): 
+def zipEntries(tarZipFilePath, srcToZip, srcBaseDir):
+    with zipfile.ZipFile(tarZipFilePath, "w") as zf:
+        for src in srcToZip:
+            addEntryToZipArchive(zf, src, srcBaseDir)
             
-   def __init__(self, parent, title): 
-      super(Mywin, self).__init__(parent, title = title,size = (500,300))  
-      self.InitUI() 
-      
-         
-   def InitUI(self): 
-      self.Centre()
-      vbox = wx.BoxSizer(wx.VERTICAL)
-      self.SetSizer(vbox)
-      self.progress_bar = ProgressBar(self, label="processing...", size=(60,60))
-      vbox.Add(self.progress_bar, 0, wx.EXPAND)
-      self.cncl_btn = Button(self, label="cancel", size=(250, 40))
-      vbox.Add(self.cncl_btn, 0, wx.ALIGN_CENTER_HORIZONTAL)
-      self.SetBackgroundColour(wx.Colour(0,0,0))
-		
-ex = wx.App() 
-app = Mywin(None,'Drawing demo')
-app.Show(True)
-ex.MainLoop()
+def addEntryToZipArchive(zip_archive, srcToZip, srcBaseDir):
+    try:
+        relPath =  os.path.relpath(srcToZip, srcBaseDir)
+        zip_archive.write(srcToZip, arcname=relPath)
+        return True
+    except:
+        return False
+
+def iterArchive(zip_archive):
+    with zipfile.ZipFile(zip_archive, 'r') as zf:
+        entries = zf.infolist()
+        for e in entries:
+            print(e.filename)
+    
+
+zip_srcFilesDir = '/home/hippo/Documents/tests_tar/extraction_dir/fold'
+zip_base        = zip_srcFilesDir#'/home/hippo/Documents/tests_tar'
+zip_tarDir = '/home/hippo/Documents/tests_src/zipped_files'
+zip_name = 'test_zip.zip'
+absZipPath = os.path.join(zip_tarDir, zip_name)
+
+entriesToZip = getEntries(zip_srcFilesDir)
+
+#zipEntries(absZipPath, entriesToZip, srcBaseDir=zip_base)
+iterArchive('/home/hippo/Documents/tests_src/zipped_files/test_zip.zip')
+
+
+

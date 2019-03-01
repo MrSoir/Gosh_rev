@@ -11,33 +11,25 @@ import argparse
 
 import static_functions
 
-from path_func import *
+from path_func import generateUniquePath, processPaths
 
-from worker import WorkerDirEntry
-
-from copy_files import CopyFiles
+from worker import WorkerDirEntry, Worker
 
 import wx
 from progress_dialog_widget import ProgressFrame
 
-class DuplicateFiles(CopyFiles):
+class DuplicateFiles(Worker):
     def __init__(self, source_paths, progress_dialog=None):
         super().__init__(progress_dialog=progress_dialog)
         print('in DuplicateFiles-constructor!')
         
-        self.workers = list()
         for source_path in source_paths:
             base_dir, unique_entry_name = generateUniquePath(source_path)
             absTarPath = os.path.join(base_dir, unique_entry_name)
             if absTarPath != source_path: # passiert, wenn source_path nicht existiert -> absTarPath == source_path - dann soll natuerlich nicht dupliziert werden!
                 self.workers.append( WorkerDirEntry.createWorkerDirFromPath(source_path, tarBaseDir=base_dir, tarEntryName=unique_entry_name, processFunc=static_functions.copyEntry) )
                                 
-        self.crntly_prcsd_wrkr = self.workers[0] if len(self.workers) > 0 else None
-        
-        print()
-        for worker in self.workers:
-            print(worker)
-            print()
+        self._post__init__()
 
 
 #------------------------------------------------
@@ -67,7 +59,7 @@ def main():
     
     pf.Show()
     
-#    worker.copyFilesThreaded()
+    worker.executeThreaded()
 
     app.MainLoop()
     

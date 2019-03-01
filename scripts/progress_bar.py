@@ -44,7 +44,7 @@ class ProgressBar(wx.Control):
     #--------   
     def SetValue(self, event):
         if event and event.data:
-            self._value = event.data
+            self._value = max(min(event.data, 100), 0)
             self.Refresh()
     def GetValue(self):
         return self._value

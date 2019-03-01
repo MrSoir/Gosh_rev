@@ -43,26 +43,8 @@ class CopyFiles(Worker):
         self.target_path = target_path
                 
         self._post__init__()
-    
-#    def setTargetBasePathToWorkers(self, worker):
-#        target_path = worker.getAbsTarPath()
-#        for w in self.workers:
-#            if w != worker:
-#                w.tarBaseDir = target_path
-#    
-#    def copyFiles(self):
-#        targetCreator = TargetDirCreator(self.target_path, self.progress_dialog)
-#        targetCreator.callOnFinished = self.targetDirSuccessfullyCreated
-#        
-#    def afterTargetPathWasCreated(self, targetDirSuccessfullyCreated, final_target_path):
-#        if self._threaded:
-#            Thread(target=self.afterTargetPathWasCreated_hlpr, args=(targetDirSuccessfullyCreated,)).start()
-#        else:
-#            self.afterTargetPathWasCreated_hlpr(targetDirSuccessfullyCreated)
-#        
-#    def afterTargetPathWasCreated_hlpr(self, targetDirSuccessfullyCreated):
-#        self.evalEntryCount()
-#        self.copyCurrentWorkerEntry()
+        
+        self.name = "CopyFiles"
         
 #-----------------------------------------
 

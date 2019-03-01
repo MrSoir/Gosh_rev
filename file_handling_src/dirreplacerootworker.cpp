@@ -62,20 +62,20 @@ void DirReplaceRootWorker::run()
     if(m_current_rootDir)
     {
         // the stupid way - but easy and stable:
-    //    FileInfoBD* fi = m_current_rootDir;
-    //    m_current_rootDir = new FileInfoBD(m_new_root_path);
-    //    m_current_rootDir->elapse();
-    //    fi->closeAbsParent();
+//        FileInfoBD* fi = m_current_rootDir;
+//        m_current_rootDir = new FileInfoBD(m_new_root_path);
+//        m_current_rootDir->elapse();
+//        fi->closeAbsParent();
 
-    //    m_current_rootDir->moveAbsParentToThread(m_threadToMoveObjectsTo);
+//        m_current_rootDir->moveAbsParentToThread(m_threadToMoveObjectsTo);
 
-    //    emit replaceRoot(m_current_rootDir, false);
-    //    emit finished(false);
+//        emit replaceRoot(m_current_rootDir, false);
+//        emit finished(false);
 
 
         //-----------------------------------------------------
 
-        // the smart way - unstable:
+//        // the smart way - unstable:
 
         bool isSubDir = STATIC_FUNCTIONS::isSubDirectory(m_new_root_path, m_current_rootDir->absPath());
 
