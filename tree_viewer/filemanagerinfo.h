@@ -48,12 +48,11 @@ public:
     bool selectionContainsZippedFile() const;
     bool depthIdElapsed(int id) const;
 
-    QPixmap getPreviewIcon(const QString& path);
-    QPixmap getPreviewIcon(const std::string& path);
-    bool containsPreviewIcon(const QString& path);
-    bool containsPreviewIcon(const std::string& path);
-
-    const std::unordered_map<std::string, QPixmap>& getPreviewIcons() const;
+//    QImage getPreviewIcon(const QString& path);
+//    QImage getPreviewIcon(const std::string& path);
+//    bool containsPreviewIcon(const QString& path);
+//    bool containsPreviewIcon(const std::string& path);
+//    const QMap<QString, QImage>& getPreviewIcons() const;
 
 signals:
     void revalidateTreeViewer();
@@ -78,7 +77,7 @@ private:
 
     std::vector<bool> m_depthIdElapsed;
 
-    std::unordered_map<std::string, QPixmap> m_previewIcons;
+//    QMap<QString, QImage> m_previewIcons;
 };
 
 #endif // FILEMANAGERINFO_H

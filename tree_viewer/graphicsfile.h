@@ -78,7 +78,7 @@ public:
     void setInitDraggingFunction(std::function<void(QString)> func);
     void setDropFunction(std::function<void(QString)> func);
 
-    void setPreviewIcon(QPixmap pi);
+    void setPreviewIcon(const QImage pi);
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event);
@@ -166,7 +166,7 @@ private:
 
     QColor m_backgrColInUse = m_backgroundColor;
 
-    QPixmap m_previewIcon;
+    QImage m_previewIcon;
 };
 
 

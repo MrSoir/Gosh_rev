@@ -54,80 +54,84 @@ bool DirReplaceRootWorker::blockOtherThreads() const
 
 bool DirReplaceRootWorker::revalidateDirStructureAfterWorkerHasFinished() const
 {
-    return false;
+    return true;
 }
 
 void DirReplaceRootWorker::run()
 {
+    // the stupid way - but easy and stable:
     if(m_current_rootDir)
     {
-        // the stupid way - but easy and stable:
-//        FileInfoBD* fi = m_current_rootDir;
-//        m_current_rootDir = new FileInfoBD(m_new_root_path);
-//        m_current_rootDir->elapse();
-//        fi->closeAbsParent();
-
-//        m_current_rootDir->moveAbsParentToThread(m_threadToMoveObjectsTo);
-
-//        emit replaceRoot(m_current_rootDir, false);
-//        emit finished(false);
-
-
-        //-----------------------------------------------------
-
-//        // the smart way - unstable:
-
-        bool isSubDir = STATIC_FUNCTIONS::isSubDirectory(m_new_root_path, m_current_rootDir->absPath());
-
-        FileInfoBD* new_root;
-        bool deleteOldRoot = false;
-
-        if(isSubDir)
-        {
-            FileInfoBD* sub_dir = findSubDirInDir(m_current_rootDir, m_new_root_path);
-            if(sub_dir)
-            {
-                new_root = sub_dir;
-            }else{
-                new_root = new FileInfoBD(m_new_root_path);
-
-                deleteOldRoot = true;
-            }
-        }else{
-            bool isParentDir = STATIC_FUNCTIONS::isSubDirectory(m_current_rootDir->absPath(), m_new_root_path);
-            if(isParentDir)
-            {
-                FileInfoBD* par_dir = findParentFromDir(m_current_rootDir, m_new_root_path);
-                if(par_dir)
-                {
-                    new_root = par_dir;
-                }else{
-                    new_root = new FileInfoBD(m_new_root_path);
-
-                    deleteOldRoot = true;
-                }
-            }else{
-                new_root = new FileInfoBD(m_new_root_path);
-
-                deleteOldRoot = true;
-            }
-        }
-
-        new_root->elapse();
-
-        if(m_threadToMoveObjectsTo)
-            new_root->moveAbsParentToThread(m_threadToMoveObjectsTo);
-
-        emit replaceRoot(new_root, deleteOldRoot);
-    }else{
-        // m_current_rootDir == nullptr -> eg. DirManager on initialization -> DirManager::m_root == nullptr!:
-        FileInfoBD* new_root = new FileInfoBD(m_new_root_path);
-        new_root->elapse();
-        if(m_threadToMoveObjectsTo)
-            new_root->moveToThread_rec(m_threadToMoveObjectsTo);
-        emit replaceRoot(new_root, false);
+        m_current_rootDir->closeAbsParent();
     }
-    emit finished(false);
+    FileInfoBD* fi = new FileInfoBD(m_new_root_path);
+    fi->elapse();
+
+    fi->moveAbsParentToThread(m_threadToMoveObjectsTo);
+
+    emit replaceRoot(fi, false);
+    emit finished(true);
+    return;
+
+
+    //-----------------------------------------------------
+
+    // the smart way - unstable:
+
+//    if(m_current_rootDir)
+//    {
+
+//        bool isSubDir = STATIC_FUNCTIONS::isSubDirectory(m_new_root_path, m_current_rootDir->absPath());
+
+//        FileInfoBD* new_root;
+//        bool deleteOldRoot = false;
+
+//        if(isSubDir)
+//        {
+//            FileInfoBD* sub_dir = findSubDirInDir(m_current_rootDir, m_new_root_path);
+//            if(sub_dir)
+//            {
+//                new_root = sub_dir;
+//            }else{
+//                new_root = new FileInfoBD(m_new_root_path);
+
+//                deleteOldRoot = true;
+//            }
+//        }else{
+//            bool isParentDir = STATIC_FUNCTIONS::isSubDirectory(m_current_rootDir->absPath(), m_new_root_path);
+//            if(isParentDir)
+//            {
+//                FileInfoBD* par_dir = findParentFromDir(m_current_rootDir, m_new_root_path);
+//                if(par_dir)
+//                {
+//                    new_root = par_dir;
+//                }else{
+//                    new_root = new FileInfoBD(m_new_root_path);
+
+//                    deleteOldRoot = true;
+//                }
+//            }else{
+//                new_root = new FileInfoBD(m_new_root_path);
+
+//                deleteOldRoot = true;
+//            }
+//        }
+
+//        new_root->elapse();
+
+//        if(m_threadToMoveObjectsTo)
+//            new_root->moveAbsParentToThread(m_threadToMoveObjectsTo);
+
+//        emit replaceRoot(new_root, deleteOldRoot);
+//    }else{
+//        // m_current_rootDir == nullptr -> eg. DirManager on initialization -> DirManager::m_root == nullptr!:
+//        FileInfoBD* new_root = new FileInfoBD(m_new_root_path);
+//        new_root->elapse();
+//        if(m_threadToMoveObjectsTo)
+//            new_root->moveToThread_rec(m_threadToMoveObjectsTo);
+//        emit replaceRoot(new_root, false);
+//    }
+//    emit finished(false);
 }
 
 void DirReplaceRootWorker::workBeforeLaunchThread()

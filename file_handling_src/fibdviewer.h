@@ -85,6 +85,11 @@ public:
     void setSearchFocused(bool focused) override;
     void setSelected(bool selected) override;
 
+
+    void setPreviewImage(QImage img);
+    const QImage getPreviewImage() const;
+    bool previewImageIsNull() const;
+
 private:
     QString m_path;
     QString m_fileName;
@@ -106,6 +111,8 @@ private:
 
     unsigned long long int m_fileSize;
     QDateTime m_lastModified;
+
+    QImage m_previewIcon;
 
     bool m_isCurrentlyRevalidating;
 };

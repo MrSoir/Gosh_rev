@@ -41,7 +41,7 @@ FileManager::FileManager(std::string root_path,
                                   this)),
 
       m_previewIconSize(QSize(30,30)),
-      m_prevIcnLoadr(PreviewIconLoader(m_previewIconSize))
+      m_prevIcnLoadr(ImageLoader(m_previewIconSize))
 {
     connectSignals();
 
@@ -713,7 +713,8 @@ void FileManager::deepSearch(QString key_word)
 
 void FileManager::newPreviewIconsLoaded()
 {
-    revalidateViewer_metaData_hlpr();
+//    revalidateViewer_metaData_hlpr();
+    revalidateViewer_entries_hlpr();
 }
 
 void FileManager::dirChanged_dm(DirManagerInfo* changedDir)
@@ -764,9 +765,9 @@ void FileManager::connectSignals()
 {
     // PreviewIconLoader:
         // PreviewIconLoader -> FileManager
-    connect(&m_prevIcnLoadr, &PreviewIconLoader::newIconsLoaded, this, &FileManager::newPreviewIconsLoaded);
+    connect(&m_prevIcnLoadr, &ImageLoader::newImagesLoaded, this, &FileManager::newPreviewIconsLoaded);
         // FileManager -> PreviewIconLoader:
-    connect(this, SIGNAL(loadIcons_SGNL(std::unordered_set<std::string>)), &m_prevIcnLoadr, SLOT(loadIcons(std::unordered_set<std::string>)));
+    connect(this, SIGNAL(loadIcons_SGNL(std::unordered_set<std::string>)), &m_prevIcnLoadr, SLOT(loadImages(std::unordered_set<std::string>)));
 
     if(m_tasks_queue)
     {
@@ -1044,12 +1045,12 @@ void FileManager::connectDirectorySelectionPane(DirectorySelectionPane* toolBar)
     connect(m_dirStack, &DirectoryStack::stackContainsPaths, toolBar, &DirectorySelectionPane::enableUndo);
 
     // FileManager -> DirectorySelectionPane:
-    connect(this, SIGNAL(rootDirChanged(std::string)), toolBar, SLOT(setFolder(std::string)));
-    connect(this, &FileManager::rootDirChanged,    toolBar, &DirectorySelectionPane::revalidate);
+    connect(this, SIGNAL(rootDirChanged(std::string)), toolBar, SLOT(setFolder(std::string)), Qt::QueuedConnection);
+    connect(this, &FileManager::rootDirChanged,    toolBar, &DirectorySelectionPane::revalidate, Qt::QueuedConnection);
 
     // DirectorySelectionPane -> FileManager:
-    connect(toolBar, &DirectorySelectionPane::undo,           this, &FileManager::setLastPathToRoot);
-    connect(toolBar, SIGNAL(buttonClicked(QDir)),  this, SLOT(setRoot_QDir(QDir)));
+    connect(toolBar, &DirectorySelectionPane::undo,           this, &FileManager::setLastPathToRoot, Qt::QueuedConnection);
+    connect(toolBar, SIGNAL(buttonClicked(QDir)),  this, SLOT(setRoot_QDir(QDir)), Qt::QueuedConnection);
 }
 
 //void FileManager::revalidateEntries()
@@ -1197,6 +1198,12 @@ ViewerData FileManager::generateViewerData()
                     fiView.setSelected(selected);
                     fiView.setSearched(searched);
                     fiView.setSearchFocused(searchFocused);
+
+                    auto img = m_prevIcnLoadr.getImage(path);
+                    if( !img.isNull() )
+                    {
+                        fiView.setPreviewImage(img);
+                    }
 
                     entries[i] = fiView;
                 }
@@ -1531,7 +1538,7 @@ void FileManager::revalidateTree_hlpr(DirManagerInfo* entry,
 
 void FileManager::loadPreviewIconsOfCurrentlyDisplayedEntries()
 {
-//    emit loadIcons_SGNL(getCurrentlyDisplayedFilePaths());
+    emit loadIcons_SGNL(getCurrentlyDisplayedFilePaths());
 }
 
 //----------------------------------------------------------
@@ -1612,10 +1619,10 @@ std::vector<bool> FileManager::depthIdElapsed() const
     return std::vector<bool>(m_depthId_elapsed.begin(), m_depthId_elapsed.end());
 }
 
-std::unordered_map<string, QPixmap> FileManager::getPreviewIcons() const
-{
-    return m_prevIcnLoadr.getPreviewIconsMap(getCurrentlyDisplayedFilePaths());
-}
+//std::unordered_map<string, QPixmap> FileManager::getPreviewIcons() const
+//{
+//    return m_prevIcnLoadr.getPreviewIconsMap(getCurrentlyDisplayedFilePaths());
+//}
 
 // OBACHT: getCurrentlyDisplayedFilePaths sucht NUR Files - nicht Directories/Folders!!!
 std::unordered_set<string> FileManager::getCurrentlyDisplayedFilePaths() const

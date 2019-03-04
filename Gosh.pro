@@ -105,16 +105,13 @@ SOURCES += \
         customgraphicitems.cpp \
         tab_coordiantor/tabrect.cpp \
     widgetcreator.cpp \
-    file_handling_src/image_retriever.cpp \
     widgetcloser.cpp \
     threadtestworker.cpp \
     dialogs/openwithdialog.cpp \
     dialogs/openwithgraphicsview.cpp \
     file_handling_src/viewerdata.cpp \
     dialogs/stringgetterdialog.cpp \
-    file_handling_src/previewicon.cpp \
-    file_handling_src/previewiconloaderworker.cpp \
-    file_handling_src/previewiconloader.cpp
+    file_handling_src/imageloader.cpp
 
 HEADERS += \
          mainwindow.h \
@@ -198,16 +195,13 @@ HEADERS += \
         customgraphicitems.h \
         tab_coordiantor/tabrect.h \
         widgetcreator.h \
-    file_handling_src/image_retriever.h \
     widgetcloser.h \
     threadtestworker.h \
     dialogs/openwithdialog.h \
     dialogs/openwithgraphicsview.h \
     file_handling_src/viewerdata.h \
     dialogs/stringgetterdialog.h \
-    file_handling_src/previewicon.h \
-    file_handling_src/previewiconloaderworker.h \
-    file_handling_src/previewiconloader.h
+    file_handling_src/imageloader.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

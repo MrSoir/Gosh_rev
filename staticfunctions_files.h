@@ -52,10 +52,10 @@ namespace STATIC_FUNCTIONS
 
     static std::unordered_set<std::string> SUPPORTED_IMAGE_FORMATS = STATIC_FUNCTIONS::evalSupportedImageFileTypes();
 
-    QPixmap loadPreviewIcon(const std::string& file_path,
-                            const QSize& size);
-    QPixmap loadPreviewIcon(const QString& file_path,
-                            const QSize& size);
+//    QPixmap loadPreviewIcon(const std::string& file_path,
+//                            const QSize& size);
+//    QPixmap loadPreviewIcon(const QString& file_path,
+//                            const QSize& size);
 
 //----------------------------------------------------------------------------------
 

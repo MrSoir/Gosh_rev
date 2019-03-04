@@ -724,32 +724,32 @@ bool STATIC_FUNCTIONS::copyFile(const string &absSourcePath, const string &absTa
 
 //-------------------------------------------------------------------------------
 
-QPixmap STATIC_FUNCTIONS::loadPreviewIcon(const string& file_path,
-                                          const QSize &size)
-{
-    return loadPreviewIcon(QString::fromStdString(file_path), size);
-}
+//QPixmap STATIC_FUNCTIONS::loadPreviewIcon(const string& file_path,
+//                                          const QSize &size)
+//{
+//    return loadPreviewIcon(QString::fromStdString(file_path), size);
+//}
 
-QPixmap STATIC_FUNCTIONS::loadPreviewIcon(const QString &file_path,
-                                          const QSize &size)
-{
-    if(SUPPORTED_IMAGE_FORMATS.find(QFileInfo(file_path).completeSuffix().toStdString()) == SUPPORTED_IMAGE_FORMATS.end())
-        return QPixmap();
+//QPixmap STATIC_FUNCTIONS::loadPreviewIcon(const QString &file_path,
+//                                          const QSize &size)
+//{
+//    if(SUPPORTED_IMAGE_FORMATS.find(QFileInfo(file_path).completeSuffix().toStdString()) == SUPPORTED_IMAGE_FORMATS.end())
+//        return QPixmap();
 
-    QPixmap p(file_path);
-    if(p.isNull())
-    {
-        return p;
-    }
-    auto loadedSize = p.size().width() * p.size().height();
-    if(loadedSize == 0)
-    {
-        qDebug() << "0-size image: " << file_path;
-        return QPixmap();
-    }
-    return p.scaled(size,
-                    Qt::IgnoreAspectRatio, Qt::FastTransformation);
-}
+//    QPixmap p(file_path);
+//    if(p.isNull())
+//    {
+//        return p;
+//    }
+//    auto loadedSize = p.size().width() * p.size().height();
+//    if(loadedSize == 0)
+//    {
+//        qDebug() << "0-size image: " << file_path;
+//        return QPixmap();
+//    }
+//    return p.scaled(size,
+//                    Qt::IgnoreAspectRatio, Qt::FastTransformation);
+//}
 
 std::unordered_set<string> STATIC_FUNCTIONS::evalSupportedImageFileTypes()
 {

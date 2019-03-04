@@ -7,7 +7,7 @@
 #include <QVector>
 #include <QSize>
 #include <QDebug>
-#include <QMetaType>;
+#include <QMetaType>
 
 #include <string>
 #include <vector>
@@ -21,7 +21,6 @@
 #include "file_handling_src/dirmanagerinfo.h"
 #include "file_handling_src/dirdeepsearchworker.h"
 #include "file_handling_src/viewerdata.h"
-#include "file_handling_src/previewiconloader.h"
 
 #include "file_manipulation/copyfiles.h"
 #include "file_manipulation/createentry.h"
@@ -35,7 +34,6 @@
 
 #include "file_handling_src/filemimetypehandler.h"
 //#include "file_handling_src/appinfo.h"
-#include "file_handling_src/image_retriever.h"
 
 #define int_bd long long
 
@@ -160,14 +158,6 @@ Q_DECLARE_METATYPE(ZIP::UnZipFile*);
 //Q_DECLARE_OPAQUE_POINTER(FileWatcher*);
 //Q_DECLARE_METATYPE(FileWatcher*);
 
-Q_DECLARE_METATYPE(Image_Retriever);
-Q_DECLARE_OPAQUE_POINTER(Image_Retriever*);
-Q_DECLARE_METATYPE(Image_Retriever*);
-
-Q_DECLARE_METATYPE(PixMapGetter);
-Q_DECLARE_OPAQUE_POINTER(PixMapGetter*);
-Q_DECLARE_METATYPE(PixMapGetter*);
-
 Q_DECLARE_METATYPE(QSize);
 Q_DECLARE_OPAQUE_POINTER(QSize*);
 Q_DECLARE_METATYPE(QSize*);
@@ -175,10 +165,9 @@ Q_DECLARE_METATYPE(QSize*);
 Q_DECLARE_METATYPE(QPixmap);
 Q_DECLARE_OPAQUE_POINTER(QPixmap*);
 Q_DECLARE_METATYPE(QPixmap*);
-
-Q_DECLARE_METATYPE(PreviewIcon);
-Q_DECLARE_OPAQUE_POINTER(PreviewIcon*);
-Q_DECLARE_METATYPE(PreviewIcon*);
+Q_DECLARE_METATYPE(QImage);
+Q_DECLARE_OPAQUE_POINTER(QImage*);
+Q_DECLARE_METATYPE(QImage*);
 
 //-----------------------------------
 Q_DECLARE_METATYPE(QThread::Priority);
@@ -272,21 +261,19 @@ Q_DECLARE_METATYPE(std::vector<ZIP::ZipFiles>);
 Q_DECLARE_METATYPE(std::vector<ZIP::ZipFiles*>);
 Q_DECLARE_METATYPE(std::vector<ZIP::UnZipFile>);
 Q_DECLARE_METATYPE(std::vector<ZIP::UnZipFile*>);
-Q_DECLARE_METATYPE(std::vector<Image_Retriever>);
-Q_DECLARE_METATYPE(std::vector<Image_Retriever*>);
-Q_DECLARE_METATYPE(std::vector<PixMapGetter>);
-Q_DECLARE_METATYPE(std::vector<PixMapGetter*>);
 Q_DECLARE_METATYPE(std::vector<QSize>);
 Q_DECLARE_METATYPE(std::vector<QSize*>);
 Q_DECLARE_METATYPE(std::vector<QPixmap>);
 Q_DECLARE_METATYPE(std::vector<QPixmap*>);
+Q_DECLARE_METATYPE(std::vector<QImage>);
+Q_DECLARE_METATYPE(std::vector<QImage*>);
 
-Q_DECLARE_METATYPE(std::vector<PreviewIcon>);
-Q_DECLARE_METATYPE(std::vector<PreviewIcon*>);
-typedef std::unordered_map<std::string, PreviewIcon>  Map_string_PreviewIcon;
-typedef std::unordered_map<std::string, PreviewIcon*> Map_string_PreviewIconPntr;
-Q_DECLARE_METATYPE(Map_string_PreviewIcon);
-Q_DECLARE_METATYPE(Map_string_PreviewIconPntr);
+//Q_DECLARE_METATYPE(std::vector<PreviewIcon>);
+//Q_DECLARE_METATYPE(std::vector<PreviewIcon*>);
+//typedef std::unordered_map<std::string, PreviewIcon>  Map_string_PreviewIcon;
+//typedef std::unordered_map<std::string, PreviewIcon*> Map_string_PreviewIconPntr;
+//Q_DECLARE_METATYPE(Map_string_PreviewIcon);
+//Q_DECLARE_METATYPE(Map_string_PreviewIconPntr);
 
 Q_DECLARE_METATYPE(std::vector<QThread::Priority>);
 Q_DECLARE_METATYPE(std::vector<QThread::Priority*>);
@@ -360,14 +347,12 @@ void registerTypes()
     qRegisterMetaType<ZIP::ZipFiles*>();
     qRegisterMetaType<ZIP::UnZipFile>();
     qRegisterMetaType<ZIP::UnZipFile*>();
-    qRegisterMetaType<Image_Retriever>();
-    qRegisterMetaType<Image_Retriever*>();
-    qRegisterMetaType<PixMapGetter>();
-    qRegisterMetaType<PixMapGetter*>();
     qRegisterMetaType<QSize>();
     qRegisterMetaType<QSize*>();
     qRegisterMetaType<QPixmap>();
     qRegisterMetaType<QPixmap*>();
+    qRegisterMetaType<QImage>();
+    qRegisterMetaType<QImage*>();
     qRegisterMetaType<QThread::Priority>();
     qRegisterMetaType<QThread::Priority*>();
     qRegisterMetaType<std::string>();
@@ -424,16 +409,14 @@ void registerTypes()
     qRegisterMetaType<std::vector<ZIP::ZipFiles*>>();
     qRegisterMetaType<std::vector<ZIP::UnZipFile>>();
     qRegisterMetaType<std::vector<ZIP::UnZipFile*>>();
-    qRegisterMetaType<std::vector<Image_Retriever>>();
-    qRegisterMetaType<std::vector<Image_Retriever*>>();
-    qRegisterMetaType<std::vector<PixMapGetter>>();
-    qRegisterMetaType<std::vector<PixMapGetter*>>();
     qRegisterMetaType<std::vector<QSize>>();
     qRegisterMetaType<std::vector<QSize*>>();
     qRegisterMetaType<std::vector<QPixmap>>();
     qRegisterMetaType<std::vector<QPixmap*>>();
-    qRegisterMetaType<std::vector<PreviewIcon>>();
-    qRegisterMetaType<std::vector<PreviewIcon*>>();
+    qRegisterMetaType<std::vector<QImage>>();
+    qRegisterMetaType<std::vector<QImage*>>();
+//    qRegisterMetaType<std::vector<PreviewIcon>>();
+//    qRegisterMetaType<std::vector<PreviewIcon*>>();
     qRegisterMetaType<std::vector<QThread::Priority>>();
     qRegisterMetaType<std::vector<QThread::Priority*>>();
     qRegisterMetaType<std::vector<std::string>>();
@@ -454,8 +437,8 @@ void registerTypes()
     qRegisterMetaType<std::vector<DirDeepSearchWorker*>>();
 
     // register maps:
-    qRegisterMetaType<Map_string_PreviewIcon>();
-    qRegisterMetaType<Map_string_PreviewIconPntr>();
+//    qRegisterMetaType<Map_string_PreviewIcon>();
+//    qRegisterMetaType<Map_string_PreviewIconPntr>();
     qRegisterMetaType<Map_LongLong_FiBDViewer>();
     qRegisterMetaType<Map_LongLong_FiBDViewerPntr>();
 }

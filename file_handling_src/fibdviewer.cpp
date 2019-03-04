@@ -25,6 +25,8 @@ FiBDViewer::FiBDViewer()
       m_fileSize(0),
       m_lastModified(QDateTime()),
 
+      m_previewIcon(QImage()),
+
       m_isCurrentlyRevalidating(false)
 {
 }
@@ -59,6 +61,8 @@ FiBDViewer::FiBDViewer(QString path,
       m_fileSize(fileSize),
       m_lastModified(lastModified),
 
+      m_previewIcon(QImage()),
+
       m_isCurrentlyRevalidating(false)
 {
 }
@@ -88,6 +92,8 @@ FiBDViewer::FiBDViewer(const QFileInfo &fi, int depthId)
       m_fileSize( static_cast<unsigned long long>(fi.size()) ),
       m_lastModified(fi.lastModified()),
 
+      m_previewIcon(QImage()),
+
       m_isCurrentlyRevalidating(false)
 {
 }
@@ -116,6 +122,7 @@ FiBDViewer::FiBDViewer(const DirManagerInfo& dmi,
       m_order(dmi.order),
       m_fileSize(0),
       m_lastModified(dmi.lastModified),
+      m_previewIcon(QImage()),
       m_isCurrentlyRevalidating(isCurrentlyRevalidating)
 {
 }
@@ -144,6 +151,7 @@ FiBDViewer::FiBDViewer(DirManagerInfo* dmi,
       m_order(dmi->order),
       m_fileSize(0),
       m_lastModified(dmi->lastModified),
+      m_previewIcon(QImage()),
       m_isCurrentlyRevalidating(isCurrentlyRevalidating)
 {
 }
@@ -171,6 +179,8 @@ FiBDViewer::FiBDViewer(const FiBDViewer& fi)
 
       m_fileSize(fi.m_fileSize),
       m_lastModified(fi.m_lastModified),
+
+      m_previewIcon(fi.m_previewIcon),
 
       m_isCurrentlyRevalidating(fi.m_isCurrentlyRevalidating)
 {
@@ -203,6 +213,8 @@ FiBDViewer& FiBDViewer::operator=(const FiBDViewer &fi)
     this->m_fileSize = fi.m_fileSize;
     this->m_lastModified = fi.m_lastModified;
 
+    this->m_previewIcon = fi.m_previewIcon;
+
     this->m_isCurrentlyRevalidating = fi.m_isCurrentlyRevalidating;
 
     return *this;
@@ -229,6 +241,21 @@ bool FiBDViewer::searchFocused() const
 void FiBDViewer::setSelected(bool selected)
 {
     m_selected = selected;
+}
+
+void FiBDViewer::setPreviewImage(QImage img)
+{
+    m_previewIcon = img;
+}
+
+const QImage FiBDViewer::getPreviewImage() const
+{
+    return m_previewIcon;
+}
+
+bool FiBDViewer::previewImageIsNull() const
+{
+    return m_previewIcon.isNull();
 }
 
 std::string FiBDViewer::path() const

@@ -1329,10 +1329,14 @@ void GraphicsView::paintFileInfo(const FiBDViewer& fiv, int_bd rowId, int_bd col
                                         m_fontSize);
     if( !fiv.isFolder() )
     {
-        if(m_fileMangrInfo->containsPreviewIcon(fiv.path()))
+        if( !fiv.previewImageIsNull() )
         {
-            gf->setPreviewIcon(m_fileMangrInfo->getPreviewIcon(fiv.path()));
+            gf->setPreviewIcon(fiv.getPreviewImage());
         }
+//        if(m_fileMangrInfo->containsPreviewIcon(fiv.path()))
+//        {
+//            gf->setPreviewIcon(m_fileMangrInfo->getPreviewIcon(fiv.path()));
+//        }
     }
     gf->setDetailsTextColor(QColor(0,0,0, 150));
     gf->setDropFunction([=](QString dropStr){

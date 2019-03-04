@@ -32,8 +32,8 @@
 #include"dirmanager.h"
 #include "dirmanagerinfo.h"
 #include "directorystack.h"
-#include "previewiconloader.h"
-#include "previewicon.h"
+//#include "previewiconloader.h"
+//#include "previewicon.h"
 
 #include "tree_viewer/graphicsview.h"
 #include "tree_viewer/directoryselectionpane.h"
@@ -43,6 +43,8 @@
 #include "file_manipulation/renamefile.h"
 #include "file_manipulation/createfolder.h"
 #include "file_manipulation/createfile.h"
+
+#include "imageloader.h"
 
 #include "widgetcreator.h"
 
@@ -83,7 +85,7 @@ public:
     bool filesSelected() const;
     bool selectionContainsZipFiles() const;
     std::vector<bool> depthIdElapsed() const;
-    std::unordered_map<std::string, QPixmap> getPreviewIcons() const;
+//    std::unordered_map<std::string, QPixmap> getPreviewIcons() const;
 
     std::unordered_set<std::string> getCurrentlyDisplayedFilePaths() const;
 
@@ -345,7 +347,8 @@ private:
     FileSelector* m_selector;
 
     QSize m_previewIconSize;
-    PreviewIconLoader m_prevIcnLoadr;
+//    PreviewIconLoader m_prevIcnLoadr;
+    ImageLoader m_prevIcnLoadr;
 
     bool m_executingDeepSearch = false;
 };

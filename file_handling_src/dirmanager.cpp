@@ -350,7 +350,7 @@ void DirManager::replaceRoot(FileInfoBD* newRoot, bool deleteOldRoot)
     }
     m_root = newRoot;
 
-    revalidateDirStructure();
+//    revalidateDirStructure();
 }
 
 void DirManager::close()

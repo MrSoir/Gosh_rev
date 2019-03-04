@@ -41,7 +41,9 @@ GraphicsFile::GraphicsFile(const FiBDViewer& fiv,
       m_initMousePrsdPos(QPointF()),
       lastTmePrsd(Q_INT64_C(0)),
 
-      m_isCurrentlyRepainting(std::atomic<int>())
+      m_isCurrentlyRepainting(std::atomic<int>()),
+
+      m_previewIcon(QImage())
 {
     m_isCurrentlyRepainting.store(0);
 
@@ -90,7 +92,9 @@ GraphicsFile::GraphicsFile(const QFileInfo &m_fileInfo,
       m_initMousePrsdPos(QPointF()),
       lastTmePrsd(Q_INT64_C(0)),
 
-      m_isCurrentlyRepainting(std::atomic<int>())
+      m_isCurrentlyRepainting(std::atomic<int>()),
+
+      m_previewIcon(QImage())
 {
     m_isCurrentlyRepainting.store(0);
 
@@ -111,6 +115,8 @@ GraphicsFile::~GraphicsFile(){
 
     m_initDraggingFunc = nullptr;
     m_dropFunc = nullptr;
+
+    m_previewIcon = QImage();
 }
 
 void GraphicsFile::setPosition(const QPoint& position){
@@ -235,9 +241,9 @@ void GraphicsFile::paint(QPainter *painter, const QStyleOptionGraphicsItem *opti
                   static_cast<int>(d_height*fctr),
                   static_cast<int>(d_height*fctr));
 
-    QPixmap iconPixmap = m_previewIcon.isNull()
+    auto iconPixmap = m_previewIcon.isNull()
                         ?  StaticFunctions::getFilePixmap(m_fiv.path(), iconRct.size())
-                        : m_previewIcon.scaled(iconRct.size(), Qt::IgnoreAspectRatio, Qt::FastTransformation);
+                        : QPixmap::fromImage(m_previewIcon.scaled(iconRct.size(), Qt::IgnoreAspectRatio, Qt::FastTransformation));
 //    QPixmap iconPixmap = StaticFunctions::getFilePixmap(m_fiv.path(), iconRct.size());
     painter->drawPixmap(iconRct, iconPixmap);//icon.pixmap(iconRct.size()));
 
@@ -477,7 +483,7 @@ void GraphicsFile::setDropFunction(std::function<void(QString)> func)
     m_dropFunc = func;
 }
 
-void GraphicsFile::setPreviewIcon(QPixmap pi)
+void GraphicsFile::setPreviewIcon(const QImage pi)
 {
     if(pi.isNull())
         return;

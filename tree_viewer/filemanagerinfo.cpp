@@ -21,9 +21,9 @@ FileManagerInfo::FileManagerInfo()
       m_filesSelected(false),
       m_selctnCntnsZpdFle(false),
 
-      m_depthIdElapsed(std::vector<bool>()),
+      m_depthIdElapsed(std::vector<bool>())
 
-      m_previewIcons(std::unordered_map<std::string, QPixmap>())
+//      m_previewIcons(QMap<QString, QImage>())
 {
 }
 
@@ -46,9 +46,9 @@ FileManagerInfo::FileManagerInfo(const FileManager& fmi)
       m_filesSelected(fmi.filesSelected()),
       m_selctnCntnsZpdFle(fmi.selectionContainsZipFiles()),
 
-      m_depthIdElapsed(fmi.depthIdElapsed()),
+      m_depthIdElapsed(fmi.depthIdElapsed())
 
-      m_previewIcons(fmi.getPreviewIcons())
+//      m_previewIcons(fmi.getPreviewIcons())
 {
 }
 
@@ -71,9 +71,9 @@ FileManagerInfo::FileManagerInfo(FileManager* fmi)
       m_filesSelected(fmi->filesSelected()),
       m_selctnCntnsZpdFle(fmi->selectionContainsZipFiles()),
 
-      m_depthIdElapsed(fmi->depthIdElapsed()),
+      m_depthIdElapsed(fmi->depthIdElapsed())
 
-      m_previewIcons(fmi->getPreviewIcons())
+//      m_previewIcons(fmi->getPreviewIcons())
 {
 }
 
@@ -96,9 +96,9 @@ FileManagerInfo::FileManagerInfo(const FileManagerInfo& fmi)
       m_filesSelected(fmi.m_filesSelected),
       m_selctnCntnsZpdFle(fmi.m_selctnCntnsZpdFle),
 
-      m_depthIdElapsed(fmi.m_depthIdElapsed),
+      m_depthIdElapsed(fmi.m_depthIdElapsed)
 
-      m_previewIcons(fmi.m_previewIcons)
+//      m_previewIcons(fmi.m_previewIcons)
 {
 }
 
@@ -123,7 +123,7 @@ FileManagerInfo& FileManagerInfo::operator=(const FileManagerInfo& fmi)
 
     m_depthIdElapsed = fmi.m_depthIdElapsed;
 
-    m_previewIcons = fmi.m_previewIcons;
+//    m_previewIcons = fmi.m_previewIcons;
 
     return *this;
 }
@@ -132,15 +132,14 @@ FileManagerInfo::~FileManagerInfo()
 {
     std::vector<bool>().swap(m_depthIdElapsed);
 
-    for(auto it = m_previewIcons.begin(); it != m_previewIcons.end(); ++it)
-    {
-        auto& pixmap = it->second;
-        if(pixmap.isNull())
-        {
-            pixmap.detach();
-        }
-    }
-    std::unordered_map<std::string, QPixmap>().swap(m_previewIcons);
+//    for(auto it = m_previewIcons.begin(); it != m_previewIcons.end(); ++it)
+//    {
+//        if(it.isNull())
+//        {
+//            it.detach();
+//        }
+//    }
+//    QMap<QString, QImage>().swap(m_previewIcons);
 }
 
 //------------------------------------------------------------------
@@ -222,32 +221,34 @@ bool FileManagerInfo::depthIdElapsed(int id) const
     return id_st < m_depthIdElapsed.size() ? m_depthIdElapsed[id_st] : false;
 }
 
-QPixmap FileManagerInfo::getPreviewIcon(const QString &path)
-{
-    return getPreviewIcon(path.toStdString());
-}
+//QImage FileManagerInfo::getPreviewIcon(const QString &path)
+//{
+//    return getPreviewIcon(path.toStdString());
+//}
 
-QPixmap FileManagerInfo::getPreviewIcon(const string &path)
-{
-    if(containsPreviewIcon(path))
-    {
-       return  m_previewIcons[path];
-    }
-    return QPixmap();
-}
+//QImage FileManagerInfo::getPreviewIcon(const string &path)
+//{
+//    if(containsPreviewIcon(path))
+//    {
+//       return  m_previewIcons[path];
+//    }
+//    return QImage();
+//}
 
-bool FileManagerInfo::containsPreviewIcon(const QString &path)
-{
-    return containsPreviewIcon(path.toStdString());
-}
+//bool FileManagerInfo::containsPreviewIcon(const QString &path)
+//{
+////    return containsPreviewIcon(path.toStdString());
+//    return m_previewIcons.find(path) != m_previewIcons.end();
+//}
 
-bool FileManagerInfo::containsPreviewIcon(const string &path)
-{
-    return m_previewIcons.find(path) != m_previewIcons.end();
-}
+//bool FileManagerInfo::containsPreviewIcon(const string &path)
+//{
+////    return m_previewIcons.find(path) != m_previewIcons.end();
+//    return containsPreviewIcon(QString::fromStdString(path));
+//}
 
-const std::unordered_map<string, QPixmap>& FileManagerInfo::getPreviewIcons() const
-{
-    return m_previewIcons;
-}
+//const QMap<QString, QImage> &FileManagerInfo::getPreviewIcons() const
+//{
+//    return m_previewIcons;
+//}
 
