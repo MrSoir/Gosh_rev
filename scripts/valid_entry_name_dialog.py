@@ -12,16 +12,23 @@ from wx.lib import sized_controls
 
 import os.path
 
+from enum import Enum
+
+class ENTRY_TYPE(Enum):
+    FILE = 1
+    DIRECTORY = 2
+
 #DialogEvent, EVT_DIALOG = NE.NewCommandEvent()
 
 from entry_name_validation import isValidDirectoryName, isValidFileName, invalidFileNameWarning, invalidDirectoryNameWarning
 
 class ValidEntryNameDialog(sized_controls.SizedDialog):
 
-    def __init__(self, entry_name, entry_baseDir, validatorFunc=None, warningFunc=None, size=(600,250), parent=None):
-        super(ValidEntryNameDialog, self).__init__(parent, size=size, title='Select File Name')
+    def __init__(self, entry_name, entry_baseDir, validatorFunc=None, warningFunc=None, entry_type=ENTRY_TYPE.FILE, size=(600,250), parent=None):
+        super(ValidEntryNameDialog, self).__init__(parent, size=size, title='Select %s Name' % ('File' if entry_type == ENTRY_TYPE.FILE else 'Folder'))
                 
-        isFile = os.path.isfile(os.path.join(entry_baseDir, entry_name))
+        init_abs_path = os.path.join(entry_baseDir, entry_name)
+        isFile = os.path.isfile(init_abs_path) if os.path.exists(init_abs_path) else entry_type == ENTRY_TYPE.FILE
         
         self.entry_baseDir = entry_baseDir
         self.entry_name    = entry_name

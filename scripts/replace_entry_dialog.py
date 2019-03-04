@@ -64,7 +64,7 @@ class ReplaceEntryDialog(sized_controls.SizedDialog):
         btn_box.Add(button_ok, 0, wx.ALIGN_CENTER_HORIZONTAL)
         button_ok.SetForegroundColour(wx.Colour(0,150,0))
         
-        button_ok = wx.Button(self, EVT_SCIP_ID, label='SCIP')
+        button_ok = wx.Button(self, EVT_SCIP_ID, label='SKIP')
         button_ok.Bind(wx.EVT_BUTTON, self.on_button)
         btn_box.Add(button_ok, 0, wx.ALIGN_CENTER_HORIZONTAL)
         

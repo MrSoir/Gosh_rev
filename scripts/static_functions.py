@@ -17,7 +17,7 @@ from collections.abc import Iterable
 from enum import Enum
 
 from replace_entry_dialog import ReplaceEntryDialog
-from valid_entry_name_dialog import ValidEntryNameDialog
+from valid_entry_name_dialog import ValidEntryNameDialog, ENTRY_TYPE
 
 import input_dialog
 import entry_name_validation
@@ -74,6 +74,13 @@ def createDirectory(absDirPath):
         return True
     except:
         return False
+def createFile(absFilePath):
+    try:
+        with open(absFilePath,"w+"):
+            pass
+        return os.path.exists(absFilePath)
+    except:
+        return False
     
 def getEntriesInDirectory(absDirPath):
     files    = [file    for file    in os.listdir(absDirPath) if os.path.isfile(os.path.join(absDirPath, file))]
@@ -109,7 +116,19 @@ def moveEntry(absSrcPath, absTarPath):
         return not os.path.exists(absSrcPath) and os.path.exists(absTarPath)
     except:
         return False
-    
+
+#---------------------------------------
+        
+def renameEntry(absSrcPath, newEntryName):
+    if not os.path.exists(absSrcPath):
+        return False
+    try:
+        base_dir = os.path.dirname(absSrcPath)
+        tar_path = os.path.join(base_dir, newEntryName)
+        os.rename(absSrcPath, tar_path)
+        return os.path.exists(tar_path) and not os.path.exists(absSrcPath)
+    except:
+        return False
 
 #---------------------------------------
     
@@ -179,10 +198,9 @@ def deleteEntry(absFilePath, recursive=True):
     return False
     
 #-------
-           
             
 def askForValidFileName(base_dir, init_file_name, parent=None):
-    return askForValidEntryName(base_dir, init_file_name, parent)
+    return askForValidEntryName(base_dir, init_file_name, parent=parent, entry_type=ENTRY_TYPE.FILE)
 #    return askForValidEntryName(base_dir=base_dir,
 #                                init_entry_name=init_file_name,
 #                                isValidEntryNameFunc=entry_name_validation.isValidFileName,
@@ -191,7 +209,7 @@ def askForValidFileName(base_dir, init_file_name, parent=None):
 #                                parent=parent)
     
 def askForValidDirectoryName(base_dir, init_dir_name, parent=None):
-    return askForValidEntryName(base_dir, init_dir_name, parent)
+    return askForValidEntryName(base_dir, init_dir_name, parent, entry_type=ENTRY_TYPE.DIRECTORY)
 #    return askForValidEntryName(base_dir=base_dir,
 #                                init_entry_name=init_dir_name,
 #                                isValidEntryNameFunc=entry_name_validation.isValidDirectoryName,
@@ -199,12 +217,12 @@ def askForValidDirectoryName(base_dir, init_dir_name, parent=None):
 #                                entryType='Folder',
 #                                parent=parent)
     
-def askForValidEntryName(base_dir, init_entry_name, parent=None):#isValidEntryNameFunc, invalidEntryNameWarningFunc, entryType='Folder', parent=None):
+def askForValidEntryName(base_dir, init_entry_name, parent=None, entry_type=ENTRY_TYPE.FILE):#isValidEntryNameFunc, invalidEntryNameWarningFunc, entryType='Folder', parent=None):
 #    validatorFunc = lambda dir_name: isValidEntryNameFunc(base_dir, dir_name)
 #    warningFunc   = lambda dir_name: invalidEntryNameWarningFunc(base_dir, dir_name)
 #    message = 'select a %s name:' % entryType.lower()
 #    dlg = input_dialog.InputDialog(message=message, init_val=init_entry_name, validatorFunc=validatorFunc, warningFunc=warningFunc, parent=parent, title='Select a %s Name' % entryType)
-    dlg = ValidEntryNameDialog(init_entry_name, base_dir, parent=parent)
+    dlg = ValidEntryNameDialog(init_entry_name, base_dir, parent=parent, entry_type=entry_type)
     result = dlg.ShowModal()
     if result == wx.ID_OK:
         selectedEntryName = dlg.getText()

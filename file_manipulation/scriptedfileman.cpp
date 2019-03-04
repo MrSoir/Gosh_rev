@@ -130,9 +130,11 @@ void SCRIPTED_FILE_MAN::OpenFilesWith(const std::vector<std::string>& tarFilePat
 void SCRIPTED_FILE_MAN::callScriptProgram(std::string scriptName, QVector<QString> args)
     {
     #ifdef __linux__
-    auto scriptPath =  QString("scripts%1%2.py").arg(QDir::separator())
-                                                .arg(QString::fromStdString(scriptName));
-    STATIC_FUNCTIONS::execPythonScript(scriptPath, args, false, true);
+    auto scriptPath =  QString("scripts%1%2%3").arg(QDir::separator())
+                                                .arg(QString::fromStdString(scriptName))
+                                                .arg(".py");
+    STATIC_FUNCTIONS::execPythonScript(scriptPath, args, true, true);
+//    STATIC_FUNCTIONS::execCommand(scriptPath, args, false, true);
     #elif _WIN32
     auto program = QString("scripts%1%2.exe").arg(QDir::separator())
                                              .arg(QString::fromStdString(scriptName));
