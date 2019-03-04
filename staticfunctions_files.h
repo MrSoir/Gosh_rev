@@ -18,6 +18,9 @@
 #include <unordered_set>
 #include <functional>
 #include <stdlib.h> // rand
+#include <fstream>
+#include <sstream>
+#include <string>
 
 #include "pathmanipulation.h"
 #include "staticfunctions.h"
@@ -99,14 +102,6 @@ namespace STATIC_FUNCTIONS
                                   std::function<bool (const QString &)> stringValidator = [](const QString& s){Q_UNUSED(s)return true;});
 
 //----------------------------------------------------------------------------------
-
-    void ZipFiles(const std::string& targetZipFilePath,
-                  const std::string& zipBaseDirPath,
-                  const std::vector<std::string>& srcFilesToZip);
-    void UnZipFile(const std::string& absZipFilePath,
-                   const std::string& tarExtractionDir = "");
-
-    //---------------------
 
     Process* execPythonScript(const QString& scriptPath,
                               const QVector<QString>& args,

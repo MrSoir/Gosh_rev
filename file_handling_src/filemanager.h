@@ -43,6 +43,7 @@
 #include "file_manipulation/renamefile.h"
 #include "file_manipulation/createfolder.h"
 #include "file_manipulation/createfile.h"
+#include "file_manipulation/scriptedfileman.h"
 
 #include "imageloader.h"
 

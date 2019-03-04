@@ -1,5 +1,6 @@
 #include "staticfunctions_files.h"
 
+
 QThread* STATIC_FUNCTIONS::MAIN_THREAD = nullptr;
 
 unsigned long long STATIC_FUNCTIONS::evaluateFileCount(const std::vector<string> &paths)
@@ -120,57 +121,22 @@ QString STATIC_FUNCTIONS::genStringGetterDialog(const QString &headline,
     return retVal;
 }
 
-//--------------------------------------------------------------------------------------------------
-
-void STATIC_FUNCTIONS::ZipFiles(const string &targetZipFilePath,
-                                const string &zipBaseDirPath,
-                                const std::vector<string> &srcFilesToZip)
-{
-    QString program;
-    QVector<QString> args;
-
-    #ifdef __linux__
-    program = QString("dotnet");
-    args.push_back(QString("scripts%1zip_files.dll").arg(QDir::separator()));
-    #elif _WIN32
-    program =  QString("scripts%1zipFiles.exe").arg(QDir::separator());
-    #else
-    #endif
-    args.push_back(QString::fromStdString(targetZipFilePath));
-    args.push_back(QString::fromStdString(zipBaseDirPath));
-    for(const auto& srcPath: srcFilesToZip)
-    {
-        args.push_back(QString::fromStdString(srcPath));
-    }
-
-    execCommand(program, args, false, true);
-}
-
-void STATIC_FUNCTIONS::UnZipFile(const string &absZipFilePath,
-                                 const string &tarExtractionDir)
-{
-    QString program;
-    QVector<QString> args;
-
-    #ifdef __linux__
-    program = QString("dotnet");
-    args.push_back( QString("scripts%1unzip_file.dll").arg(QDir::separator()));
-    #elif _WIN32
-    program =  QString("scripts%1unZipFile.exe").arg(QDir::separator());
-    #else
-    #endif
-
-    args.push_back(QString::fromStdString(absZipFilePath));
-    if( !tarExtractionDir.empty() )
-    {
-        args.push_back(QString::fromStdString(tarExtractionDir));
-    }
-
-    execCommand(program, args, false, true);
-}
-
-
 //---------------------
+
+std::string getPythonPath()
+{
+    QString python_path_info = QString("resources%1python_path.txt").arg(QDir::separator());
+    std::ifstream infile(python_path_info.toStdString());
+    if(infile)
+    {
+        std::string line;
+        std::getline(infile, line);
+        infile.close();
+        return line;
+    }else{
+        return "";
+    }
+}
 
 Process* STATIC_FUNCTIONS::execPythonScript(const QString &scriptPath,
                                             const QVector<QString> &args,
@@ -183,7 +149,13 @@ Process* STATIC_FUNCTIONS::execPythonScript(const QString &scriptPath,
     for(const auto& arg: args)
         params.push_back( arg );
 
-    return execCommand(QString("scripts%1python").arg(QDir::separator()),
+    auto python_path = getPythonPath();
+    if(python_path.empty())
+    {
+        python_path = "python3";
+    }
+
+    return execCommand(QString::fromStdString(python_path),
                        params,
                        waitForFinished,
                        execute);
@@ -260,6 +232,9 @@ Process* STATIC_FUNCTIONS::execCommand(const QString &program,
         Process* p = new Process();
         p->start(program, params);
         p->waitForFinished(-1);
+        qDebug() << p->readAll();
+        qDebug() << p->readAllStandardError();
+        qDebug() << p->errorString();
         return nullptr;
     }else
     {
@@ -652,9 +627,9 @@ void STATIC_FUNCTIONS::setIconToWidget(QWidget *widget)
     QString windowIconPath = QString("%1%2%3")
             .arg("pics")
             .arg(QDir::separator())
-            .arg("MrSoirIcon.png");
-//            .arg("MrSoir_antique.png");
+            .arg("KubuIcon.png");
     widget->setWindowIcon(QIcon(windowIconPath));
+    widget->setWindowTitle(QString("Kubu"));
 }
 
 void STATIC_FUNCTIONS::setStyleSheet(QWidget *widget)

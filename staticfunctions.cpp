@@ -17,8 +17,10 @@ QFont StaticFunctions::getGoshFont(int fontSize, int weight)
 {
 //    return QFont("Helvetica [Cronyx]", fontSize, weight);
 //    return QFont("FreeMono", fontSize, weight);
-    return QFont("MathJax_Fraktur", fontSize, weight);
-
+//    return QFont("MathJax_Fraktur", fontSize, weight);
+//        return QFont("Purisa", fontSize, weight);
+//        return QFont("Tlwg Mono", fontSize, weight);
+        return QFont("Ubuntu", fontSize, weight);
 }
 
 QColor StaticFunctions::getGoshBlueColor()
@@ -940,9 +942,9 @@ void StaticFunctions::setIconToWidget(QWidget *widget)
     QString windowIconPath = QString("%1%2%3")
             .arg("pics")
             .arg(QDir::separator())
-            .arg("MrSoirIcon.png");
-//            .arg("MrSoir_antique.png");
+            .arg("KubuIcon.png");
     widget->setWindowIcon(QIcon(windowIconPath));
+    widget->setWindowTitle("Kubu");
 }
 
 void StaticFunctions::openTerminal(QString sourceDir)

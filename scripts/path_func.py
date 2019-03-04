@@ -21,6 +21,13 @@ def getExtension(path):
     entry_name_we = entry_name[:len(entry_name) - len(ex_concat)]
     return (base_dir, entry_name_we, ex_concat)
 
+def getFileNameWithoutExtension(path):
+    return getExtension(path)[1]
+
+def getFilePathWithoutExtension(path):
+    base_dir, file_name, ext = getExtension(path)
+    return os.path.join(base_dir, file_name)
+
 def generateUniquePath(path):
     baseDir, entry_name, ext = getExtension(path)
     cntr = 2

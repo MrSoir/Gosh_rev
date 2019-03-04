@@ -333,12 +333,10 @@ void FileInfoBD::close()
 
 void FileInfoBD::closeAbsParent()
 {
-    qDebug() << "searching FiBD-parent...";
     if(m_parent)
     {
         m_parent->closeAbsParent();
     }else{
-        qDebug() << "parent found: " << QString::fromStdString(absPath());
         close();
     }
 }

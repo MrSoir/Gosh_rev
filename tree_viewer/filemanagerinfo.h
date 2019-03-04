@@ -43,6 +43,8 @@ public:
     bool inSearchMode() const;
     bool executingDeepSearch() const;
     bool singleFolderSelected() const;
+    bool singleFileSelected() const;
+    bool singleEntrySelected() const;
     bool foldersSelected() const;
     bool filesSelected() const;
     bool selectionContainsZippedFile() const;

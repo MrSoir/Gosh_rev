@@ -389,8 +389,9 @@ void FileManager::duplicateSelectedContent()
     {
         const auto& sel_entries = m_selector->getSelectedEntries();
         std::vector<std::string> entries_vec(sel_entries.begin(), sel_entries.end());
-        COPY_MOVE::DuplicateFiles* duplicateWorker = new COPY_MOVE::DuplicateFiles(entries_vec);
-        emit addQueueTask(duplicateWorker);
+        SCRIPTED_FILE_MAN::DuplicateFiles(entries_vec);
+//        COPY_MOVE::DuplicateFiles* duplicateWorker = new COPY_MOVE::DuplicateFiles(entries_vec);
+//        emit addQueueTask(duplicateWorker);
     }
 }
 void FileManager::openSelectedContent()
@@ -414,8 +415,9 @@ void FileManager::openSelectedContentWith()
     {
         const auto& sel_entries = m_selector->getSelectedEntries();
         std::vector<std::string> entries_vec(sel_entries.begin(), sel_entries.end());
-        OpenFiles* openFilesWorker = new OpenFiles(entries_vec, true);
-        emit addQueueTask(openFilesWorker);
+        SCRIPTED_FILE_MAN::OpenFilesWith(entries_vec);
+//        OpenFiles* openFilesWorker = new OpenFiles(entries_vec, true);
+//        emit addQueueTask(openFilesWorker);
     }
 }
 
@@ -429,8 +431,9 @@ void FileManager::renameSelectedContent()
             auto lastSelctdEntry = m_selector->getLastSelectedEntry();
             if( !lastSelctdEntry.empty() )
             {
-                RenameFile* openFilesWorker = new RenameFile( lastSelctdEntry );
-                emit addQueueTask(openFilesWorker);
+                SCRIPTED_FILE_MAN::RenameEntry(lastSelctdEntry);
+//                RenameFile* openFilesWorker = new RenameFile( lastSelctdEntry );
+//                emit addQueueTask(openFilesWorker);
             }
         }
     }
@@ -486,8 +489,9 @@ void FileManager::deleteSelectedContent()
     {
         const auto& sel_entries = m_selector->getSelectedEntries();
         std::vector<std::string> entries_vec(sel_entries.begin(), sel_entries.end());
-        COPY_MOVE::DeleteFiles* deleteWorker = new COPY_MOVE::DeleteFiles(entries_vec);
-        emit addQueueTask(deleteWorker);
+        SCRIPTED_FILE_MAN::DeleteFiles(entries_vec);
+//        COPY_MOVE::DeleteFiles* deleteWorker = new COPY_MOVE::DeleteFiles(entries_vec);
+//        emit addQueueTask(deleteWorker);
     }
 }
 
@@ -545,8 +549,9 @@ void FileManager::zipSelectedContent()
             tarPath = PATH::join(tarPath, QString("%1.zip").arg(zipFileBaseName).toStdString());
             tarPath = STATIC_FUNCTIONS::getUniqueFilePath(QString::fromStdString(tarPath)).toStdString();
 
-//            STATIC_FUNCTIONS::ZipFiles(tarPath, sharedBasePath.toStdString(), entries_vec);
-            STATIC_FUNCTIONS::ZipFiles(tarPath, "None", entries_vec);
+            SCRIPTED_FILE_MAN::ZipFiles(entries_vec, tarPath);
+
+//            STATIC_FUNCTIONS::ZipFiles(tarPath, "None", entries_vec);
 
 //            ZIP::ZipFiles* zipWorker = new ZIP::ZipFiles(entries_vec, tarPath);
 //            emit addQueueTask(zipWorker);
@@ -565,7 +570,8 @@ void FileManager::unzipSelectedContent()
         if(!isZipFile)
             return;
 
-        STATIC_FUNCTIONS::UnZipFile(filePathToZip);
+        SCRIPTED_FILE_MAN::UnZipArchive(filePathToZip);
+//        STATIC_FUNCTIONS::UnZipFile(filePathToZip);
 
 //        ZIP::UnZipFile* unzipWorker = new ZIP::UnZipFile(filePathToZip);
 //        emit addQueueTask(unzipWorker);
@@ -575,15 +581,17 @@ void FileManager::unzipSelectedContent()
 void FileManager::createNewFolder()
 {
     std::string baseDir = getBaseDirOfSelection();
-    CreateFolder* createFolderWorker = new CreateFolder(baseDir);
-    emit addQueueTask(createFolderWorker);
+    SCRIPTED_FILE_MAN::CreateFolder(baseDir);
+//    CreateFolder* createFolderWorker = new CreateFolder(baseDir);
+//    emit addQueueTask(createFolderWorker);
 }
 
 void FileManager::createNewFile()
 {
     std::string baseDir = getBaseDirOfSelection();
-    CreateFile* createFileWorker = new CreateFile(baseDir);
-    emit addQueueTask(createFileWorker);
+    SCRIPTED_FILE_MAN::CreateFile(baseDir);
+//    CreateFile* createFileWorker = new CreateFile(baseDir);
+//    emit addQueueTask(createFileWorker);
 }
 
 void FileManager::killCurrentBlockingAction()
@@ -1317,11 +1325,13 @@ void FileManager::copyFiles(std::vector<string> pathsToCopy, string targetPath, 
     if(pathsToCopy.size() > 0 && !targetPath.empty()){
         if(cut)
         {
-            COPY_MOVE::MoveFiles* copyWorker = new COPY_MOVE::MoveFiles(pathsToCopy, targetPath);
-            emit addQueueTask(copyWorker);
+            SCRIPTED_FILE_MAN::MoveFiles(pathsToCopy, targetPath);
+//            COPY_MOVE::MoveFiles* copyWorker = new COPY_MOVE::MoveFiles(pathsToCopy, targetPath);
+//            emit addQueueTask(copyWorker);
         }else{
-            COPY_MOVE::CopyFiles* moveWorker = new COPY_MOVE::CopyFiles(pathsToCopy, targetPath);
-            emit addQueueTask(moveWorker);
+            SCRIPTED_FILE_MAN::CopyFiles(pathsToCopy, targetPath);
+//            COPY_MOVE::CopyFiles* moveWorker = new COPY_MOVE::CopyFiles(pathsToCopy, targetPath);
+//            emit addQueueTask(moveWorker);
         }
     }
 }

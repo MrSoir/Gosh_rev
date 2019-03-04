@@ -32,7 +32,7 @@ OpenWithDialog::OpenWithDialog(std::string fileToOpenPath,
 
     QPushButton* cancelBtn = new QPushButton("cancel");
     connect(cancelBtn, &QPushButton::clicked, this, &OpenWithDialog::close);
-    connect(cancelBtn, &QPushButton::clicked, this, &OpenWithDialog::deleteLater);
+    connect(cancelBtn, &QPushButton::clicked, this, &OpenWithDialog::deleteLater, Qt::QueuedConnection);
 
     QHBoxLayout* btnLyt = new QHBoxLayout();
     btnLyt->addWidget(cancelBtn);

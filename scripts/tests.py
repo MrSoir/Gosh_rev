@@ -10,6 +10,9 @@ Created on Sat Dec 29 21:05:29 2018
 import os
 import os.path
 import zipfile
+from path_func import *
+from path_func import getFilePathWithoutExtension
+
 
 def getEntries(absp):
     entries = list()
@@ -48,8 +51,12 @@ absZipPath = os.path.join(zip_tarDir, zip_name)
 
 entriesToZip = getEntries(zip_srcFilesDir)
 
+archivePath = '/home/hippo/Documents/tests_src/zipped_files/test_zip.zip'
+
 #zipEntries(absZipPath, entriesToZip, srcBaseDir=zip_base)
 iterArchive('/home/hippo/Documents/tests_src/zipped_files/test_zip.zip')
 
+print( getFilePathWithoutExtension(archivePath) )
+print( getFilePathWithoutExtension(zip_srcFilesDir) )
 
 

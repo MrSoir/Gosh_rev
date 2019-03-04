@@ -32,7 +32,7 @@ GraphicsView::GraphicsView(FileManagerInfo* fmi,
         QString cursor_pixmap_path = QString("%1%2%3")
                 .arg("pics")
                 .arg(QDir::separator())
-                .arg("MrSoirIcon_cursor.png");
+                .arg("KubuIcon.png");
         QPixmap cursor_pixmap = QPixmap(cursor_pixmap_path);
 
         QTransform trans;
@@ -785,9 +785,8 @@ void GraphicsView::addContentBar()
         groupingMap[funcId] = 0;
         ++funcId;
     }
-    if(m_fileMangrInfo->singleFolderSelected())
+    if(m_fileMangrInfo->singleEntrySelected())
     {
-
         rename = true;
 
         terminal = true;

@@ -111,7 +111,8 @@ SOURCES += \
     dialogs/openwithgraphicsview.cpp \
     file_handling_src/viewerdata.cpp \
     dialogs/stringgetterdialog.cpp \
-    file_handling_src/imageloader.cpp
+    file_handling_src/imageloader.cpp \
+    file_manipulation/scriptedfileman.cpp
 
 HEADERS += \
          mainwindow.h \
@@ -201,7 +202,8 @@ HEADERS += \
     dialogs/openwithgraphicsview.h \
     file_handling_src/viewerdata.h \
     dialogs/stringgetterdialog.h \
-    file_handling_src/imageloader.h
+    file_handling_src/imageloader.h \
+    file_manipulation/scriptedfileman.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

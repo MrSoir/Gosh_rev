@@ -196,7 +196,16 @@ bool FileManagerInfo::executingDeepSearch() const
 
 bool FileManagerInfo::singleFolderSelected() const
 {
-    return m_foldersSelected;
+    return m_foldersSelected && m_selectionCount == 1;
+}
+bool FileManagerInfo::singleFileSelected() const
+{
+    return !m_foldersSelected && m_selectionCount == 1;
+}
+bool FileManagerInfo::singleEntrySelected() const
+{
+    return ( singleFolderSelected() && !singleFileSelected()) ||
+           (!singleFolderSelected() &&  singleFileSelected());
 }
 
 bool FileManagerInfo::foldersSelected() const
