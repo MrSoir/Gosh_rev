@@ -498,12 +498,42 @@ void deleteTest()
         copyTest();
     });
     df->execute();
+}
 
+void removeSubDirsIfParentDirIsInContainerTest()
+{
+    std::vector<std::string> paths;
+    paths.push_back("/home/hippo/Documents/testDel (105th copy)");
+    paths.push_back("/home/hippo/Documents/testDel (105th copy)/sub_fold/sub_subfold");
+    paths.push_back("/home/hippo/Documents/testDel (104th copy)");
+
+    bool conatinsDuplicates = STATIC_FUNCTIONS::removeSubDirsIfParentDirIsInContainer(paths);
+    qDebug() << "conatinsDuplicates: " << (conatinsDuplicates ? "True" : "False");
+    qDebug() << "paths: ";
+    for(const auto& p: paths){
+        qDebug() << QString::fromStdString(p);
+    }
+    qDebug() << "\n";
+}
+void getDirFromPathTeset(){
+    std::vector<std::string> paths;
+    paths.push_back("/home/hippo/Documents/testDel (105th copy)");
+    paths.push_back("/home/hippo/Documents/testDel (105th copy)/sub_fold/sub_subfold");
+    paths.push_back("/home/hippo/Documents/testDel (104th copy)");
+
+    for(const auto& p: paths){
+        qDebug() << QString::fromStdString(p);
+        qDebug() << PATH::getDirFromPath(p);
+        qDebug();
+    }
 }
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+
+//    getDirFromPathTeset();
+//    removeSubDirsIfParentDirIsInContainerTest();
 
     registerTypes();
 

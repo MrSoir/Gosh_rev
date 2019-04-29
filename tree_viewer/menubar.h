@@ -52,6 +52,7 @@ public:
     GraphicItemsBD::ORIENTATION orientation();
 protected:
     virtual void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
+    virtual void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) override;
     virtual void hoverMoveEvent(QGraphicsSceneHoverEvent* event) override;
     virtual void hoverLeaveEvent(QGraphicsSceneHoverEvent *event) override;
 private:
@@ -71,6 +72,8 @@ private:
 
     std::pair<int,int> evalColumnAndRowDimensions();
 
+    void resetMouseTrackerVectors();
+
 //    ------------------------------------------------------
 
     int m_anzRows = 1;
@@ -84,6 +87,14 @@ private:
     int m_btnsCount = 0;
     std::vector<QRectF> m_buttons = std::vector<QRectF>();
     std::vector<bool> m_mouInBtns = std::vector<bool>();
+    std::vector<bool> m_mouPrsdBtns = std::vector<bool>();
+
+    QColor mouPrsdCol1 = QColor(200, 255, 200, 255);
+    QColor mouPrsdCol2 = QColor(100, 180, 100, 255);
+    QColor mouInCol1 = QColor(255, 255, 255, 255);
+    QColor mouInCol2 = QColor(100, 255, 100, 255);
+    QColor backgrCol1 = QColor(255, 255, 255, 255);
+    QColor backgrCol2 = QColor(255, 255, 255, 255);
 
     std::shared_ptr<DynamicFunctionCaller<QString, std::function<void()>>> m_btnFuncs = std::shared_ptr<DynamicFunctionCaller<QString, std::function<void()>>>();
     std::shared_ptr<DynamicFunctionCaller<QString, std::function<void(QPainter*, QRectF)>>> m_paintingFuncs = std::shared_ptr<DynamicFunctionCaller<QString, std::function<void(QPainter*, QRectF)>>>();

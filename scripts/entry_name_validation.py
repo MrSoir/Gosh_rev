@@ -49,7 +49,7 @@ def invalidFileNameWarning(basename, file_name):
         return "file name must not be empty!"
         
     if os.path.exists(os.path.join(basename, file_name)):
-        return "'%s' does already exist!" % file_name
+        return "file does already exist!"
     
     return 'invalid file name - please select another name!'
 
@@ -58,6 +58,6 @@ def invalidDirectoryNameWarning(basename, dir_name):
         return "folder name must not be empty!"
         
     if os.path.exists(os.path.join(basename, dir_name)):
-        return "'%s' does already exist!" % dir_name
+        return "folder does already exist!"
     
     return 'invalid folder name - please select another name!'

@@ -52,10 +52,10 @@ class ValidEntryNameDialog(sized_controls.SizedDialog):
         vbox = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(vbox)
         
-        msg_vbox = wx.BoxSizer(wx.VERTICAL)
-        self.addMessage('\nPlease select a valid %s name:' % ('file' if isFile else 'folder'), wx.ALIGN_LEFT, msg_vbox, fontSize=20, fontColor=self.FONT_HIGHLIGHT_COLOR, fontWeight=wx.FONTWEIGHT_BOLD)
-        self.addMessage('', wx.ALIGN_CENTER_HORIZONTAL, msg_vbox, fontSize=4)
-        vbox.Add(msg_vbox, 0, wx.ALIGN_CENTER_HORIZONTAL)
+        self.msg_vbox = wx.BoxSizer(wx.VERTICAL)
+        self.message_text = 'Please select a valid %s name:' % ('file' if isFile else 'folder')
+        self.createMessageLabels()
+        vbox.Add(self.msg_vbox, 0, wx.ALIGN_CENTER_HORIZONTAL)
         
         #--------------------------
         
@@ -65,10 +65,9 @@ class ValidEntryNameDialog(sized_controls.SizedDialog):
         
         warning_vbox = wx.BoxSizer(wx.VERTICAL)
         self.addMessage('', wx.ALIGN_CENTER_HORIZONTAL, warning_vbox, fontSize=4)
-        self.warningLabel = self.addMessage('', wx.ALIGN_LEFT, warning_vbox, fontSize=15, fontColor=self.FONT_WARNING_COLOR, fontWeight=wx.FONTWEIGHT_BOLD)
+        self.warningLabel = self.addMessage('--', wx.ALIGN_LEFT, warning_vbox, fontSize=15, fontColor=self.FONT_WARNING_COLOR, fontWeight=wx.FONTWEIGHT_BOLD)
         self.addMessage('', wx.ALIGN_CENTER_HORIZONTAL, warning_vbox, fontSize=20)
         vbox.Add(warning_vbox, 0, wx.ALIGN_CENTER_HORIZONTAL)
-        
         
         #--------------------------
         
@@ -88,6 +87,7 @@ class ValidEntryNameDialog(sized_controls.SizedDialog):
         self.SetBackgroundColour(wx.Colour(255,255,255, 0))
         pane.SetBackgroundColour(wx.Colour(255,255,255, 0))
         
+        self.disableOkBtnIfInputInvalid = True
         self.validateUserInput()
 
         vbox.FitInside(self)
@@ -95,18 +95,35 @@ class ValidEntryNameDialog(sized_controls.SizedDialog):
         
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         
+    def setMessage(self, msg):
+        if msg:
+            self.message_text = msg
+            self.msg_label.SetLabel(self.message_text)
+        
+    def createMessageLabels(self):
+        self.addMessage('', wx.ALIGN_CENTER_HORIZONTAL, self.msg_vbox, fontSize=20)
+        self.msg_label = self.addMessage(self.message_text, wx.ALIGN_LEFT, self.msg_vbox, fontSize=20, fontColor=self.FONT_HIGHLIGHT_COLOR, fontWeight=wx.FONTWEIGHT_BOLD)
+        self.addMessage('', wx.ALIGN_CENTER_HORIZONTAL, self.msg_vbox, fontSize=4)
+        
+    def disableOkBtnIfInputInvalid(self):
+        self.disableOkBtnIfInputInvalid = True
+        self.validateUserInput()
+    def enableOkBtnIfInputInvalid(self):
+        self.disableOkBtnIfInputInvalid = False
+        self.validateUserInput()
+        
     def validateUserInput(self):
         user_input = self.getText()
         isValid = self.validatorFunc(self.entry_baseDir, user_input)
-        self.okBtn.Enable() if isValid else self.okBtn.Disable()
+        self.okBtn.Enable() if isValid or not self.disableOkBtnIfInputInvalid else self.okBtn.Disable()
         if isValid:
             self.warningLabel.SetLabel("")
-            self.warningLabel.Disable()
-            self.warningLabel.Hide()
+#            self.warningLabel.Enable()
+#            self.warningLabel.Hide()
         else:
             self.warningLabel.SetLabel( self.warningFunc(self.entry_baseDir, user_input) )
-            self.warningLabel.Enable()
-            self.warningLabel.Show()
+#            self.warningLabel.Enable()
+#            self.warningLabel.Show()
             
     def getText(self):
         return self.text_ctrl.GetValue().strip()

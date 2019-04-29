@@ -439,7 +439,7 @@ void STATIC_FUNCTIONS::openTerminal(QString sourceDir)
         proc->setWorkingDirectory(sourceDir);
         proc->start("cmd.exe");
     }else
-        throw "STATIC_FUNCTIONS::openTerminal -> OS not supported!";
+        qDebug() << "STATIC_FUNCTIONS::openTerminal -> OS not supported!";
 }
 
 //--------------------------------------------------------------------------------------------------

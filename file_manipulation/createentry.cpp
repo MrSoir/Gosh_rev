@@ -91,7 +91,9 @@ std::function<bool (const QString &txt)> CreateEntry::getValidator()
             return !txt.contains('/');
         };
     }else{
-        throw "CreateEntry::getValidator -> unsorrported os!";
+        const std::string msg = "CreateEntry::getValidator -> unsorrported os!";
+        qDebug() << QString::fromStdString(msg) << "    -> throwing exception!";
+        throw std::runtime_error(msg);
     }
 }
 

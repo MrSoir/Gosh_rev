@@ -14,6 +14,7 @@ MenuBar::MenuBar(qreal maxWidthOrHeight,
       m_orientation(orientation)
 {
 //    qDebug() << "MenuBar::Constructor";
+    resetMouseTrackerVectors();
     revalidateSize();
 }
 
@@ -108,9 +109,11 @@ void MenuBar::setCaller(std::shared_ptr<DynamicFunctionCaller<QString, std::func
     m_btnsCount = btnFunctions->formulaCount();
     m_buttons.clear();
     m_mouInBtns.clear();
+    m_mouPrsdBtns.clear();
     for(int i=0; i < m_btnsCount; i++){
         m_buttons.push_back(QRectF(0.,0., 0.,0.));
         m_mouInBtns.push_back(false);
+        m_mouPrsdBtns.push_back(false);
     }
 
     revalGroupMap();
@@ -245,12 +248,16 @@ void MenuBar::paint(QPainter *painter, const QStyleOptionGraphicsItem *option, Q
     }
     for(std::size_t i=0; i < m_buttons.size(); i++){
         QColor nextColor1, nextColor2;
-        if(m_mouInBtns[i]){
-            nextColor1 = QColor(255, 255, 255, 255);
-            nextColor2 = QColor(100, 255, 100, 255);
+        if(m_mouPrsdBtns[i])
+        {
+            nextColor1 = mouPrsdCol1;
+            nextColor2 = mouPrsdCol2;
+        }else if(m_mouInBtns[i]){
+            nextColor1 = mouInCol1;
+            nextColor2 = mouInCol2;
         }else{
-            nextColor1 = QColor(255, 255, 255, 255);
-            nextColor2 = QColor(255, 255, 255, 255);
+            nextColor1 = backgrCol1;
+            nextColor2 = backgrCol2;
         }
         StaticFunctions::paintRect(painter, m_buttons[i], nextColor1, nextColor2);
         m_paintingFuncs->getFunction(QString("paintingFunction%1").arg(i))(painter, m_buttons[i]);
@@ -272,10 +279,15 @@ GraphicItemsBD::ORIENTATION MenuBar::orientation(){return m_orientation;}
 
 void MenuBar::mousePressEvent(QGraphicsSceneMouseEvent *event){
     QPointF mouP = event->pos();
+    for(std::size_t i=0; i < m_mouPrsdBtns.size(); ++i)
+    {
+        m_mouPrsdBtns[i] = false;
+    }
     for(std::size_t i=0; i < m_buttons.size(); i++){
         auto rct = m_buttons[i];
         if(rct.contains(mouP) && m_btnFuncs){
             m_btnFuncs->getFunction(QString("buttonFunction%1").arg(i))();
+            m_mouPrsdBtns[i] = true;
             break;
         }
     }
@@ -284,11 +296,20 @@ void MenuBar::mousePressEvent(QGraphicsSceneMouseEvent *event){
 
     }
     lastTmePrsd = curTime;
-//    update();
+    update();
+}
+
+void MenuBar::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
+{
+    Q_UNUSED(event)
+    for(std::size_t i=0; i < m_mouPrsdBtns.size(); ++i)
+    {
+        m_mouPrsdBtns[i] = false;
+    }
+    update();
 }
 void MenuBar::hoverMoveEvent(QGraphicsSceneHoverEvent * event){
     QPointF mouP = event->pos();
-    bool anyBtnTrue = false;
     bool updt = false;
     for(std::size_t i=0; i < m_buttons.size(); i++){
         if(m_buttons.at(i).contains(mouP)){
@@ -298,14 +319,11 @@ void MenuBar::hoverMoveEvent(QGraphicsSceneHoverEvent * event){
             }
         }else{
             if(m_mouInBtns.at(i))
-                anyBtnTrue = true;
+            {
+                m_mouInBtns[i] = false;
+                updt = true;
+            }
         }
-    }
-    if(anyBtnTrue){
-        for(std::size_t i=0; i < m_buttons.size(); i++){
-            m_mouInBtns[i] = false;
-        }
-        updt = true;
     }
     if(updt)
         update();
@@ -493,6 +511,18 @@ std::pair<int, int> MenuBar::evalColumnAndRowDimensions()
                 return std::pair<int,int>(anzRows, anzColumns);
             }
         }
+    }
+}
+
+void MenuBar::resetMouseTrackerVectors()
+{
+    for(std::size_t i=0; i < m_mouInBtns.size(); ++i)
+    {
+        m_mouInBtns[i] = false;
+    }
+    for(std::size_t i=0; i < m_mouPrsdBtns.size(); ++i)
+    {
+        m_mouPrsdBtns[i] = false;
     }
 }
 

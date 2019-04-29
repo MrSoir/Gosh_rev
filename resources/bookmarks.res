@@ -2,3 +2,5 @@
 /home/hippo/Documents/BlockChain
 /home
 /home/hippo/workspace_VSCode/workspace_C#
+/home/hippo/Software
+/home/hippo/workspace_bluefish

@@ -7,6 +7,8 @@
 #include <QDir>
 #include <QDebug>
 
+#include <stdexcept>
+
 namespace PATH
 {
     QString trimPathSeparatorLeft(const QString& path);

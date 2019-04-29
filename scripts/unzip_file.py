@@ -21,7 +21,9 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
 import static_functions
 from static_functions import UserAnswer
-                                    
+
+from valid_entry_name_dialog import ValidEntryNameDialog, ENTRY_TYPE
+
 import threadsafeDialogCreator as DialgCrtr
 from   threadsafeDialogCreator import EVT_DIALOG_REQUEST
 
@@ -46,13 +48,18 @@ class UnZipFiles(Worker):
         self.absTarZipFilePath = absTarZipFilePath
         # folgende zeile bewirkt, dass die archive-datei in einem unterornder mit demselben namen wie die archive-datei
         # (aber ohne file-extension) erstellt wird, falls tarExtractDir=None:
-        self.tarExtractDir = tarExtractDir if tarExtractDir else getFilePathWithoutExtension(absTarZipFilePath)
-
+        self.tarExtractDir = tarExtractDir if tarExtractDir else self.askForValidTarExtractionDir()
+        
+        if not self.tarExtractDir:
+            self.cancel()
+            return
+        
         self.pswrd = pwd
         self.isPwdProtected = False
         
         if not self.createTarDirIfNotExistent() or not self.openArchive():
             self.cancel()
+            return
         else:
             self.checkForPassword()
             self.generateWorkers()
@@ -60,6 +67,24 @@ class UnZipFiles(Worker):
         self._post__init__()
         
         self.name = "UnZipFiles"
+        
+    def askForValidTarExtractionDir(self):
+        pathNoExt = getFilePathWithoutExtension(self.absTarZipFilePath)
+        base_dir = os.path.dirname(pathNoExt)
+        init_entry_name = os.path.basename(pathNoExt)
+        dlg = ValidEntryNameDialog(init_entry_name, base_dir, parent=self.progress_dialog, entry_type=ENTRY_TYPE.DIRECTORY)
+        dlg.setMessage('please select the extraction folder:')
+        # der user soll auch directories als extration-target auswaehlen koennen, die bereits existieren. kann unter umstaenden
+        # explizit vom user gewollt sein:
+        dlg.enableOkBtnIfInputInvalid()
+        result = dlg.ShowModal()
+        if result == wx.ID_OK:
+            selectedEntryName = dlg.getText()
+            return os.path.join(base_dir, selectedEntryName)
+        elif result == wx.ID_CANCEL:
+            return None
+        else:
+            return None
         
         
     def createTarDirIfNotExistent(self):
@@ -286,9 +311,11 @@ def main():
     print('source: ', source)
     print('target: ', target)
     
-    pf = ProgressFrame(None, title='Copy Files')
+    pf = ProgressFrame(None, title='Unzip Archive')
     
     worker = UnZipFiles(source, target, progress_dialog=pf)
+    if worker.cancelled():
+        return
     pf.setWorker(worker)
     
     pf.Show()

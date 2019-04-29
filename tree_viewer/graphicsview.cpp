@@ -310,7 +310,9 @@ void GraphicsView::keyPressEvent(QKeyEvent *event)
         }
     }
     else if(event->key() == Qt::Key_Delete){
-        emit deleteSelectedContent();
+        if(m_fileMangrInfo->selectionCount() > 0){
+            this->deleteEntryDialog();
+        }
     }
 
     if( !contrlPrsd && !shiftPrsd )
@@ -653,7 +655,7 @@ void GraphicsView::executeFileAction(FILE_ACTION::Action action)
             emit openSelectedContentWith();
             break;
         case FILE_ACTION::Action::DELETE:
-            emit deleteSelectedContent();
+            this->deleteEntryDialog();
             break;
         case FILE_ACTION::Action::ZIP:
             emit zipSelectedContent();
@@ -1500,7 +1502,40 @@ void GraphicsView::sortAllFoldersDialog()
         });
         connect(cancelBtn, &QPushButton::clicked, dialog, &QDialog::close);
 
-        dialog->exec();
+        dialog->show();
+}
+
+void GraphicsView::deleteEntryDialog()
+{
+    QLabel* warningMsgLbl = new QLabel();
+    QString marningMsg = QString("Do you really want to delete the selected entry%1?").arg(m_fileMangrInfo->singleEntrySelected() ? "" : "s");
+    warningMsgLbl->setText(marningMsg);
+
+    QPushButton* okBtn = new QPushButton(QString("yes"));
+    QPushButton* cancelBtn = new QPushButton(QString("cancel"));
+
+    QHBoxLayout* hBox = new QHBoxLayout();
+    hBox->addWidget(okBtn);
+    hBox->addWidget(cancelBtn);
+
+    QVBoxLayout* lay = new QVBoxLayout();
+    lay->addWidget(warningMsgLbl);
+    lay->addLayout(hBox);
+
+    QDialog* dialog = new QDialog();
+    dialog->setModal(true);
+    dialog->setLayout(lay);
+    dialog->setFixedSize(QSize(400,80));
+
+    connect(okBtn, &QPushButton::clicked,
+            [=](){
+        dialog->close();
+
+        emit deleteSelectedContent();
+    });
+    connect(cancelBtn, &QPushButton::clicked, dialog, &QDialog::close);
+
+    dialog->show();
 }
 
 void GraphicsView::createNewFolder()

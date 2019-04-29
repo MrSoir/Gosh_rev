@@ -109,7 +109,7 @@ QString PATH::getJointBasePath(const QString& path1,
     {
         return base1;
     }
-    int cntr = 0;
+//    int cntr = 0;
     while(base1 != base2 || base1.isEmpty())
     {
         QString new_base1 = getBasePath(base1);
@@ -160,8 +160,12 @@ QString PATH::getDirFromPath(const QFileInfo &fi)
         return fi.absoluteFilePath();
     else if (fi.isFile())
         return fi.dir().absolutePath();
-    else // dann lief wohl was schief....
-        throw "PATH::getDirFromPath -> absPath is neither a folder nor a file!";
+    else{
+        // kann passieren, wenn z.B: auf zielsystem file/dir bereits geloescht wurde.
+        // Frage: was tun? kann nun nicht mehr herausgefunden wernden, ob entry ein dir oder file war
+        // -> dann einfach path direkt so zurueckgeben. Wenn pfad nicht existiert, tendentiell egal
+        return fi.absoluteFilePath();
+    }
 }
 QString PATH::getDirFromPath(const QString &absPath)
 {

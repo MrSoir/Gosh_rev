@@ -351,7 +351,7 @@ void FileInfoBD::close_hlpr()
         sub_folds.push_back(sub_fold);
     }
 
-    clearContainers(true);
+    clearContainers(false);
 
     while(sub_folds.size() > 0)
     {
@@ -998,6 +998,10 @@ void FileInfoBD::revalFolderContent()
 
     if(deletedDirs.size() > 0)
     {
+        qDebug() << "requesting closing:";
+        for(auto de: deletedDirs){
+            qDebug() << de->toString();
+        }
         emit requestClosing(deletedDirs);
     }
 
@@ -1156,6 +1160,11 @@ FiBDDeletor& FiBDDeletor::operator=(const FiBDDeletor &toCopy)
 FiBDDeletor::~FiBDDeletor()
 {
     qDebug() << "~FiBDDeletor";
+}
+
+QString FiBDDeletor::toString()
+{
+    return QString::fromStdString(m_fiBD->absPath());
 }
 
 void FiBDDeletor::execute_deletion()

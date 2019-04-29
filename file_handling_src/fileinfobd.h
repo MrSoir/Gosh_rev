@@ -39,6 +39,8 @@ public:
 
     virtual ~FiBDDeletor() override;
 
+    QString toString();
+
     FileInfoBD* m_fiBD;
 
 public slots:

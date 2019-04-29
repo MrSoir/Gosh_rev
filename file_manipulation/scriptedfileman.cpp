@@ -133,7 +133,7 @@ void SCRIPTED_FILE_MAN::callScriptProgram(std::string scriptName, QVector<QStrin
     auto scriptPath =  QString("scripts%1%2%3").arg(QDir::separator())
                                                 .arg(QString::fromStdString(scriptName))
                                                 .arg(".py");
-    STATIC_FUNCTIONS::execPythonScript(scriptPath, args, true, true);
+    STATIC_FUNCTIONS::execPythonScript(scriptPath, args, false, true);
 //    STATIC_FUNCTIONS::execCommand(scriptPath, args, false, true);
     #elif _WIN32
     auto program = QString("scripts%1%2.exe").arg(QDir::separator())

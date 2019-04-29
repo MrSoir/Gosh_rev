@@ -20,7 +20,9 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 
 import static_functions
 from static_functions import UserAnswer
-                                    
+
+from valid_entry_name_dialog import ValidEntryNameDialog, ENTRY_TYPE
+
 import threadsafeDialogCreator as DialgCrtr
 from   threadsafeDialogCreator import EVT_DIALOG_REQUEST
 
@@ -39,10 +41,21 @@ class ZipFiles(Worker):
         super().__init__(progress_dialog)
         print('in ZipFiles-constructor!')
         
+        self.absTarZipFilePath = absTarZipFilePath
+        
         tarZipFileBaseDir = os.path.dirname(absTarZipFilePath)
+        
+        self.absTarZipFilePath = absTarZipFilePath
+
+        validZipFileName = self.askForValidZipFilePath();
+        if not validZipFileName:
+            self.cancel()
+            return
+        self.absTarZipFilePath = os.path.join(tarZipFileBaseDir, validZipFileName)
         
         zipCreatorWorker = WorkerDirEntry.createWorkerDirFromPath(absTarZipFilePath,\
                                                                   tarBaseDir=tarZipFileBaseDir,\
+                                                                  tarEntryName=validZipFileName,\
                                                                   processFunc=lambda absSrcPath,\
                                                                   absTarPath: self.createArchive(absTarPath),\
                                                                   recursive=False)
@@ -52,12 +65,24 @@ class ZipFiles(Worker):
         self.srcBaseDirs = dict()
         for source_path in source_paths:
             self.createWorkerFromSrcPath(source_path)
-        
-        self.absTarZipFilePath = absTarZipFilePath
                 
         self._post__init__()
         
         self.name = "ZipFiles"
+        
+    def askForValidZipFilePath(self):
+        base_dir = os.path.dirname(self.absTarZipFilePath)
+        init_entry_name = os.path.basename(self.absTarZipFilePath)
+        dlg = ValidEntryNameDialog(init_entry_name, base_dir, parent=self.progress_dialog, entry_type=ENTRY_TYPE.FILE)
+        dlg.setMessage('please select a Zip-filename:')
+        result = dlg.ShowModal()
+        if result == wx.ID_OK:
+            selectedEntryName = dlg.getText()
+            return selectedEntryName
+        elif result == wx.ID_CANCEL:
+            return None
+        else:
+            return None
         
     def createWorkerFromSrcPath(self, source_path):
         if os.path.exists(source_path):
@@ -114,7 +139,7 @@ class ZipFiles(Worker):
 def main():
     parser = argparse.ArgumentParser()
 #    parser.add_argument("-b", "--base_dir", help="base-target-directory: destination folder to copy files to")
-    parser.add_argument("-s", "--sources", help="source paths of the files to copy", nargs="*", required=True)
+    parser.add_argument("-s", "--sources", help="source paths of the files to zip", nargs="*", required=True)
     parser.add_argument("-t", "--target", help="target zip file path", required=True)
     args = parser.parse_args()
         
@@ -139,9 +164,11 @@ def main():
     print('sources: ', sources)
     print('target: ', target)
     
-    pf = ProgressFrame(None, title='Copy Files')
+    pf = ProgressFrame(None, title='Zip Files')
     
     worker = ZipFiles(sources, target, pf)
+    if worker.cancelled():
+        return
     pf.setWorker(worker)
     
     pf.Show()

@@ -18,9 +18,9 @@ QFont StaticFunctions::getGoshFont(int fontSize, int weight)
 //    return QFont("Helvetica [Cronyx]", fontSize, weight);
 //    return QFont("FreeMono", fontSize, weight);
 //    return QFont("MathJax_Fraktur", fontSize, weight);
-//        return QFont("Purisa", fontSize, weight);
+        return QFont("Purisa", fontSize, weight);
 //        return QFont("Tlwg Mono", fontSize, weight);
-        return QFont("Ubuntu", fontSize, weight);
+//        return QFont("Ubuntu", fontSize, weight);
 }
 
 QColor StaticFunctions::getGoshBlueColor()

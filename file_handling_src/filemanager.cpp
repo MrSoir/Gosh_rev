@@ -547,7 +547,8 @@ void FileManager::zipSelectedContent()
 
 
             tarPath = PATH::join(tarPath, QString("%1.zip").arg(zipFileBaseName).toStdString());
-            tarPath = STATIC_FUNCTIONS::getUniqueFilePath(QString::fromStdString(tarPath)).toStdString();
+            qDebug() << "tarZipFilePath: " << QString::fromStdString(tarPath);
+//            tarPath = STATIC_FUNCTIONS::getUniqueFilePath(QString::fromStdString(tarPath)).toStdString();
 
             SCRIPTED_FILE_MAN::ZipFiles(entries_vec, tarPath);
 

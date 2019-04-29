@@ -3,6 +3,7 @@
 DirManagerQueue::DirManagerQueue(QObject *parent)
     : QObject(parent),
       m_workersRunning(0),
+      m_blockingWorkerIsRunning(false),
       m_workersToRun(std::vector<DirManagerWorker*>()),
       m_closed(false)
 {
@@ -22,7 +23,9 @@ void DirManagerQueue::addWorker(DirManagerWorker* worker)
     }else{
         m_workersToRun.push_back(worker);
 
-        startWorkersInQueue();
+        if( !m_blockingWorkerIsRunning ){
+            startWorkersInQueue();
+        }
     }
 }
 
@@ -30,11 +33,19 @@ void DirManagerQueue::workerFinished(bool revalidateDirStructureAfterWorkerHasFi
 {
     --m_workersRunning;
 
+    if(m_workersRunning <= 0){
+        m_blockingWorkerIsRunning = false;
+    }
+
     if(m_closed)
     {
         if(m_workersRunning <= 0)
             cleanUp();
     }else{
+        if(m_blockingWorkerIsRunning){
+            return;
+        }
+
         if(revalidateDirStructureAfterWorkerHasFinished)
         {
             emit revalidateDirStructure();
@@ -121,6 +132,11 @@ void DirManagerQueue::launchWorker(DirManagerWorker* worker)
     if(worker)
     {
         ++m_workersRunning;
+
+        if( worker->blockOtherThreads() ){
+            m_blockingWorkerIsRunning = true;
+        }
+
         connect(worker, &DirManagerWorker::finished, this, &DirManagerQueue::workerFinished, Qt::QueuedConnection);
         connect(this, &DirManagerQueue::killWorkers, worker, &DirManagerWorker::cancel, Qt::QueuedConnection);
         worker->start();

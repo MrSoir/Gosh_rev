@@ -266,6 +266,8 @@ private:
 
     void sortAllFoldersDialog();
 
+    void deleteEntryDialog();
+
     void createNewFolder();
     void createNewFile();
 

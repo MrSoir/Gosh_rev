@@ -59,6 +59,8 @@ namespace GraphicItemsBD
         virtual void hoverEnterEvent(QGraphicsSceneHoverEvent *event) override;
         virtual void hoverLeaveEvent(QGraphicsSceneHoverEvent *event) override;
         virtual void hoverMoveEvent(QGraphicsSceneHoverEvent * event) override;
+
+        void setClickColourEnabled(bool enabled);
 //    signals:
 //        void clicked();
     private:
@@ -71,6 +73,7 @@ namespace GraphicItemsBD
 
         bool mouIn = false;
         bool mouClick = false;
+        bool clickColourEnabled = true; // if false, there is no visual feedback when the user clicks the ButtonBD (sometimes needed to avoid a frozen clicked button...)
         std::function<void()> m_callFunc;
 
         qint64 lastTmePrsd = QDateTime::currentMSecsSinceEpoch();
@@ -79,22 +82,25 @@ namespace GraphicItemsBD
     class TextRect : public ButtonBD{
     public:
         explicit TextRect(QString str,
-                 const QSize& size,
-                 const QPoint& pos,
-                 const QColor& gradCol1,
-                 const QColor& gradCol2,
-                 const QColor& selectionCol1 = QColor(200,255,200, 255),
-                 const QColor& selectionCol2 = QColor(200,255,200, 255),
-                 const QColor& textCol = QColor(0,0,0),
-                 QGraphicsItem* parent = nullptr);
+                         const QSize& size,
+                         const QPoint& pos,
+                         const QColor& gradCol1,
+                         const QColor& gradCol2,
+                         const QColor& selectionCol1 = QColor(200,255,200, 255),
+                         const QColor& selectionCol2 = QColor(200,255,200, 255),
+                         const QColor& textCol = QColor(0,0,0),
+                         QGraphicsItem* parent = nullptr);
 
         virtual ~TextRect() override;
 
         void setFont(const QFont& font);
         QFont font() const;
 
-        void setText(QString str, int paddingX = 2, int paddingY = 2);
+        void setText(QString str);
         void setTextColor(QColor textCol);
+
+        void setPadding(int left, int right, int top, int bottom);
+        void setBorderColor(QColor col);
 
         void revalidateSize(float paddingX = 2, float paddingY = 2) override;
 
@@ -103,6 +109,8 @@ namespace GraphicItemsBD
         QString m_str;
         QColor m_textCol;
         QFont m_font;
+        QVector<int> m_padding;
+        QColor m_boderCol = QColor(0,0,0, 100);
     };
 
     class PixmapRect : public ButtonBD{

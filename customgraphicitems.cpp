@@ -108,7 +108,10 @@ void GraphicItemsBD::ButtonBD::mousePressEvent(QGraphicsSceneMouseEvent *event){
     if(m_callFunc)
         m_callFunc();
 
-    mouClick = true;
+    if(clickColourEnabled)
+    {
+        mouClick = true;
+    }
 
     update();
 
@@ -136,6 +139,11 @@ void GraphicItemsBD::ButtonBD::hoverMoveEvent(QGraphicsSceneHoverEvent * event){
     Q_UNUSED(event)
 }
 
+void GraphicItemsBD::ButtonBD::setClickColourEnabled(bool enabled)
+{
+    clickColourEnabled = enabled;
+}
+
 
 GraphicItemsBD::TextRect::TextRect(QString str,
                                    const QSize& size,
@@ -149,14 +157,19 @@ GraphicItemsBD::TextRect::TextRect(QString str,
     : ButtonBD(size, pos, gradCol1, gradCol2, selectionCol1, selectionCol2, parent),
       m_str(str),
       m_textCol(textCol),
-      m_font(StaticFunctions::getGoshFont())
+      m_font(StaticFunctions::getGoshFont()),
+      m_padding(QVector<int>())
 {
+    for(int i=0; i < 4; ++i)
+    {
+        m_padding.push_back(0);
+    }
 //        setAcceptHoverEvents(true); // wird in base-class ButtonBD schon gemacht
     revalidateSize();
 }
 GraphicItemsBD::TextRect::~TextRect()
 {
-//    qDebug() << "in TextRect.DEstructor";
+    //    qDebug() << "in TextRect.DEstructor";
 }
 
 void GraphicItemsBD::TextRect::setFont(const QFont &font)
@@ -169,10 +182,10 @@ QFont GraphicItemsBD::TextRect::font() const
     return m_font;
 }
 
-void GraphicItemsBD::TextRect::setText(QString str, int paddingX, int paddingY)
+void GraphicItemsBD::TextRect::setText(QString str)
 {
     m_str = str;
-    revalidateSize(paddingX, paddingY);
+    revalidateSize();
 }
 
 void GraphicItemsBD::TextRect::setTextColor(QColor col)
@@ -181,11 +194,29 @@ void GraphicItemsBD::TextRect::setTextColor(QColor col)
     update();
 }
 
+void GraphicItemsBD::TextRect::setPadding(int left, int right, int top, int bottom)
+{
+    m_padding.clear();
+    m_padding.push_back(left);
+    m_padding.push_back(right);
+    m_padding.push_back(top);
+    m_padding.push_back(bottom);
+    revalidateSize();
+}
+
+void GraphicItemsBD::TextRect::setBorderColor(QColor col)
+{
+    m_boderCol = col;
+    update();
+}
+
 void GraphicItemsBD::TextRect::revalidateSize(float paddingX, float paddingY)
 {
+    Q_UNUSED(paddingX)
+    Q_UNUSED(paddingY)
     QFontMetrics fm(m_font);
-    auto width = fm.width(m_str) + paddingX;
-    auto height = fm.height() + paddingY;
+    auto width = fm.width(m_str) + m_padding[0] + m_padding[1];
+    auto height = fm.height() + m_padding[2] + m_padding[3];
     setSize( QSize(static_cast<int>(width), static_cast<int>(height)) );
     revalidate = true;
     update();
@@ -221,10 +252,11 @@ void GraphicItemsBD::TextRect::paint(QPainter *painter, const QStyleOptionGraphi
         }
     }else{
         StaticFunctions::paintTextRect(painter, m_str,
-                      rct,
-                      QColor(0,0,0, 0), QColor(0,0,0, 0),
-                      m_textCol,
-                      m_font);
+                                       rct,
+                                       QColor(0,0,0, 0), QColor(0,0,0, 0),
+                                       m_textCol,
+                                       m_font,
+                                       m_boderCol);
     }
 
 

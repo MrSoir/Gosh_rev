@@ -58,7 +58,9 @@ void DirectorySelectorDialog::paintEvent(QPaintEvent *event)
     gradient.setColorAt(1, QColor(220,220,255, 150));
     painter->fillRect(rct, gradient);
 
-//    painter->end();
+    painter->end();
+
+    delete painter;
 }
 
 

@@ -401,17 +401,17 @@ void DirManager::delete_hlpr(std::vector<string> pathsToDelete)
 
 void DirManager::delete_hlpr(std::vector<FiBDDeletor*> dirsToDelete)
 {
+    qDebug() << "DirManager::delete_hlpr - deleting " << dirsToDelete.size() << " dirs";
     if(dirsToDelete.size()){
-//        qDebug() << "delete_hlpr: dirsToDelete: " << dirsToDelete.size();
-//        for(auto* deletor: dirsToDelete)
-//        {
-//            qDebug() << "deletor: " << QString::fromStdString(deletor->m_fiBD->absPath());
-//        }
+        qDebug() << "delete_hlpr: dirsToDelete: " << dirsToDelete.size();
+        for(auto* deletor: dirsToDelete)
+        {
+            qDebug() << "deletor: " << QString::fromStdString(deletor->m_fiBD->absPath());
+        }
         for(auto* dirDeletor: dirsToDelete)
         {
             disconnectDir(dirDeletor->m_fiBD);
         }
-
         DirDeleteWorker* worker = new DirDeleteWorker(dirsToDelete);
         emit addWorker(worker);
     }

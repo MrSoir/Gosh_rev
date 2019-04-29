@@ -80,7 +80,7 @@ bool DirectorySelectionPane::isBlocked()
     return m_blockButtons;
 }
 
-GraphicItemsBD::TextRect* genTextRect(QString str, QPoint pos = QPoint(0,0))
+GraphicItemsBD::TextRect *DirectorySelectionPane::genTextRect(QString str, QPoint pos)
 {
     QFontMetrics fm(StaticFunctions::getGoshFont());
     QSize size(fm.width(str), fm.height());
@@ -92,6 +92,8 @@ GraphicItemsBD::TextRect* genTextRect(QString str, QPoint pos = QPoint(0,0))
                                     QColor(230,230,255, 255),
                                     QColor(230,230,255, 255)
                                   );
+    tr->setBorderColor(QColor(0, 0, 0, 100));
+    tr->setPadding(m_horRectPadding, m_horRectPadding,0,0);
     return tr;
 }
 
@@ -133,6 +135,7 @@ void DirectorySelectionPane::rePaintCanvas()
                 }
             }
     );
+    dirGItms[0]->setClickColourEnabled(false);
     m_scene->addItem( dirGItms[0] );
     for(std::size_t i=0; i < m_cur_displd_folders.size(); ++i)
     {
@@ -199,7 +202,7 @@ void DirectorySelectionPane::addDirGI(const QDir &dir, QVector<GraphicItemsBD::T
     QString rootName = (dir.isRoot() && dir.dirName().isEmpty()) ? QString("root") : dir.dirName();
 
     GraphicItemsBD::TextRect* tr = genTextRect( rootName );
-    tr->setText( rootName, 4 );
+    tr->setText( rootName );
     tr->setFont(StaticFunctions::getGoshFont(8, QFont::Normal));
     tr->setCallFunction(
                     [=](){

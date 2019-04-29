@@ -55,6 +55,8 @@ private:
 
     bool isBlocked();
 
+    GraphicItemsBD::TextRect* genTextRect(QString str, QPoint pos = QPoint(0,0));
+
 //    ------------------------------------
 
     QDir m_folder;
@@ -65,6 +67,7 @@ private:
     QGraphicsScene* m_scene;
 
     bool m_blockButtons;
+    int m_horRectPadding = 6;
 };
 
 #endif // DIRECTORYSELECTIONPANE_H

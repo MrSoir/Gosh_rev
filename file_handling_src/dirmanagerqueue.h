@@ -41,6 +41,7 @@ private:
     //---------------------------------------------------
 
     int m_workersRunning;
+    bool m_blockingWorkerIsRunning;
     std::vector<DirManagerWorker*> m_workersToRun;
 
     bool m_closed = false;
